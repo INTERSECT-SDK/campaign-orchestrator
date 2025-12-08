@@ -19,7 +19,7 @@ def main() -> None:
     else:
         reload_str = ', server will reload on file changes' if settings.SERVER_WORKERS == 1 else ''
         logger.info('Running DEVELOPMENT server at %s%s', url, reload_str)
-        logger.info('View docs at %s/api/docs', url)
+        logger.info('View docs at %s/docs', url)
 
     uvicorn.run(
         'intersect_orchestrator.app.main:app',
