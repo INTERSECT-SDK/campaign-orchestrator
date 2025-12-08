@@ -4,7 +4,7 @@ import uvicorn
 from intersect_orchestrator.app.core.environment import settings
 from intersect_orchestrator.app.core.log_config import setup_logging
 
-logger = structlog.stdlib.get_logger('intersect-registry-service.main')
+logger = structlog.stdlib.get_logger('intersect-orchestrator.main')
 
 
 def main() -> None:

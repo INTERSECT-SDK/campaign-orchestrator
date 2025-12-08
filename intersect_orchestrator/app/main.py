@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
 
 app = FastAPI(
     debug=True,
-    title='INTERSECT Registry Service',
+    title='INTERSECT Orchestrator',
     description='Execute INTERSECT Campaigns',
     version=version('intersect-orchestrator'),
     # only provide API documentation for public API URLs. Do not provide documentation for the UI URLs.

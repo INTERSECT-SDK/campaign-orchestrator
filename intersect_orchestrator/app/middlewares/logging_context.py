@@ -10,10 +10,10 @@ from fastapi.responses import PlainTextResponse
 from uvicorn.protocols.utils import get_path_with_query_string
 
 _access_logger: structlog.stdlib.BoundLogger = structlog.get_logger(
-    'intersect-registry-service.access'
+    'intersect-orchestrator.access'
 )
 _error_logger: structlog.stdlib.BoundLogger = structlog.get_logger(
-    'intersect-registry-service.error'
+    'intersect-orchestrator.error'
 )
 
 
