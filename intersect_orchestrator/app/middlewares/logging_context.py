@@ -9,12 +9,8 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import PlainTextResponse
 from uvicorn.protocols.utils import get_path_with_query_string
 
-_access_logger: structlog.stdlib.BoundLogger = structlog.get_logger(
-    'intersect-orchestrator.access'
-)
-_error_logger: structlog.stdlib.BoundLogger = structlog.get_logger(
-    'intersect-orchestrator.error'
-)
+_access_logger: structlog.stdlib.BoundLogger = structlog.get_logger('intersect-orchestrator.access')
+_error_logger: structlog.stdlib.BoundLogger = structlog.get_logger('intersect-orchestrator.error')
 
 
 def add_logging_middleware(app: FastAPI) -> None:

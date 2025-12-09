@@ -3,11 +3,12 @@
 import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Header, HTTPException, Request
+from fastapi import APIRouter, Body, HTTPException, Request, Security
 from sse_starlette.sse import EventSourceResponse
 
 from .....core.environment import settings
 from .....core.log_config import logger
+from ...api_key import api_key_header
 from .models.icmp import Icmp, IntersectCampaignId
 from .models.orchestrator_events import OrchestratorEvent
 
@@ -22,7 +23,7 @@ router = APIRouter()
 async def start_campaign(
     request: Request,
     icmp: Annotated[Icmp, Body(media_type='application/json')],
-    api_key: Annotated[str, Header(alias='Authorization')],
+    api_key: Annotated[str, Security(api_key_header)],
 ) -> str:
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
@@ -38,7 +39,7 @@ async def start_campaign(
 async def stop_campaign(
     request: Request,
     camapign_uuid: Annotated[IntersectCampaignId, Body(media_type='application/json')],
-    api_key: Annotated[str, Header(alias='Authorization')],
+    api_key: Annotated[str, Security(api_key_header)],
 ) -> str:
     # NOTE: we only keep track of RUNNING campaigns, stopped campaigns might as well not exist
     if api_key != settings.API_KEY:
@@ -55,7 +56,7 @@ async def stop_campaign(
 )
 async def campaign_events(
     request: Request,
-    api_key: Annotated[str, Header(alias='Authorization')],
+    api_key: Annotated[str, Security(api_key_header)],
 ):
     async def event_publisher():
         # TODO this whole function is currently fake
