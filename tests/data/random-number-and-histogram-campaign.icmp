@@ -1,0 +1,331 @@
+{
+  "campaignId": "Campaign-b86608.icmp",
+  "campaignName": "Campaign-b86608.icmp",
+  "nodes": [
+    {
+      "id": "a2e5f358-4472-469c-bf6f-8cf987b22d90",
+      "type": "capability",
+      "data": {
+        "capability": {
+          "name": "Random_Number_Generator",
+          "created_at": "2025-12-09T02:22:57.876584",
+          "last_lifecycle_message": "2025-12-09T02:35:57.875600",
+          "service_id": 1,
+          "endpoints_schema": {
+            "channels": {
+              "generate_random_number": {
+                "publish": {
+                  "message": {
+                    "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+                    "contentType": "application/json",
+                    "traits": {
+                      "$ref": "#/components/messageTraits/commonHeaders"
+                    },
+                    "payload": {
+                      "$ref": "#/components/schemas/RandomServiceRandomNumGenCapabilityImplResponse"
+                    }
+                  },
+                  "description": "Generate random number."
+                },
+                "subscribe": {
+                  "message": {
+                    "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+                    "contentType": "application/json",
+                    "traits": {
+                      "$ref": "#/components/messageTraits/commonHeaders"
+                    },
+                    "payload": {
+                      "default": 0,
+                      "description": "Random number generator seed.",
+                      "minimum": 0,
+                      "title": "seed",
+                      "type": "integer"
+                    }
+                  },
+                  "description": "Generate random number."
+                },
+                "events": []
+              },
+              "reset": {
+                "publish": {
+                  "message": {
+                    "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+                    "contentType": "application/json",
+                    "traits": {
+                      "$ref": "#/components/messageTraits/commonHeaders"
+                    },
+                    "payload": {
+                      "$ref": "#/components/schemas/RandomServiceRandomNumGenCapabilityImplResponse"
+                    }
+                  },
+                  "description": "Reset state."
+                },
+                "subscribe": {
+                  "message": {
+                    "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+                    "contentType": "application/json",
+                    "traits": {
+                      "$ref": "#/components/messageTraits/commonHeaders"
+                    }
+                  },
+                  "description": "Reset state."
+                },
+                "events": []
+              }
+            },
+            "description": "Capability class implementation."
+          }
+        },
+        "endpoint": "generate_random_number",
+        "endpoint_channel": {
+          "publish": {
+            "message": {
+              "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+              "contentType": "application/json",
+              "traits": {
+                "$ref": "#/components/messageTraits/commonHeaders"
+              },
+              "payload": {
+                "$ref": "#/components/schemas/RandomServiceRandomNumGenCapabilityImplResponse"
+              }
+            },
+            "description": "Generate random number."
+          },
+          "subscribe": {
+            "message": {
+              "schemaFormat": "application/vnd.aai.asyncapi+json;version=2.6.0",
+              "contentType": "application/json",
+              "traits": {
+                "$ref": "#/components/messageTraits/commonHeaders"
+              },
+              "payload": {
+                "default": 0,
+                "description": "Random number generator seed.",
+                "minimum": 0,
+                "title": "seed",
+                "type": "integer"
+              }
+            },
+            "description": "Generate random number."
+          },
+          "events": []
+        }
+      },
+      "position": {
+        "x": -192,
+        "y": -64
+      },
+      "measured": {
+        "width": 347,
+        "height": 103
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "4b4c5c97-9eb4-435f-acb5-4f79b6a0f8e1",
+      "type": "visualization",
+      "data": {
+        "type": "vega-histogram",
+        "name": "Histogram",
+        "spec": {
+          "$schema": "https://vega.github.io/schema/vega/v6.json",
+          "description": "title",
+          "width": 400,
+          "height": 250,
+          "autosize": "fit",
+          "padding": 25,
+          "signals": [
+            {
+              "name": "binOffset",
+              "value": 0
+            },
+            {
+              "name": "binStep",
+              "value": 0.1
+            }
+          ],
+          "data": [
+            {
+              "name": "points",
+              "url": "https://vega.github.io/editor/data/normal-2d.json"
+            },
+            {
+              "name": "binned",
+              "source": "points",
+              "transform": [
+                {
+                  "type": "bin",
+                  "field": "u",
+                  "extent": [
+                    -1,
+                    1
+                  ],
+                  "anchor": {
+                    "signal": "binOffset"
+                  },
+                  "step": {
+                    "signal": "binStep"
+                  },
+                  "nice": false
+                },
+                {
+                  "type": "aggregate",
+                  "key": "bin0",
+                  "groupby": [
+                    "bin0",
+                    "bin1"
+                  ],
+                  "fields": [
+                    "bin0"
+                  ],
+                  "ops": [
+                    "count"
+                  ],
+                  "as": [
+                    "count"
+                  ]
+                }
+              ]
+            }
+          ],
+          "scales": [
+            {
+              "name": "xscale",
+              "type": "linear",
+              "range": "width",
+              "domain": [
+                -1,
+                1
+              ]
+            },
+            {
+              "name": "yscale",
+              "type": "linear",
+              "range": "height",
+              "round": true,
+              "domain": {
+                "data": "binned",
+                "field": "count"
+              },
+              "zero": true,
+              "nice": true
+            }
+          ],
+          "axes": [
+            {
+              "orient": "bottom",
+              "scale": "xscale",
+              "zindex": 1
+            },
+            {
+              "orient": "left",
+              "scale": "yscale",
+              "tickCount": 5,
+              "zindex": 1
+            }
+          ],
+          "marks": [
+            {
+              "type": "rect",
+              "from": {
+                "data": "binned"
+              },
+              "encode": {
+                "update": {
+                  "x": {
+                    "scale": "xscale",
+                    "field": "bin0"
+                  },
+                  "x2": {
+                    "scale": "xscale",
+                    "field": "bin1",
+                    "offset": {
+                      "signal": "binStep > 0.02 ? -0.5 : 0"
+                    }
+                  },
+                  "y": {
+                    "scale": "yscale",
+                    "field": "count"
+                  },
+                  "y2": {
+                    "scale": "yscale",
+                    "value": 0
+                  },
+                  "fill": {
+                    "value": "steelblue"
+                  }
+                },
+                "hover": {
+                  "fill": {
+                    "value": "firebrick"
+                  }
+                }
+              }
+            },
+            {
+              "type": "rect",
+              "from": {
+                "data": "points"
+              },
+              "encode": {
+                "enter": {
+                  "x": {
+                    "scale": "xscale",
+                    "field": "u"
+                  },
+                  "width": {
+                    "value": 1
+                  },
+                  "y": {
+                    "value": 25,
+                    "offset": {
+                      "signal": "height"
+                    }
+                  },
+                  "height": {
+                    "value": 5
+                  },
+                  "fill": {
+                    "value": "steelblue"
+                  },
+                  "fillOpacity": {
+                    "value": 0.4
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "position": {
+        "x": 258,
+        "y": -135
+      },
+      "measured": {
+        "width": 486,
+        "height": 423
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-a2e5f358-4472-469c-bf6f-8cf987b22d90-output-right-4b4c5c97-9eb4-435f-acb5-4f79b6a0f8e1-input-left",
+      "source": "a2e5f358-4472-469c-bf6f-8cf987b22d90",
+      "target": "4b4c5c97-9eb4-435f-acb5-4f79b6a0f8e1",
+      "sourceHandle": "output-right",
+      "targetHandle": "input-left",
+      "type": "baseCampaignEdge",
+      "markerEnd": {
+        "type": "arrowclosed",
+        "width": 20,
+        "height": 20,
+        "color": "#000000"
+      }
+    }
+  ],
+  "createdAt": "2025-12-09T22:13:43.285Z",
+  "updatedAt": "2025-12-09T22:13:43.285Z"
+}

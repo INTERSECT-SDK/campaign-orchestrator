@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     This is mostly used to make sure the generated API documentation links are correct. See the README for more information on how the proxy should be configured.
     """
 
-    API_KEY: str = Field(min_length=32, max_length=255)
+    API_KEY: str = Field(default='X' * 32, min_length=32, max_length=255)
     """
     Key used to authorize access to the application. This should never be exposed to users directly, keep this in your backend.
 
@@ -62,32 +62,32 @@ class Settings(BaseSettings):
 
     ### INTERSECT ###
 
-    SYSTEM_NAME: str = Field(min_length=3, pattern=HIERARCHY_REGEX)
+    SYSTEM_NAME: str = Field(default='campaign-orchestrator-system', min_length=3, pattern=HIERARCHY_REGEX)
     """
     The System name is used as part of how INTERSECT clients know who to connect to, and can be shared with anyone.
     """
 
     # TODO - should allow for multiple brokers levels eventually.
-    BROKER_HOST: str
-    BROKER_PORT: PositiveInt
-    BROKER_PROTOCOL: BrokerProtocol
+    BROKER_HOST: str = 'localhost'
+    BROKER_PORT: PositiveInt = 5672
+    BROKER_PROTOCOL: BrokerProtocol = 'amqp0.9.1'
     """The protocol includes version information and will be used directly by Clients"""
     BROKER_TLS_CERT: str | None = None
 
     # These credentials are for the root broker. It is assumed that anyone publishing a message on this broker is allowed to by INTERSECT.
-    BROKER_USERNAME: str
-    BROKER_PASSWORD: str
+    BROKER_USERNAME: str = 'guest'
+    BROKER_PASSWORD: str = 'guest'
 
-    MINIO_URI: HttpUrl
+    MINIO_URI: HttpUrl = 'http://localhost:9000'
     """(should include port)"""
-    MINIO_USERNAME: str
-    MINIO_PASSWORD: str
+    MINIO_USERNAME: str = 'minioadmin'
+    MINIO_PASSWORD: str = 'minioadmin'
 
     # pydantic config, NOT an environment variable
     model_config = SettingsConfigDict(
         case_sensitive=True,
         frozen=True,
-        cli_parse_args=True,
+        cli_parse_args=False,  # Disabled to avoid conflicts with pytest CLI parsing
         env_file='.env',  # not used in production; this only needs to exist if you don't have environment variables already set
         extra='ignore',
         validate_default=False,  # I have no idea why pydantic-settings overrides pydantic's default, but we don't need it

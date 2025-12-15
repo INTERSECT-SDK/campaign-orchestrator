@@ -4,9 +4,9 @@ Definitions of a campaign according to iHub
 
 import datetime
 import uuid
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 IntersectSchema = dict[str, Any]
 IntersectCampaignId = uuid.UUID
@@ -28,10 +28,26 @@ class CapabilityData(BaseModel):
     # make sure to ignore "position", "measured", "selected", "dragging"; these are UI traits
 
 
-class Node(BaseModel):
+class VisualizationData(BaseModel):
+    type: str  # e.g., "vega-histogram"
+    name: str
+    spec: dict[str, Any]
+    # make sure to ignore "position", "measured", "selected", "dragging"; these are UI traits
+
+
+class CapabilityNode(BaseModel):
     id: IntersectCampaignId
-    type: Literal['capability']  # does this ever vary from "capability"?
+    type: Literal['capability']
     data: CapabilityData
+
+
+class VisualizationNode(BaseModel):
+    id: IntersectCampaignId
+    type: Literal['visualization']
+    data: VisualizationData
+
+
+Node = Union[CapabilityNode, VisualizationNode]
 
 
 class Edge(BaseModel):
@@ -43,4 +59,4 @@ class Icmp(BaseModel):
 
     nodes: list[Node]
     edges: list[Edge]
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] = {}
