@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
-import pytest
+
 import yaml
+
 from intersect_orchestrator.app.utils.conversions import icmp_to_petri_net, petri_net_to_icmp
 
 
@@ -10,7 +10,7 @@ class TestIcmpToPetriNet:
 
     def test_random_number_campaign_icmp_to_petri_conversion(self, random_number_campaign_icmp):
         """Test conversion of single-node random number campaign."""
-        with open(random_number_campaign_icmp, 'r') as f:
+        with open(random_number_campaign_icmp) as f:
             icmp_data = json.load(f)
 
         petri_net = icmp_to_petri_net(icmp_data)
@@ -27,9 +27,11 @@ class TestIcmpToPetriNet:
         assert 'publish_topic' in transition
         assert 'subscribe_topic' in transition
 
-    def test_random_number_histogram_campaign_icmp_to_petri_conversion(self, random_number_and_histogram_campaign_icmp):
+    def test_random_number_histogram_campaign_icmp_to_petri_conversion(
+        self, random_number_and_histogram_campaign_icmp
+    ):
         """Test conversion of two-node campaign with edge."""
-        with open(random_number_and_histogram_campaign_icmp, 'r') as f:
+        with open(random_number_and_histogram_campaign_icmp) as f:
             icmp_data = json.load(f)
 
         petri_net = icmp_to_petri_net(icmp_data)
@@ -47,9 +49,11 @@ class TestIcmpToPetriNet:
 class TestPetriNetToIcmp:
     """Test conversion from Petri net YAML to ICMP JSON format."""
 
-    def test_random_number_campaign_petri_to_icmp_conversion(self, random_number_campaign_petri_net):
+    def test_random_number_campaign_petri_to_icmp_conversion(
+        self, random_number_campaign_petri_net
+    ):
         """Test conversion of simple petri net to ICMP."""
-        with open(random_number_campaign_petri_net, 'r') as f:
+        with open(random_number_campaign_petri_net) as f:
             petri_net = yaml.safe_load(f)
 
         icmp_data = petri_net_to_icmp(petri_net)
@@ -64,9 +68,11 @@ class TestPetriNetToIcmp:
         assert 'capability' in node['data']
         assert node['data']['capability']['name'] == 'Random_Number_Generator'
 
-    def test_random_number_histogram_campaign_petri_to_icmp_conversion(self, random_number_and_histogram_campaign_petri_net):
+    def test_random_number_histogram_campaign_petri_to_icmp_conversion(
+        self, random_number_and_histogram_campaign_petri_net
+    ):
         """Test conversion of multi-transition petri net."""
-        with open(random_number_and_histogram_campaign_petri_net, 'r') as f:
+        with open(random_number_and_histogram_campaign_petri_net) as f:
             petri_net = yaml.safe_load(f)
 
         icmp_data = petri_net_to_icmp(petri_net)
@@ -84,7 +90,7 @@ class TestPetriNetToIcmp:
 
     def test_round_trip_conversion(self, random_number_campaign_icmp):
         """Test that ICMP -> Petri net -> ICMP produces equivalent structure."""
-        with open(random_number_campaign_icmp, 'r') as f:
+        with open(random_number_campaign_icmp) as f:
             original_icmp = json.load(f)
 
         # Convert to petri net and back

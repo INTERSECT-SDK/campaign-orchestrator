@@ -47,24 +47,28 @@ def icmp_to_petri_net(icmp_data: dict[str, Any]) -> dict[str, Any]:
 
     if not nodes:
         # Empty workflow
-        transitions.append({
-            'name': 'EmptyWorkflow',
-            'inputs': ['Ready'],
-            'outputs': ['Complete'],
-            'publish_topic': 'workflow/empty/start',
-            'subscribe_topic': 'workflow/empty/done'
-        })
+        transitions.append(
+            {
+                'name': 'EmptyWorkflow',
+                'inputs': ['Ready'],
+                'outputs': ['Complete'],
+                'publish_topic': 'workflow/empty/start',
+                'subscribe_topic': 'workflow/empty/done',
+            }
+        )
     elif len(nodes) == 1:
         # Single node workflow
         node = nodes[0]
         node_name = _extract_node_name(node)
-        transitions.append({
-            'name': node_name,
-            'inputs': ['Ready'],
-            'outputs': ['Complete'],
-            'publish_topic': f'{node_name.lower().replace(" ", "")}/start',
-            'subscribe_topic': f'{node_name.lower().replace(" ", "")}/done'
-        })
+        transitions.append(
+            {
+                'name': node_name,
+                'inputs': ['Ready'],
+                'outputs': ['Complete'],
+                'publish_topic': f'{node_name.lower().replace(" ", "")}/start',
+                'subscribe_topic': f'{node_name.lower().replace(" ", "")}/done',
+            }
+        )
     else:
         # Multi-node workflow
         for i, node in enumerate(nodes):
@@ -82,19 +86,17 @@ def icmp_to_petri_net(icmp_data: dict[str, Any]) -> dict[str, Any]:
                 inputs = ['Processing']
                 outputs = ['Processing']
 
-            transitions.append({
-                'name': node_name,
-                'inputs': inputs,
-                'outputs': outputs,
-                'publish_topic': f'{node_name.lower().replace(" ", "")}/start',
-                'subscribe_topic': f'{node_name.lower().replace(" ", "")}/done'
-            })
+            transitions.append(
+                {
+                    'name': node_name,
+                    'inputs': inputs,
+                    'outputs': outputs,
+                    'publish_topic': f'{node_name.lower().replace(" ", "")}/start',
+                    'subscribe_topic': f'{node_name.lower().replace(" ", "")}/done',
+                }
+            )
 
-    return {
-        'net_name': net_name,
-        'places': places,
-        'transitions': transitions
-    }
+    return {'net_name': net_name, 'places': places, 'transitions': transitions}
 
 
 def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
@@ -131,24 +133,28 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
                                     'message': {
                                         'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
                                         'contentType': 'application/json',
-                                        'traits': {'$ref': '#/components/messageTraits/commonHeaders'},
-                                        'payload': {'type': 'object'}
+                                        'traits': {
+                                            '$ref': '#/components/messageTraits/commonHeaders'
+                                        },
+                                        'payload': {'type': 'object'},
                                     },
-                                    'description': f'Execute {transition["name"]}'
+                                    'description': f'Execute {transition["name"]}',
                                 },
                                 'subscribe': {
                                     'message': {
                                         'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
                                         'contentType': 'application/json',
-                                        'traits': {'$ref': '#/components/messageTraits/commonHeaders'},
-                                        'payload': {'type': 'object'}
+                                        'traits': {
+                                            '$ref': '#/components/messageTraits/commonHeaders'
+                                        },
+                                        'payload': {'type': 'object'},
                                     },
-                                    'description': f'Complete {transition["name"]}'
+                                    'description': f'Complete {transition["name"]}',
                                 },
-                                'events': []
+                                'events': [],
                             }
                         }
-                    }
+                    },
                 },
                 'endpoint': transition['name'].lower(),
                 'endpoint_channel': {
@@ -157,26 +163,26 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
                             'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
                             'contentType': 'application/json',
                             'traits': {'$ref': '#/components/messageTraits/commonHeaders'},
-                            'payload': {'type': 'object'}
+                            'payload': {'type': 'object'},
                         },
-                        'description': f'Execute {transition["name"]}'
+                        'description': f'Execute {transition["name"]}',
                     },
                     'subscribe': {
                         'message': {
                             'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
                             'contentType': 'application/json',
                             'traits': {'$ref': '#/components/messageTraits/commonHeaders'},
-                            'payload': {'type': 'object'}
+                            'payload': {'type': 'object'},
                         },
-                        'description': f'Complete {transition["name"]}'
+                        'description': f'Complete {transition["name"]}',
                     },
-                    'events': []
-                }
+                    'events': [],
+                },
             },
             'position': {'x': i * 200, 'y': 0},
             'measured': {'width': 200, 'height': 100},
             'selected': False,
-            'dragging': False
+            'dragging': False,
         }
         nodes.append(node)
 
@@ -192,12 +198,7 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
             'sourceHandle': 'output-right',
             'targetHandle': 'input-left',
             'type': 'baseCampaignEdge',
-            'markerEnd': {
-                'type': 'arrowclosed',
-                'width': 20,
-                'height': 20,
-                'color': '#000000'
-            }
+            'markerEnd': {'type': 'arrowclosed', 'width': 20, 'height': 20, 'color': '#000000'},
         }
         edges.append(edge)
 
@@ -207,7 +208,7 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
         'nodes': nodes,
         'edges': edges,
         'createdAt': datetime.now().isoformat() + 'Z',
-        'updatedAt': datetime.now().isoformat() + 'Z'
+        'updatedAt': datetime.now().isoformat() + 'Z',
     }
 
 
@@ -217,9 +218,8 @@ def _extract_node_name(node: dict[str, Any]) -> str:
         capability_data = node.get('data', {}).get('capability', {})
         name = capability_data.get('name', f'Node_{node["id"][:8]}')
         return name.replace('_', '').replace(' ', '')
-    elif node.get('type') == 'visualization':
+    if node.get('type') == 'visualization':
         viz_data = node.get('data', {})
         name = viz_data.get('name', f'Visualization_{node["id"][:8]}')
         return name.replace(' ', '')
-    else:
-        return f'Node_{node["id"][:8]}'
+    return f'Node_{node["id"][:8]}'

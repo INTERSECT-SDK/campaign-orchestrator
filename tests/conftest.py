@@ -1,7 +1,6 @@
 import pathlib
 
 import pytest
-import yaml
 
 from . import TEST_DATA_DIR
 
@@ -35,4 +34,6 @@ def random_number_and_histogram_campaign_petri_net():
     """
     Campaign of Petri Net with nodes for random number service and histogram viz.
     """
-    return pathlib.Path(TEST_DATA_DIR, 'petri_nets_yaml', 'random-number-and-histogram-workflow.yaml')
+    return pathlib.Path(
+        TEST_DATA_DIR, 'petri_nets_yaml', 'random-number-and-histogram-workflow.yaml'
+    )
