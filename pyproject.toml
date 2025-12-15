@@ -42,6 +42,9 @@ dev = [
 [tool.ruff]
 line-length = 100
 format = { quote-style = 'single' }
+exclude = [
+    "concepts/**",
+]
 
 [tool.ruff.lint]
 isort = { known-first-party = ['src'] }
