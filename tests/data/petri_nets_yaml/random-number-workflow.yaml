@@ -1,0 +1,12 @@
+net_name: "RandomNumberWorkflow"
+
+places:
+  - Ready
+  - Complete
+
+transitions:
+  - name: Random_Number_Generator
+    inputs: [Ready]
+    outputs: [Complete]
+    publish_topic: "random/generate/start"
+    subscribe_topic: "random/generate/done"

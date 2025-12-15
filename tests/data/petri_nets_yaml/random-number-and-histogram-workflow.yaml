@@ -1,0 +1,26 @@
+net_name: "RandomNumberAndHistogramWorkflow"
+
+places:
+  - Ready
+  - Generated
+  - Visualized
+  - Complete
+
+transitions:
+  - name: Random_Number_Generator
+    inputs: [Ready]
+    outputs: [Generated]
+    publish_topic: "random/generate/start"
+    subscribe_topic: "random/generate/done"
+
+  - name: Histogram
+    inputs: [Generated]
+    outputs: [Visualized]
+    publish_topic: "histogram/create/start"
+    subscribe_topic: "histogram/create/done"
+
+  - name: Finalize_Workflow
+    inputs: [Visualized]
+    outputs: [Complete]
+    publish_topic: "workflow/finalize/start"
+    subscribe_topic: "workflow/finalize/done"
