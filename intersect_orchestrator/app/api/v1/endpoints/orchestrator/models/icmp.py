@@ -6,7 +6,7 @@ import datetime
 import uuid
 from typing import Any, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 IntersectSchema = dict[str, Any]
 IntersectCampaignId = uuid.UUID

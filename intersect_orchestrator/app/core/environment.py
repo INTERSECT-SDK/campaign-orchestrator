@@ -62,7 +62,9 @@ class Settings(BaseSettings):
 
     ### INTERSECT ###
 
-    SYSTEM_NAME: str = Field(default='campaign-orchestrator-system', min_length=3, pattern=HIERARCHY_REGEX)
+    SYSTEM_NAME: str = Field(
+        default='campaign-orchestrator-system', min_length=3, pattern=HIERARCHY_REGEX
+    )
     """
     The System name is used as part of how INTERSECT clients know who to connect to, and can be shared with anyone.
     """
