@@ -1,13 +1,12 @@
 import json
-import pytest
-from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.icmp import Icmp
+
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
-from intersect_orchestrator.app.utils.conversions import icmp_to_campaign, campaign_to_icmp
+from intersect_orchestrator.app.utils.conversions import campaign_to_icmp, icmp_to_campaign
 
 
 def test_random_number_campaign_conversion(random_number_campaign_icmp):
     """Test conversion of single-node random number campaign."""
-    with open(random_number_campaign_icmp, 'r') as f:
+    with open(random_number_campaign_icmp) as f:
         icmp_data = json.load(f)
 
     campaign = icmp_to_campaign(icmp_data)
@@ -25,7 +24,7 @@ def test_random_number_campaign_conversion(random_number_campaign_icmp):
 
 def test_histogram_campaign_conversion(random_number_and_histogram_campaign_icmp):
     """Test conversion of two-node campaign with edge."""
-    with open(random_number_and_histogram_campaign_icmp, 'r') as f:
+    with open(random_number_and_histogram_campaign_icmp) as f:
         icmp_data = json.load(f)
 
     campaign = icmp_to_campaign(icmp_data)
@@ -47,7 +46,7 @@ def test_histogram_campaign_conversion(random_number_and_histogram_campaign_icmp
 
 def test_campaign_validation(random_number_campaign_icmp):
     """Test that converted campaign passes validation."""
-    with open(random_number_campaign_icmp, 'r') as f:
+    with open(random_number_campaign_icmp) as f:
         icmp_data = json.load(f)
 
     campaign = icmp_to_campaign(icmp_data)
@@ -62,7 +61,7 @@ def test_campaign_validation(random_number_campaign_icmp):
 
 def test_random_number_campaign_to_icmp_conversion(random_number_campaign_icmp):
     """Test conversion of single-node random number campaign back to ICMP."""
-    with open(random_number_campaign_icmp, 'r') as f:
+    with open(random_number_campaign_icmp) as f:
         original_icmp_data = json.load(f)
 
     # First convert to Campaign
@@ -88,7 +87,7 @@ def test_random_number_campaign_to_icmp_conversion(random_number_campaign_icmp):
 
 def test_histogram_campaign_to_icmp_conversion(random_number_and_histogram_campaign_icmp):
     """Test conversion of two-node campaign with edge back to ICMP."""
-    with open(random_number_and_histogram_campaign_icmp, 'r') as f:
+    with open(random_number_and_histogram_campaign_icmp) as f:
         original_icmp_data = json.load(f)
 
     # First convert to Campaign
@@ -118,7 +117,7 @@ def test_histogram_campaign_to_icmp_conversion(random_number_and_histogram_campa
 
 def test_round_trip_conversion(random_number_campaign_icmp):
     """Test that ICMP -> Campaign -> ICMP round trip preserves key information."""
-    with open(random_number_campaign_icmp, 'r') as f:
+    with open(random_number_campaign_icmp) as f:
         original_icmp_data = json.load(f)
 
     # Convert ICMP -> Campaign -> ICMP

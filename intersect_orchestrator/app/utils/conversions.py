@@ -2,15 +2,15 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from ..api.v1.endpoints.orchestrator.models.icmp import Icmp
 from ..api.v1.endpoints.orchestrator.models.campaign import (
     Campaign,
-    Task,
-    TaskGroup,
     Input,
     Output,
+    Task,
+    TaskGroup,
     Value,
 )
+from ..api.v1.endpoints.orchestrator.models.icmp import Icmp
 
 
 def icmp_to_petri_net(icmp_data: dict[str, Any]) -> dict[str, Any]:
