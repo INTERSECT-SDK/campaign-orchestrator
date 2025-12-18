@@ -4,7 +4,7 @@ Definitions of a campaign according to iHub
 
 import datetime
 import uuid
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -40,14 +40,13 @@ class CapabilityNode(BaseModel):
     type: Literal['capability']
     data: CapabilityData
 
-
 class VisualizationNode(BaseModel):
     id: IntersectCampaignId
     type: Literal['visualization']
     data: VisualizationData
 
 
-Node = Union[CapabilityNode, VisualizationNode]
+Node = CapabilityNode | VisualizationNode
 
 
 class Edge(BaseModel):

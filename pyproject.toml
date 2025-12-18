@@ -104,6 +104,7 @@ ignore = [
     'SIM105',  # "with contextlib.suppress():" is slower than try-except-pass
     'ANN401',  # allow explicit "Any" typing, use with care
     'PLR2004', # allow "magic numbers"
+    'RET504',  # allow "unnecessary" assignments to variables before return statements
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]

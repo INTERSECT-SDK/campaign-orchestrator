@@ -1,5 +1,5 @@
+import datetime
 import uuid
-from datetime import datetime
 from typing import Any
 
 from ..api.v1.endpoints.orchestrator.models.campaign import (
@@ -124,6 +124,8 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
     nodes = []
     edges = []
 
+    current_time = datetime.datetime.now(tz=datetime.UTC).isoformat()
+
     # Create nodes from transitions
     for i, transition in enumerate(transitions):
         node_id = str(uuid.uuid4())
@@ -133,8 +135,8 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
             'data': {
                 'capability': {
                     'name': transition['name'],
-                    'created_at': datetime.now().isoformat(),
-                    'last_lifecycle_message': datetime.now().isoformat(),
+                    'created_at': current_time,
+                    'last_lifecycle_message': current_time,
                     'service_id': i + 1,
                     'endpoints_schema': {
                         'channels': {
@@ -217,8 +219,8 @@ def petri_net_to_icmp(petri_net: dict[str, Any]) -> dict[str, Any]:
         'campaignName': net_name,
         'nodes': nodes,
         'edges': edges,
-        'createdAt': datetime.now().isoformat() + 'Z',
-        'updatedAt': datetime.now().isoformat() + 'Z',
+        'createdAt': current_time,
+        'updatedAt': current_time,
     }
 
 
@@ -362,6 +364,8 @@ def campaign_to_icmp(campaign: Campaign) -> dict[str, Any]:
     nodes = []
     edges = []
 
+    current_time = datetime.datetime.now(tz=datetime.UTC).isoformat()
+
     # Process each task group
     for task_group in campaign.task_groups:
         for task in task_group.tasks:
@@ -373,7 +377,7 @@ def campaign_to_icmp(campaign: Campaign) -> dict[str, Any]:
                     'data': {
                         'capability': {
                             'name': task.capability,
-                            'created_at': datetime.now().isoformat(),
+                            'created_at': current_time,
                             'last_lifecycle_message': None,
                             'service_id': 1,  # Default service ID
                             'endpoints_schema': {
@@ -500,8 +504,8 @@ def campaign_to_icmp(campaign: Campaign) -> dict[str, Any]:
         'campaignName': campaign.name,
         'nodes': nodes,
         'edges': edges,
-        'createdAt': datetime.now().isoformat() + 'Z',
-        'updatedAt': datetime.now().isoformat() + 'Z',
+        'createdAt': current_time,
+        'updatedAt': current_time,
     }
 
     return icmp_data
