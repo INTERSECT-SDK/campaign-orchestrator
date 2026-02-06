@@ -8,6 +8,8 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 
 from .api import router as api_router
+from .core.environment import settings
+from .core.intersect_client import CoreServiceIntersectClient
 from .core.log_config import logger, setup_logging
 from .middlewares.logging_context import add_logging_middleware
 
@@ -21,6 +23,12 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
     logger.info('Initializing app')
 
     # TODO - add broker connection here later
+    app.state.intersect_client = CoreServiceIntersectClient(settings)
+    if not app.state.intersect_client.can_reconnect():
+        logger.critical('Unable to connect to INTERSECT broker, exiting')
+        import sys
+
+        sys.exit(1)
 
     logger.info('App initialized')
 
@@ -28,7 +36,7 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
 
     # On cleanup
     logger.info('Shutting down gracefully')
-
+    app.state.intersect_client.terminate()
     logger.info('Graceful shutdown complete')
 
 

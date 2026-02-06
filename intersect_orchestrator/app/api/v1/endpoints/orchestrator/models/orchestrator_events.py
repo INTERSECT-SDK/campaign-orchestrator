@@ -17,6 +17,11 @@ class StepCompleteEvent(BaseModel):
 
     event_type: Literal['STEP_COMPLETE'] = 'STEP_COMPLETE'
     step_id: CampaignStepId
+    payload: bytes
+    """"The raw payload output.
+    
+    TODO: This will eventually emit a pointer to data, rather than the data
+    """
 
 
 class CampaignCompleteEvent(BaseModel):

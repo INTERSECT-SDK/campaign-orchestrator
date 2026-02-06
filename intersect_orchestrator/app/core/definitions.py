@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-BrokerProtocol = Literal['amqp0.9.1', 'mqtt5.0']
+BrokerProtocol = Literal['amqp0.9.1', 'mqtt3.1.1', 'mqtt5.0']
 """PubSub protocols we support."""
 
 INTERSECT_MESSAGE_EXCHANGE = 'intersect-messages'
