@@ -1,29 +1,14 @@
+import json
 import pathlib
-import uuid
 
 import pytest
 from fastapi.testclient import TestClient
 
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.core.environment import settings
 from intersect_orchestrator.app.main import app
 
 from . import TEST_DATA_DIR
-
-
-@pytest.fixture
-def random_number_campaign_icmp():
-    """
-    Campaign of single node ICMP for random number service.
-    """
-    return pathlib.Path(TEST_DATA_DIR, 'icmp', 'random-number-campaign.icmp')
-
-
-@pytest.fixture
-def random_number_and_histogram_campaign_icmp():
-    """
-    Campaign of ICMP with nodes for random number service and histogram viz.
-    """
-    return pathlib.Path(TEST_DATA_DIR, 'icmp', 'random-number-and-histogram-campaign.icmp')
 
 
 @pytest.fixture
@@ -45,6 +30,38 @@ def random_number_and_histogram_campaign_petri_net():
 
 
 @pytest.fixture
+def random_number_campaign_data():
+    """Sample campaign data for the random number campaign."""
+    campaign_path = pathlib.Path(TEST_DATA_DIR, 'campaign', 'random-number-campaign.campaign.json')
+    with campaign_path.open() as f:
+        data = json.load(f)
+
+    # Validate using the Campaign model
+    Campaign(**data)
+    return data
+
+
+@pytest.fixture
+def random_number_and_histogram_campaign_data():
+    """Sample campaign data for the random number + histogram campaign."""
+    campaign_path = pathlib.Path(
+        TEST_DATA_DIR, 'campaign', 'random-number-and-histogram-campaign.campaign.json'
+    )
+    with campaign_path.open() as f:
+        data = json.load(f)
+
+    # Validate using the Campaign model
+    Campaign(**data)
+    return data
+
+
+@pytest.fixture
+def sample_campaign_data(random_number_campaign_data):
+    """Default campaign payload for API tests."""
+    return random_number_campaign_data
+
+
+@pytest.fixture
 def client():
     """FastAPI test client."""
     return TestClient(app)
@@ -60,65 +77,3 @@ def valid_api_key():
 def invalid_api_key():
     """Invalid API key for testing."""
     return 'invalid_key'
-
-
-@pytest.fixture
-def sample_icmp_data():
-    """Sample ICMP data for testing."""
-    return {
-        'campaignId': 'test-campaign-123',
-        'campaignName': 'Test Campaign',
-        'nodes': [
-            {
-                'id': str(uuid.uuid4()),
-                'type': 'capability',
-                'data': {
-                    'capability': {
-                        'name': 'TestCapability',
-                        'created_at': '2025-12-16T10:00:00.000Z',
-                        'last_lifecycle_message': None,
-                        'service_id': 1,
-                        'endpoints_schema': {
-                            'channels': {
-                                'test_operation': {
-                                    'publish': {
-                                        'message': {
-                                            'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
-                                            'contentType': 'application/json',
-                                            'traits': {
-                                                '$ref': '#/components/messageTraits/commonHeaders'
-                                            },
-                                            'payload': {
-                                                'type': 'object',
-                                                'properties': {'result': {'type': 'string'}},
-                                            },
-                                        },
-                                        'description': 'Test operation',
-                                    },
-                                    'subscribe': {
-                                        'message': {
-                                            'schemaFormat': 'application/vnd.aai.asyncapi+json;version=2.6.0',
-                                            'contentType': 'application/json',
-                                            'traits': {
-                                                '$ref': '#/components/messageTraits/commonHeaders'
-                                            },
-                                            'payload': {
-                                                'type': 'object',
-                                                'properties': {'input': {'type': 'string'}},
-                                            },
-                                        },
-                                        'description': 'Test operation',
-                                    },
-                                    'events': [],
-                                }
-                            }
-                        },
-                    },
-                    'endpoint': 'test_operation',
-                    'endpoint_channel': {},
-                },
-            }
-        ],
-        'edges': [],
-        'metadata': {},
-    }

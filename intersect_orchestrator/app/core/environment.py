@@ -78,12 +78,12 @@ class Settings(BaseSettings):
 
     # These credentials are for the root broker. It is assumed that anyone publishing a message on this broker is allowed to by INTERSECT.
     BROKER_USERNAME: str = 'guest'
-    BROKER_PASSWORD: str = 'guest'
+    BROKER_PASSWORD: str = 'guest'  # noqa: S105
 
     MINIO_URI: HttpUrl = 'http://localhost:9000'
     """(should include port)"""
     MINIO_USERNAME: str = 'minioadmin'
-    MINIO_PASSWORD: str = 'minioadmin'
+    MINIO_PASSWORD: str = 'minioadmin'  # noqa: S105
 
     # pydantic config, NOT an environment variable
     model_config = SettingsConfigDict(

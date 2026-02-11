@@ -2,14 +2,15 @@
 
 import uuid
 from unittest.mock import patch
+
 from fastapi.responses import StreamingResponse
 
 
-def test_start_campaign_success(client, valid_api_key, sample_icmp_data):
+def test_start_campaign_success(client, valid_api_key, sample_campaign_data):
     """Test successful campaign start with valid API key."""
     response = client.post(
         '/v1/orchestrator/start_campaign',
-        json=sample_icmp_data,
+        json=sample_campaign_data,
         headers={'Authorization': valid_api_key},
     )
 
@@ -17,11 +18,11 @@ def test_start_campaign_success(client, valid_api_key, sample_icmp_data):
     assert response.json() == 'TODO'
 
 
-def test_start_campaign_invalid_api_key(client, invalid_api_key, sample_icmp_data):
+def test_start_campaign_invalid_api_key(client, invalid_api_key, sample_campaign_data):
     """Test campaign start with invalid API key."""
     response = client.post(
         '/v1/orchestrator/start_campaign',
-        json=sample_icmp_data,
+        json=sample_campaign_data,
         headers={'Authorization': invalid_api_key},
     )
 
@@ -29,20 +30,20 @@ def test_start_campaign_invalid_api_key(client, invalid_api_key, sample_icmp_dat
     assert 'invalid or incorrect API key provided' in response.json()['detail']
 
 
-def test_start_campaign_missing_api_key(client, sample_icmp_data):
+def test_start_campaign_missing_api_key(client, sample_campaign_data):
     """Test campaign start without API key."""
-    response = client.post('/v1/orchestrator/start_campaign', json=sample_icmp_data)
+    response = client.post('/v1/orchestrator/start_campaign', json=sample_campaign_data)
 
     assert response.status_code == 403  # FastAPI's default for missing security dependency
 
 
-def test_start_campaign_invalid_icmp_data(client, valid_api_key):
-    """Test campaign start with invalid ICMP data."""
-    invalid_icmp_data = {'invalid': 'data'}
+def test_start_campaign_invalid_campaign_data(client, valid_api_key):
+    """Test campaign start with invalid campaign data."""
+    invalid_campaign_data = {'invalid': 'data'}
 
     response = client.post(
         '/v1/orchestrator/start_campaign',
-        json=invalid_icmp_data,
+        json=invalid_campaign_data,
         headers={'Authorization': valid_api_key},
     )
 
