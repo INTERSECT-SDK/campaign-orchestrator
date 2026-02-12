@@ -8,6 +8,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 
 from .api import router as api_router
+from .core.campaign_orchestrator import CampaignOrchestrator
 from .core.environment import settings
 from .core.intersect_client import CoreServiceIntersectClient
 from .core.log_config import logger, setup_logging
@@ -24,6 +25,8 @@ async def lifespan(app: FastAPI) -> typing.AsyncGenerator[None, None]:
 
     # TODO - add broker connection here later
     app.state.intersect_client = CoreServiceIntersectClient(settings)
+    app.state.campaign_orchestrator = CampaignOrchestrator(app.state.intersect_client)
+    app.state.intersect_client.set_campaign_orchestrator(app.state.campaign_orchestrator)
     if not app.state.intersect_client.can_reconnect():
         logger.critical('Unable to connect to INTERSECT broker, exiting')
         import sys

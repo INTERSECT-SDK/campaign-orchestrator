@@ -17,6 +17,7 @@ from .brokers.amqp_client import AMQPClient
 from .brokers.broker_client import BrokerClient
 from .brokers.mqtt_client import MQTTClient
 from .control_plane_config import ControlPlaneConfig
+from .definitions import MessageCallback
 from .topic_handler import TopicHandler
 
 logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class ControlPlaneManager:
         self._topics_to_handlers: dict[str, TopicHandler] = {}
 
     def add_subscription_channel(
-        self, channel: str, callbacks: set[Callable[[bytes], None]], persist: bool
+        self, channel: str, callbacks: set[MessageCallback], persist: bool
     ) -> None:
         """Start listening for messages on a channel on all configured brokers.
 
@@ -152,13 +153,20 @@ class ControlPlaneManager:
         for provider in self._control_providers:
             provider.disconnect()
 
-    def publish_message(self, channel: str, msg: Any, persist: bool) -> None:
+    def publish_message(
+        self,
+        channel: str,
+        payload: bytes,
+        content_type: str,
+        headers: dict[str, str],
+        persist: bool,
+    ) -> None:
         """Publish message on channel for all brokers."""
         if self.is_connected():
-            serialized_message = serialize_message(msg)
             for provider in self._control_providers:
-                provider.publish(channel, serialized_message, persist)
+                provider.publish(channel, payload, content_type, headers, persist)
         else:
+            # TODO may want more robust error handling here
             logger.error('Cannot send message, providers are not connected')
 
     def is_connected(self) -> bool:

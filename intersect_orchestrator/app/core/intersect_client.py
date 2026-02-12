@@ -12,6 +12,7 @@ These library interactions cover:
 
 import logging
 from asyncio import Queue
+from typing import TYPE_CHECKING
 
 from ..intersect_control_plane_fork.control_plane_manager import (
     ControlPlaneConfig,
@@ -29,6 +30,9 @@ from intersect_sdk._internal.messages.userspace import UserspaceMessage
 
 _log = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from .campaign_orchestrator import CampaignOrchestrator
+
 
 class CoreServiceIntersectClient:
     """
@@ -40,6 +44,7 @@ class CoreServiceIntersectClient:
 
     def __init__(self, settings: Settings) -> None:
         self.http_connections: set[Queue[bytes]] = set()
+        self.campaign_orchestrator: CampaignOrchestrator | None = None
         """
         self.message_validator: TypeAdapter[EventMessage | LifecycleMessage | UserspaceMessage] = (
             TypeAdapter(EventMessage | LifecycleMessage | UserspaceMessage)
@@ -67,7 +72,7 @@ class CoreServiceIntersectClient:
             'test-topic', {self._handle_message}, True
         )
 
-    def _handle_message(self, message: bytes) -> None:
+    def _handle_message(self, message: bytes, content_type: str, headers: dict[str, str]) -> None:
         """Broker callback calls this function when we get a message."""
         """
         try:
@@ -83,8 +88,15 @@ class CoreServiceIntersectClient:
         # This will not always be the case in the future - metadata will always be JSON structured, but raw data may be UTF-8
         # (this will eventually be managed by checking the message's Content-Type)
 
+        if self.campaign_orchestrator is not None:
+            self.campaign_orchestrator.handle_broker_message(message, content_type, headers)
+
         for connection in self.http_connections:
             connection.put_nowait(message)
+
+    def set_campaign_orchestrator(self, orchestrator: CampaignOrchestrator) -> None:
+        """Assign the campaign orchestrator for broker callbacks."""
+        self.campaign_orchestrator = orchestrator
 
     def broadcast_message(self, message: bytes) -> None:
         """Sends a message to all Websocket clients."""

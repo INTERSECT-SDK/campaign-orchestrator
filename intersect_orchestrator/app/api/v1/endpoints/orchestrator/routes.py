@@ -1,7 +1,6 @@
 """These are the 'real' endpoints called by the SDK in a production environment."""
 
 import asyncio
-import json
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import (
@@ -15,10 +14,8 @@ from fastapi import (
 )
 
 from .....core.environment import settings
-from .....core.log_config import logger
 from ...api_key import api_key_header
 from .models.icmp import Icmp, IntersectCampaignId
-from .models.orchestrator_events import OrchestratorEvent
 
 if TYPE_CHECKING:
     from .....core.intersect_client import CoreServiceIntersectClient
@@ -38,8 +35,9 @@ async def start_campaign(
 ) -> str:
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
-    # TODO
-    return 'TODO'
+    orchestrator = request.app.state.campaign_orchestrator
+    campaign_id = orchestrator.submit_campaign(icmp)
+    return str(campaign_id)
 
 
 @router.post(
@@ -55,8 +53,10 @@ async def stop_campaign(
     # NOTE: we only keep track of RUNNING campaigns, stopped campaigns might as well not exist
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
-    # TODO
-    return 'TODO'
+    orchestrator = request.app.state.campaign_orchestrator
+    if not orchestrator.cancel_campaign(camapign_uuid):
+        raise HTTPException(status_code=404, detail='campaign not found')
+    return str(camapign_uuid)
 
 
 @router.websocket(
