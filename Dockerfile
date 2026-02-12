@@ -1,6 +1,6 @@
 # see https://docs.astral.sh/uv/guides/integration/docker/#optimizations and https://www.joshkasuboski.com/posts/distroless-python-uv/
 
-FROM ghcr.io/astral-sh/uv:debian-slim AS builder
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:debian-slim AS builder
 
 ARG PYTHON_VERSION=3.12
 
