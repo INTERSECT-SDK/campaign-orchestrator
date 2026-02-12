@@ -1,0 +1,117 @@
+{
+  "id": "Campaign-b86608",
+  "name": "Campaign-b86608",
+  "user": "system",
+  "description": "Campaign converted from ICMP: Campaign-b86608",
+  "task_groups": [
+    {
+      "id": "capability_group",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "generate_random_number",
+          "hierarchy": "capability",
+          "capability": "Random_Number_Generator",
+          "operation_id": "generate_random_number",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "random_number": {
+                  "type": "number",
+                  "description": "Generated random number."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "random_output",
+                "var": "random_number"
+              }
+            ]
+          },
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "seed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Random number generator seed."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "seed_input",
+                "var": "seed"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "validate_random_number",
+          "hierarchy": "capability",
+          "capability": "Random_Number_Validator",
+          "operation_id": "validate_random_number",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["generate_random_number"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "capability_group_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    },
+    {
+      "id": "visualization_group",
+      "group_dependencies": [
+        "capability_group"
+      ],
+      "tasks": [
+        {
+          "id": "vega-histogram_histogram",
+          "hierarchy": "visualization",
+          "capability": "Visualization",
+          "operation_id": "vega-histogram_histogram",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "vega-histogram_postprocess",
+          "hierarchy": "visualization",
+          "capability": "Visualization",
+          "operation_id": "vega-histogram_postprocess",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["vega-histogram_histogram"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "visualization_group_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    }
+  ],
+  "objectives": null,
+  "inputs": [],
+  "outputs": []
+}

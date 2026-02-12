@@ -21,6 +21,7 @@ dependencies = [
     "prefect>=3.6.16",
     "pydantic-settings>=2.8.1",
     "python-multipart>=0.0.20",
+    "pyyaml>=6.0.3",
     "retrying>=1.4.2",
     "snakes>=0.9.33",
     "sse-starlette>=3.0.2",
@@ -48,6 +49,9 @@ dev = [
 [tool.ruff]
 line-length = 100
 format = { quote-style = 'single' }
+exclude = [
+    "concepts/**",
+]
 
 [tool.ruff.lint]
 isort = { known-first-party = ['src'] }
@@ -106,6 +110,7 @@ ignore = [
     'SIM105',  # "with contextlib.suppress():" is slower than try-except-pass
     'ANN401',  # allow explicit "Any" typing, use with care
     'PLR2004', # allow "magic numbers"
+    'RET504',  # allow "unnecessary" assignments to variables before return statements
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]

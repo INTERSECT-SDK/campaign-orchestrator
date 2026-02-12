@@ -1,0 +1,18 @@
+# config.yaml
+messaging:
+  amqp:
+    broker: "localhost"
+    port: 5672
+    username: "guest"
+    password: "guest"
+  mqtt:
+    broker: "localhost"
+    port: 1883
+    username: "guest"
+    password: "guest"
+  backend: "mqtt"   # or "amqp"
+  topics:
+    publish:
+      - scattering/measure/start
+    subscribe:
+      - scattering/measure/done

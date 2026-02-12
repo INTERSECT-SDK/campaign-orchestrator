@@ -1,6 +1,8 @@
-from typing import (
-    Any,
-)
+"""
+Validation utilities for JSON schemas.
+"""
+
+from typing import Any
 
 from jsonschema import Draft202012Validator as SchemaValidator
 
@@ -9,7 +11,7 @@ _metavalidator = SchemaValidator(
 )
 
 
-def validate_schema(json_schema: Any) -> list[str]:
+def validate_schema(json_schema: dict[str, Any]) -> list[str]:
     """Checks that json_schema is itself a valid JSON schema - specifically, against draft 2020-12.
 
     Returns a list of error strings. If list is empty, there were no errors.

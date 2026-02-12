@@ -1,0 +1,26 @@
+net_name: "ScatteringWorkflow"
+
+places:
+  - Ready
+  - Measure
+  - Analyze
+  - Complete
+
+transitions:
+  - name: StartMeasurement
+    inputs: [Ready]
+    outputs: [Measure]
+    publish_topic: "scattering/measure/start"
+    subscribe_topic: "scattering/measure/done"
+
+  - name: AnalyzeData
+    inputs: [Measure]
+    outputs: [Analyze]
+    publish_topic: "scattering/analyze/start"
+    subscribe_topic: "scattering/analyze/done"
+
+  - name: Finalize
+    inputs: [Analyze]
+    outputs: [Complete]
+    publish_topic: "scattering/finalize/start"
+    subscribe_topic: "scattering/finalize/done"

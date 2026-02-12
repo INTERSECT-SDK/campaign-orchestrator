@@ -15,10 +15,10 @@ from fastapi import (
 
 from .....core.environment import settings
 from ...api_key import api_key_header
-from .models.icmp import Icmp, IntersectCampaignId
 
 if TYPE_CHECKING:
     from .....core.intersect_client import CoreServiceIntersectClient
+from .models.campaign import Campaign, IntersectCampaignId
 
 router = APIRouter()
 
@@ -30,13 +30,13 @@ router = APIRouter()
 )
 async def start_campaign(
     request: Request,
-    icmp: Annotated[Icmp, Body(media_type='application/json')],
+    campaign: Annotated[Campaign, Body(media_type='application/json')],
     api_key: Annotated[str, Security(api_key_header)],
 ) -> str:
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
     orchestrator = request.app.state.campaign_orchestrator
-    campaign_id = orchestrator.submit_campaign(icmp)
+    campaign_id = orchestrator.submit_campaign(campaign)
     return str(campaign_id)
 
 
@@ -47,16 +47,16 @@ async def start_campaign(
 )
 async def stop_campaign(
     request: Request,
-    camapign_uuid: Annotated[IntersectCampaignId, Body(media_type='application/json')],
+    campaign_uuid: Annotated[IntersectCampaignId, Body(media_type='application/json')],
     api_key: Annotated[str, Security(api_key_header)],
 ) -> str:
     # NOTE: we only keep track of RUNNING campaigns, stopped campaigns might as well not exist
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
     orchestrator = request.app.state.campaign_orchestrator
-    if not orchestrator.cancel_campaign(camapign_uuid):
+    if not orchestrator.cancel_campaign(campaign_uuid):
         raise HTTPException(status_code=404, detail='campaign not found')
-    return str(camapign_uuid)
+    return str(campaign_uuid)
 
 
 @router.websocket(
