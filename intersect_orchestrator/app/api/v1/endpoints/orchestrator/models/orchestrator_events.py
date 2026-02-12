@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .icmp import CampaignStepId, IntersectCampaignId
+from .campaign import CampaignStepId, IntersectCampaignId
 
 
 class StepStartEvent(BaseModel):

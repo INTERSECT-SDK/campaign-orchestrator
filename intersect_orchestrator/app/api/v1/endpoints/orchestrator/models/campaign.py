@@ -5,11 +5,15 @@ These are from the most recent orchestrator iteration.
 """
 
 import datetime
+import uuid
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from ......utils.schema import validate_schema
+from .......utils.validation import validate_schema
+
+IntersectCampaignId = uuid.UUID
+CampaignStepId = uuid.UUID
 
 # Campaign objective
 # ----------------------------------------------------------------------------

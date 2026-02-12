@@ -1,0 +1,83 @@
+{
+  "id": "Campaign-b86608",
+  "name": "Campaign-b86608",
+  "user": "system",
+  "description": "Campaign converted from ICMP: Campaign-b86608",
+  "task_groups": [
+    {
+      "id": "capability_group",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "generate_random_number",
+          "hierarchy": "capability",
+          "capability": "Random_Number_Generator",
+          "operation_id": "generate_random_number",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "random_number": {
+                  "type": "number",
+                  "description": "Generated random number."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "random_output",
+                "var": "random_number"
+              }
+            ]
+          },
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "seed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Random number generator seed."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "seed_input",
+                "var": "seed"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        }
+      ],
+      "objectives": []
+    },
+    {
+      "id": "visualization_group",
+      "group_dependencies": [
+        "capability_group"
+      ],
+      "tasks": [
+        {
+          "id": "vega-histogram_histogram",
+          "hierarchy": "visualization",
+          "capability": "Visualization",
+          "operation_id": "vega-histogram_histogram",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        }
+      ],
+      "objectives": []
+    }
+  ],
+  "objectives": null,
+  "inputs": [],
+  "outputs": []
+}
