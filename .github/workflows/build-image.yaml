@@ -6,6 +6,7 @@ on:
       - '*'
     branches:
       - 'main'
+      - 'basic-orchestrator' # TODO: take this out when merging to main
 
 jobs:
   publish-container-image:
