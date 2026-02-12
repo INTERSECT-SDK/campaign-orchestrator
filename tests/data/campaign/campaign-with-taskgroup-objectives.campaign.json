@@ -1,0 +1,184 @@
+{
+  "id": "campaign-with-taskgroup-objectives",
+  "name": "Data Collection Campaign with Task Objectives",
+  "user": "researcher",
+  "description": "Campaign demonstrating task-group level objectives like iteration limits and time constraints",
+  "task_groups": [
+    {
+      "id": "measurement_setup",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "calibrate_instrument",
+          "hierarchy": "setup",
+          "capability": "InstrumentCalibration",
+          "operation_id": "calibrate_instrument",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "calibration_status": {
+                  "type": "string",
+                  "description": "Status of calibration"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "calib_status_output",
+                "var": "calibration_status"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "verify_calibration",
+          "hierarchy": "setup",
+          "capability": "InstrumentCalibration",
+          "operation_id": "verify_calibration",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["calibrate_instrument"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "setup_iterate",
+          "type": "iterate",
+          "iterations": 3
+        }
+      ]
+    },
+    {
+      "id": "data_collection",
+      "group_dependencies": ["measurement_setup"],
+      "tasks": [
+        {
+          "id": "collect_measurement",
+          "hierarchy": "execute",
+          "capability": "DataCollection",
+          "operation_id": "collect_measurement",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "measurement_value": {
+                  "type": "number",
+                  "description": "Collected measurement"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "measurement_output",
+                "var": "measurement_value"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "validate_measurement",
+          "hierarchy": "execute",
+          "capability": "DataCollection",
+          "operation_id": "validate_measurement",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["collect_measurement"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "collect_iterate",
+          "type": "iterate",
+          "iterations": 10
+        }
+      ]
+    },
+    {
+      "id": "data_analysis",
+      "group_dependencies": ["data_collection"],
+      "tasks": [
+        {
+          "id": "analyze_data",
+          "hierarchy": "post_process",
+          "capability": "DataAnalysis",
+          "operation_id": "analyze_data",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "mean": {
+                  "type": "number"
+                },
+                "stddev": {
+                  "type": "number"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "mean_output",
+                "var": "mean"
+              },
+              {
+                "id": "stddev_output",
+                "var": "stddev"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "summarize_analysis",
+          "hierarchy": "post_process",
+          "capability": "DataAnalysis",
+          "operation_id": "summarize_analysis",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["analyze_data"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "analysis_iterate",
+          "type": "iterate",
+          "iterations": 5
+        }
+      ]
+    }
+  ],
+  "objectives": {
+    "max_runtime": [
+      {
+        "id": "setup_max_runtime",
+        "max_time": "PT10M",
+        "task_group": "measurement_setup"
+      },
+      {
+        "id": "analysis_max_runtime",
+        "max_time": "PT5M",
+        "task_group": "data_analysis"
+      }
+    ],
+    "threshold": []
+  },
+  "inputs": [],
+  "outputs": []
+}

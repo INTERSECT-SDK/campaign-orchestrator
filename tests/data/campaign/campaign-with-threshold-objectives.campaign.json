@@ -1,0 +1,131 @@
+{
+  "id": "campaign-with-threshold-objectives",
+  "name": "Threshold-Based Campaign",
+  "user": "researcher",
+  "description": "Campaign demonstrating threshold-based objectives for scientific constraints",
+  "task_groups": [
+    {
+      "id": "data_collection_phase",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "measure_temperature",
+          "hierarchy": "measurement",
+          "capability": "TemperatureSensor",
+          "operation_id": "measure_temperature",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "temperature": {
+                  "type": "number",
+                  "description": "Temperature in Celsius"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "temp_output",
+                "var": "temperature"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "validate_temperature",
+          "hierarchy": "measurement",
+          "capability": "TemperatureSensor",
+          "operation_id": "validate_temperature",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["measure_temperature"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "temp_iterate_20_times",
+          "type": "iterate",
+          "iterations": 20
+        }
+      ]
+    },
+    {
+      "id": "analysis_phase",
+      "group_dependencies": ["data_collection_phase"],
+      "tasks": [
+        {
+          "id": "verify_temperature_range",
+          "hierarchy": "analysis",
+          "capability": "TemperatureAnalysis",
+          "operation_id": "verify_temp_range",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "in_range": {
+                  "type": "boolean",
+                  "description": "Whether temperature is within acceptable range"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "in_range_output",
+                "var": "in_range"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "report_temperature_range",
+          "hierarchy": "analysis",
+          "capability": "TemperatureAnalysis",
+          "operation_id": "report_temp_range",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["verify_temperature_range"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "analysis_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    }
+  ],
+  "objectives": {
+    "max_runtime": [],
+    "threshold": [
+      {
+        "id": "temp_upper_limit_20c",
+        "var": "temperature",
+        "type": "upper_limit",
+        "target": 20,
+        "task_group": "data_collection_phase"
+      },
+      {
+        "id": "temp_range_check",
+        "var": "temperature",
+        "type": "range",
+        "target": 2.5,
+        "task_group": "analysis_phase"
+      }
+    ]
+  },
+  "inputs": [],
+  "outputs": []
+}

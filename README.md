@@ -16,4 +16,5 @@ Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#insta
 
 ### Running
 
+- `docker compose up -d` - configures a message broker setup if you don't already have one
 - `uv run python -m intersect_orchestrator`

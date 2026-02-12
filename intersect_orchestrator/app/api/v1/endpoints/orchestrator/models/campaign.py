@@ -249,6 +249,7 @@ class Campaign(BaseModel):
 
     id: str
     name: str
+    """TODO consider removing"""
     user: str
     description: str
     task_groups: Annotated[list[TaskGroup], Field(default_factory=list)]
