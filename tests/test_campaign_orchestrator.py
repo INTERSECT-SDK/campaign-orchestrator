@@ -2,16 +2,9 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass
 
-from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.icmp import Icmp
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
-
-
-@dataclass
-class FakeNode:
-    id: uuid.UUID
-    metadata: dict[str, object]
 
 
 class FakeControlPlaneManager:
@@ -42,19 +35,33 @@ def _event_types(broadcasts: list[bytes]) -> list[str]:
     return [json.loads(message.decode('utf-8'))['event']['event_type'] for message in broadcasts]
 
 
-def _make_icmp(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Icmp:
-    metadata = {
-        'campaignId': str(campaign_id),
-    }
-    step_metadata = {
-        'topic': 'org/fac/system/subsystem/service/response',
-        'headers': {
-            'source': 'org.fac.system.subsystem.service',
-            'sdk_version': '0.0.1',
-        },
-    }
-    node = FakeNode(id=step_id, metadata=step_metadata)
-    return Icmp.model_construct(nodes=[node], edges=[], metadata=metadata)
+def _make_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
+    """Create a test Campaign with a single task."""
+    return Campaign(
+        id=str(campaign_id),
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign for orchestrator',
+        task_groups=[
+            {
+                'id': 'task-group-1',
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'test-capability',
+                        'operation_id': 'test-operation',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
 
 
 def test_handle_broker_message_completes_step() -> None:
@@ -63,9 +70,9 @@ def test_handle_broker_message_completes_step() -> None:
 
     campaign_id = uuid.uuid4()
     step_id = uuid.uuid4()
-    icmp = _make_icmp(campaign_id, step_id)
+    campaign = _make_campaign(campaign_id, step_id)
 
-    orchestrator.submit_campaign(icmp)
+    orchestrator.submit_campaign(campaign)
 
     orchestrator.handle_broker_message(
         b'{}',
@@ -91,9 +98,9 @@ def test_handle_broker_message_emits_error() -> None:
 
     campaign_id = uuid.uuid4()
     step_id = uuid.uuid4()
-    icmp = _make_icmp(campaign_id, step_id)
+    campaign = _make_campaign(campaign_id, step_id)
 
-    orchestrator.submit_campaign(icmp)
+    orchestrator.submit_campaign(campaign)
 
     orchestrator.handle_broker_message(
         b'{}',

@@ -252,7 +252,10 @@ class AMQPClient(BrokerClient):
             )
 
     def _cancel_consumer_tag_cb(
-        self, _frame: pika.frame.Frame, topic: str, consumer_tag: str
+        self,
+        _frame: pika.frame.Frame,  # noqa: ARG002
+        topic: str,
+        consumer_tag: str,
     ) -> None:
         try:
             del self._topics_to_consumer_tags[topic]
@@ -367,7 +370,7 @@ class AMQPClient(BrokerClient):
             exchange=_INTERSECT_MESSAGE_EXCHANGE,
             exchange_type='topic',
             durable=True,
-            callback=lambda _frame: self._channel_flags.set_nth_flag(channel_num),
+            callback=lambda _frame: self._channel_flags.set_nth_flag(channel_num),  # noqa: ARG005
         )
         logger.info('AMQP: output channel ready')
 
@@ -384,7 +387,7 @@ class AMQPClient(BrokerClient):
             exchange=_INTERSECT_MESSAGE_EXCHANGE, exchange_type='topic', durable=True, callback=cb_2
         )
 
-    def _on_exchange_declareok(self, _unused_frame: Frame, channel: Channel) -> None:
+    def _on_exchange_declareok(self, _unused_frame: Frame, channel: Channel) -> None:  # noqa: ARG002
         """Create a queue on the broker (called from AMQP).
 
         After verifying that the exchange exists, we can now proceed to execute
@@ -456,7 +459,7 @@ class AMQPClient(BrokerClient):
 
     def _on_queue_bindok(
         self,
-        _unused_frame: Frame,
+        _unused_frame: Frame,  # noqa: ARG002
         channel: Channel,
         topic: str,
         queue_name: str,
@@ -482,7 +485,7 @@ class AMQPClient(BrokerClient):
 
     def _on_basic_qos_set(
         self,
-        _unused_frame: Frame,
+        _unused_frame: Frame,  # noqa: ARG002
         channel: Channel,
         topic: str,
         queue_name: str,
@@ -511,7 +514,7 @@ class AMQPClient(BrokerClient):
         )
         info.obtain_consumer_tag(consumer_tag)
 
-    def _on_consume_ok(self, _unused_frame: Frame, topic: str) -> None:
+    def _on_consume_ok(self, _unused_frame: Frame, topic: str) -> None:  # noqa: ARG002
         """Sets the consume subscription ready event.
 
         Used as a listener on consuming an initial message on a channel.

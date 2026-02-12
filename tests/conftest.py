@@ -1,14 +1,42 @@
 import json
 import pathlib
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
+from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.environment import settings
-from intersect_orchestrator.app.main import app
+from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
 
 from . import TEST_DATA_DIR
+
+
+# Create pytest hook to set up mocking before any modules are imported
+def pytest_configure(config):
+    """Set up mocking before test collection."""
+    from unittest.mock import patch
+
+    # Mock the ControlPlaneManager module before anything imports it
+    mock_manager_instance = MagicMock()
+    mock_manager_instance.is_connected.return_value = True
+    mock_manager_instance.considered_unrecoverable.return_value = False
+    mock_manager_instance.connect.return_value = None
+    mock_manager_instance.add_subscription_channel.return_value = None
+    mock_manager_instance.disconnect.return_value = None
+
+    # Patch at the module level
+    patcher = patch(
+        'intersect_orchestrator.app.intersect_control_plane_fork.control_plane_manager.ControlPlaneManager',
+        return_value=mock_manager_instance,
+    )
+    patcher.start()
+    config._mock_patcher = patcher
+
+
+# Now import app after the hook runs
+from intersect_orchestrator.app.main import app  # noqa: E402
 
 
 @pytest.fixture
@@ -63,7 +91,22 @@ def sample_campaign_data(random_number_campaign_data):
 
 @pytest.fixture
 def client():
-    """FastAPI test client."""
+    """FastAPI test client with properly initialized app state."""
+    # Create a mock client with mocked broker
+    mock_client = MagicMock(spec=CoreServiceIntersectClient)
+    mock_client.is_connected.return_value = True
+    mock_client.can_reconnect.return_value = True
+    mock_client.broadcast_message.return_value = None
+    mock_client.add_http_connection.return_value = MagicMock()
+
+    # Create the orchestrator
+    orchestrator = CampaignOrchestrator(mock_client)
+
+    # Manually set the app state since lifespan doesn't run with TestClient
+    app.state.intersect_client = mock_client
+    app.state.campaign_orchestrator = orchestrator
+    mock_client.set_campaign_orchestrator(orchestrator)
+
     return TestClient(app)
 
 

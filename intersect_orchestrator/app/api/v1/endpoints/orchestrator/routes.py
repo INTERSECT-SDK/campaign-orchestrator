@@ -62,7 +62,7 @@ async def stop_campaign(
 @router.websocket(
     '/events',
 )
-async def campaign_events(websocket: WebSocket):
+async def campaign_events(websocket: WebSocket) -> None:
     """Endpoint to handle emitting events to websocket clients."""
     """
     if api_key != settings.API_KEY:
@@ -95,7 +95,7 @@ from fastapi.responses import HTMLResponse  # noqa: E402
 
 
 @router.get('/test')
-async def websocket_ui():
+async def websocket_ui() -> HTMLResponse:
     html = """
 <!DOCTYPE html>
 <html>

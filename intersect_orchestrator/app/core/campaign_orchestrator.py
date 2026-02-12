@@ -5,13 +5,8 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..api.v1.endpoints.orchestrator.models.icmp import (
-    CampaignStepId,
-    Icmp,
-    IntersectCampaignId,
-)
 from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
     CampaignCompleteEvent,
     CampaignErrorFromServiceEvent,
@@ -21,12 +16,20 @@ from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
     UnknownErrorEvent,
 )
 
+if TYPE_CHECKING:
+    from ..api.v1.endpoints.orchestrator.models.campaign import (
+        Campaign,
+        CampaignStepId,
+        IntersectCampaignId,
+    )
+    from .intersect_client import CoreServiceIntersectClient
+
 
 @dataclass
 class CampaignState:
     campaign_id: IntersectCampaignId
     campaign_aliases: set[str]
-    icmp: Icmp
+    campaign: Campaign
     steps: list[CampaignStepId]
     current_index: int = 0
     active_step: CampaignStepId | None = None
@@ -41,20 +44,21 @@ class CampaignOrchestrator:
         self._campaigns: dict[IntersectCampaignId, CampaignState] = {}
         self._campaign_aliases: dict[str, IntersectCampaignId] = {}
 
-    def submit_campaign(self, icmp: Icmp) -> IntersectCampaignId:
+    def submit_campaign(self, campaign: Campaign) -> IntersectCampaignId:
         """Register a campaign and begin execution."""
-        campaign_id = self._resolve_campaign_id(icmp)
-        steps = self._steps_from_icmp(icmp)
-        aliases = self._campaign_aliases_from_icmp(icmp)
+        campaign_id = self._resolve_campaign_id(campaign)
+        steps = self._steps_from_campaign(campaign)
+        aliases = self._campaign_aliases_from_campaign(campaign)
         aliases.add(str(campaign_id))
 
         with self._lock:
             if campaign_id in self._campaigns:
-                raise ValueError(f'Campaign already registered: {campaign_id}')
+                err_msg = f'Campaign already registered: {campaign_id}'
+                raise ValueError(err_msg)
             state = CampaignState(
                 campaign_id=campaign_id,
                 campaign_aliases=aliases,
-                icmp=icmp,
+                campaign=campaign,
                 steps=steps,
             )
             self._campaigns[campaign_id] = state
@@ -80,7 +84,7 @@ class CampaignOrchestrator:
         self, message: bytes, content_type: str, headers: dict[str, str]
     ) -> None:
         """Process broker callbacks to advance campaign steps."""
-        _ = content_type
+        _ = content_type  # noqa: F841
         payload = self._parse_json(message)
         if payload is None:
             payload = {}
@@ -162,7 +166,7 @@ class CampaignOrchestrator:
         if state.active_step is None:
             return
         try:
-            step_metadata = self._step_metadata(state.icmp, state.active_step)
+            step_metadata = self._step_metadata(state.campaign, state.active_step)
             headers = self._resolve_headers(step_metadata)
             topic = self._resolve_topic(step_metadata, headers)
             headers.setdefault('destination', topic)
@@ -199,68 +203,69 @@ class CampaignOrchestrator:
                 return None
             return self._campaigns.get(campaign_id)
 
-    def _step_metadata(self, icmp: Icmp, step_id: CampaignStepId) -> dict[str, Any]:
-        node_metadata = self._node_metadata(icmp, step_id)
-        if node_metadata is not None:
-            return node_metadata
+    def _step_metadata(self, campaign: Campaign, step_id: CampaignStepId) -> dict[str, Any]:
+        # Try to find task metadata from the campaign's task_groups
+        task = self._get_task_from_campaign(campaign, step_id)
+        if task is not None:
+            return self._task_to_metadata(task)
 
-        metadata = icmp.metadata or {}
-        steps_metadata = metadata.get('steps')
-        if isinstance(steps_metadata, dict):
-            value = steps_metadata.get(str(step_id))
-            if isinstance(value, dict):
-                return value
+        # Fallback to campaign-level metadata if it exists
+        return {
+            'topic': 'org/fac/system/subsystem/service/response',
+            'headers': {
+                'source': 'org.fac.system.subsystem.service',
+                'sdk_version': '0.0.1',
+            },
+        }
 
-        return metadata
-
-    def _node_metadata(self, icmp: Icmp, step_id: CampaignStepId) -> dict[str, Any] | None:
-        for node in icmp.nodes:
-            try:
-                node_id = uuid.UUID(str(node.id))
-            except (TypeError, ValueError):
-                continue
-            if node_id != step_id:
-                continue
-            metadata = getattr(node, 'metadata', None)
-            if isinstance(metadata, dict):
-                return metadata
-        return None
-
-    def _resolve_campaign_id(self, icmp: Icmp) -> IntersectCampaignId:
-        candidate = self._campaign_id_from_metadata(icmp)
-        if candidate is not None:
-            return candidate
-        return uuid.uuid4()
-
-    def _campaign_id_from_metadata(self, icmp: Icmp) -> IntersectCampaignId | None:
-        metadata = icmp.metadata or {}
-        for key in ('campaignId', 'campaign_id', 'id'):
-            value = metadata.get(key)
-            if isinstance(value, str):
+    def _get_task_from_campaign(
+        self, campaign: Campaign, step_id: CampaignStepId
+    ) -> dict[str, Any] | None:
+        """Find a task in the campaign by its ID."""
+        for task_group in campaign.task_groups:
+            for task in task_group.tasks:
                 try:
-                    return uuid.UUID(value)
-                except ValueError:
-                    continue
+                    task_id = uuid.UUID(task.id)
+                    if task_id == step_id:
+                        return task.model_dump()
+                except (TypeError, ValueError):
+                    if task.id == str(step_id):
+                        return task.model_dump()
         return None
 
-    def _campaign_aliases_from_icmp(self, icmp: Icmp) -> set[str]:
-        metadata = icmp.metadata or {}
+    def _task_to_metadata(self, task: dict[str, Any]) -> dict[str, Any]:
+        """Convert a task to metadata that can be used for dispatch."""
+        hierarchy = task.get('hierarchy', 'org.fac.system.subsystem.service')
+        return {
+            'topic': f'{hierarchy.replace(".", "/")}/response',
+            'headers': {
+                'source': hierarchy,
+                'sdk_version': '0.0.1',
+            },
+        }
+
+    def _resolve_campaign_id(self, campaign: Campaign) -> IntersectCampaignId:
+        """Resolve campaign ID from the campaign model."""
+        try:
+            return uuid.UUID(campaign.id)
+        except (TypeError, ValueError):
+            return uuid.uuid4()
+
+    def _campaign_aliases_from_campaign(self, campaign: Campaign) -> set[str]:
+        """Get campaign aliases from the campaign model."""
         aliases: set[str] = set()
-        for key in ('campaignId', 'campaign_id', 'id'):
-            value = metadata.get(key)
-            if isinstance(value, str):
-                aliases.add(value)
+        aliases.add(campaign.id)
         return aliases
 
-    def _steps_from_icmp(self, icmp: Icmp) -> list[CampaignStepId]:
+    def _steps_from_campaign(self, campaign: Campaign) -> list[CampaignStepId]:
+        """Extract step IDs from the campaign's task_groups."""
         steps: list[CampaignStepId] = []
-        for node in icmp.nodes:
-            if isinstance(node.id, uuid.UUID):
-                steps.append(node.id)
-            else:
+        for task_group in campaign.task_groups:
+            for task in task_group.tasks:
                 try:
-                    steps.append(uuid.UUID(str(node.id)))
-                except ValueError:
+                    step_id = uuid.UUID(task.id)
+                    steps.append(step_id)
+                except (TypeError, ValueError):
                     continue
         return steps
 
@@ -390,7 +395,8 @@ class CampaignOrchestrator:
         required = {'source', 'sdk_version'}
         missing = sorted(key for key in required if key not in headers)
         if missing:
-            raise ValueError(f'Missing required headers for step: {", ".join(missing)}')
+            err_msg = f'Missing required headers for step: {", ".join(missing)}'
+            raise ValueError(err_msg)
         return {key: self._normalize_header_value(value) for key, value in headers.items()}
 
     def _resolve_topic(self, metadata: dict[str, Any], headers: dict[str, Any]) -> str:
@@ -406,7 +412,7 @@ class CampaignOrchestrator:
 
         hierarchy_parts = self._split_hierarchy(hierarchy_value)
         if hierarchy_parts:
-            return '/'.join(hierarchy_parts + ['response'])
+            return '/'.join([*hierarchy_parts, 'response'])
 
         parts = []
         for key in ('organization', 'facility', 'system', 'subsystem', 'service'):
@@ -415,9 +421,10 @@ class CampaignOrchestrator:
                 break
             parts.append(value)
         if len(parts) == 5:
-            return '/'.join(parts + ['response'])
+            return '/'.join([*parts, 'response'])
 
-        raise ValueError('Unable to resolve broker topic for campaign step')
+        err_msg = 'Unable to resolve broker topic for campaign step'
+        raise ValueError(err_msg)
 
     def _split_hierarchy(self, value: str | None) -> list[str]:
         if not value:
@@ -463,6 +470,3 @@ class CampaignOrchestrator:
         if isinstance(value, bool):
             return 'true' if value else 'false'
         return str(value)
-
-
-from .intersect_client import CoreServiceIntersectClient  # noqa: E402
