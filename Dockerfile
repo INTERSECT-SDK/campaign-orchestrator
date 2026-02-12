@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --no-dev --frozen --no-editable
 
-FROM gcr.io/distroless/cc:nonroot AS runner
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS runner
 
 COPY --from=builder --chown=python:python /python /python
 
