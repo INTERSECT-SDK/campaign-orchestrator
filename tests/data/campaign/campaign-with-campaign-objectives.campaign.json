@@ -1,0 +1,125 @@
+{
+  "id": "campaign-with-campaign-objectives",
+  "name": "Time-Limited Campaign Objectives",
+  "user": "researcher",
+  "description": "Campaign demonstrating campaign-level objectives like total runtime constraints",
+  "task_groups": [
+    {
+      "id": "phase_one",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "task_phase_one",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "execute_phase_one",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "task_phase_one_validate",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "validate_phase_one",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["task_phase_one"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "phase_one_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    },
+    {
+      "id": "phase_two",
+      "group_dependencies": ["phase_one"],
+      "tasks": [
+        {
+          "id": "task_phase_two",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "execute_phase_two",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "task_phase_two_validate",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "validate_phase_two",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["task_phase_two"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "phase_two_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    },
+    {
+      "id": "phase_three",
+      "group_dependencies": ["phase_two"],
+      "tasks": [
+        {
+          "id": "task_phase_three",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "execute_phase_three",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "task_phase_three_validate",
+          "hierarchy": "phase",
+          "capability": "PhaseExecution",
+          "operation_id": "validate_phase_three",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["task_phase_three"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "phase_three_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    }
+  ],
+  "objectives": {
+    "max_runtime": [
+      {
+        "id": "campaign_max_runtime_one_hour",
+        "max_time": "PT1H",
+        "task_group": "campaign"
+      }
+    ],
+    "threshold": []
+  },
+  "inputs": [],
+  "outputs": []
+}

@@ -52,9 +52,26 @@
           },
           "task_dependencies": [],
           "task_objectives": null
+        },
+        {
+          "id": "validate_random_number",
+          "hierarchy": "capability",
+          "capability": "Random_Number_Validator",
+          "operation_id": "validate_random_number",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["generate_random_number"],
+          "task_objectives": null
         }
       ],
-      "objectives": []
+      "objectives": [
+        {
+          "id": "capability_group_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
     }
   ],
   "objectives": null,

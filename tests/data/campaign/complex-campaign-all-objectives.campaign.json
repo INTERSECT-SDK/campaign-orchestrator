@@ -1,0 +1,252 @@
+{
+  "id": "complex-campaign-all-objectives",
+  "name": "Complex Campaign with Mixed Objectives",
+  "user": "researcher",
+  "description": "Comprehensive campaign demonstrating task-group and campaign-level objectives with thresholds",
+  "task_groups": [
+    {
+      "id": "sample_preparation",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "prepare_sample_1",
+          "hierarchy": "prep",
+          "capability": "SamplePrep",
+          "operation_id": "prepare_sample",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sample_id": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "sample_id_out",
+                "var": "sample_id"
+              },
+              {
+                "id": "weight_out",
+                "var": "weight"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "record_sample_metadata",
+          "hierarchy": "prep",
+          "capability": "SamplePrep",
+          "operation_id": "record_sample_metadata",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["prepare_sample_1"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "prep_iterate",
+          "type": "iterate",
+          "iterations": 2
+        }
+      ]
+    },
+    {
+      "id": "scattering_measurement",
+      "group_dependencies": ["sample_preparation"],
+      "tasks": [
+        {
+          "id": "measure_scattering",
+          "hierarchy": "measurement",
+          "capability": "XRayScattering",
+          "operation_id": "measure_scattering",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "scattering_intensity": {
+                  "type": "number"
+                },
+                "measurement_id": {
+                  "type": "string"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "intensity_out",
+                "var": "scattering_intensity"
+              },
+              {
+                "id": "meas_id_out",
+                "var": "measurement_id"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "validate_scattering",
+          "hierarchy": "measurement",
+          "capability": "XRayScattering",
+          "operation_id": "validate_scattering",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["measure_scattering"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "scattering_iterate_5_times",
+          "type": "iterate",
+          "iterations": 5
+        }
+      ]
+    },
+    {
+      "id": "data_quality_check",
+      "group_dependencies": ["scattering_measurement"],
+      "tasks": [
+        {
+          "id": "check_data_quality",
+          "hierarchy": "validation",
+          "capability": "DataQualityCheck",
+          "operation_id": "check_quality",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "quality_score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "is_valid": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "quality_out",
+                "var": "quality_score"
+              },
+              {
+                "id": "valid_out",
+                "var": "is_valid"
+              }
+            ]
+          },
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "archive_quality_check",
+          "hierarchy": "validation",
+          "capability": "DataQualityCheck",
+          "operation_id": "archive_quality_check",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["check_data_quality"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "quality_check_iterate",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    },
+    {
+      "id": "data_storage",
+      "group_dependencies": ["data_quality_check"],
+      "tasks": [
+        {
+          "id": "store_results",
+          "hierarchy": "finalization",
+          "capability": "DataStorage",
+          "operation_id": "store_data",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "verify_storage",
+          "hierarchy": "finalization",
+          "capability": "DataStorage",
+          "operation_id": "verify_storage",
+          "event_name": null,
+          "output": null,
+          "input": null,
+          "task_dependencies": ["store_results"],
+          "task_objectives": null
+        }
+      ],
+      "objectives": []
+    }
+  ],
+  "objectives": {
+    "max_runtime": [
+      {
+        "id": "campaign_max_2_hours",
+        "max_time": "PT2H",
+        "task_group": "campaign"
+      },
+      {
+        "id": "prep_max_15_min",
+        "max_time": "PT15M",
+        "task_group": "sample_preparation"
+      },
+      {
+        "id": "scattering_max_30_min",
+        "max_time": "PT30M",
+        "task_group": "scattering_measurement"
+      },
+      {
+        "id": "quality_check_max_10_min",
+        "max_time": "PT10M",
+        "task_group": "data_quality_check"
+      }
+    ],
+    "threshold": [
+      {
+        "id": "sample_weight_check",
+        "var": "weight",
+        "type": "range",
+        "target": 2.5,
+        "task_group": "sample_preparation"
+      },
+      {
+        "id": "quality_minimum",
+        "var": "quality_score",
+        "type": "upper_limit",
+        "target": 15,
+        "task_group": "data_quality_check"
+      }
+    ]
+  },
+  "inputs": [],
+  "outputs": []
+}

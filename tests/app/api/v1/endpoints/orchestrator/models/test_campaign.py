@@ -11,8 +11,10 @@ def test_random_number_campaign_data(random_number_campaign_data):
 
     task_group = campaign.task_groups[0]
     assert task_group.id == 'capability_group'
-    assert len(task_group.tasks) == 1
+    assert len(task_group.tasks) == 2
     assert task_group.tasks[0].id == 'generate_random_number'
+    assert task_group.tasks[1].id == 'validate_random_number'
+    assert task_group.tasks[1].task_dependencies == ['generate_random_number']
 
 
 def test_random_number_and_histogram_campaign_data(random_number_and_histogram_campaign_data):
@@ -29,3 +31,10 @@ def test_random_number_and_histogram_campaign_data(random_number_and_histogram_c
 
     viz_group = task_groups['visualization_group']
     assert 'capability_group' in viz_group.group_dependencies
+
+    capability_group = task_groups['capability_group']
+    assert len(capability_group.tasks) == 2
+    assert capability_group.tasks[1].task_dependencies == ['generate_random_number']
+
+    assert len(viz_group.tasks) == 2
+    assert viz_group.tasks[1].task_dependencies == ['vega-histogram_histogram']
