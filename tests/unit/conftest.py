@@ -10,7 +10,7 @@ from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrches
 from intersect_orchestrator.app.core.environment import settings
 from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
 
-from . import TEST_DATA_DIR
+from tests import TEST_DATA_DIR
 
 
 # Create pytest hook to set up mocking before any modules are imported

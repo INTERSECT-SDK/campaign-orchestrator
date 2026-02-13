@@ -17,3 +17,32 @@ services:
       retries: 5
       start_period: 10s
       timeout: 10s
+
+  mongo:
+    image: "mongo:7.0"
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "intersect"
+      MONGO_INITDB_ROOT_PASSWORD: "intersect"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+
+  postgres:
+    image: "postgres:16"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: "intersect"
+      POSTGRES_PASSWORD: "intersect"
+      POSTGRES_DB: "intersect_orchestrator"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intersect -d intersect_orchestrator"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s

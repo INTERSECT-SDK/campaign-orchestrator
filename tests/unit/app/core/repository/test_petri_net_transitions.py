@@ -17,7 +17,7 @@ from intersect_orchestrator.app.converters.campaign_to_petri_net import (
     CampaignPetriNetConverter,
 )
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
-from intersect_orchestrator.app.core.campaign_repository import InMemoryCampaignRepository
+from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
 
 class _FakeClient:

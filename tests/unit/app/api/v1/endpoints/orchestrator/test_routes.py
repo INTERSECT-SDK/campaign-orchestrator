@@ -59,7 +59,7 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
         assert petri_net.name == f"Campaign_{payload['id']}"
 
         # Check that events were recorded in the repository
-        from intersect_orchestrator.app.core.campaign_repository import CampaignRepository
+        from intersect_orchestrator.app.core.repository import CampaignRepository
 
         repo: CampaignRepository = orchestrator._repository
         events = list(repo.load_events(campaign_uuid))

@@ -32,4 +32,59 @@ jobs:
         #uv run ruff check
 
     - name: Run tests
-      run: uv run pytest
+      run: uv run pytest tests/unit
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: intersect
+          MONGO_INITDB_ROOT_PASSWORD: intersect
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=5
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: intersect
+          POSTGRES_PASSWORD: intersect
+          POSTGRES_DB: intersect_orchestrator
+        options: >-
+          --health-cmd="pg_isready -U intersect -d intersect_orchestrator"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
+    - name: Install dependencies with DB extras
+      run: uv sync --dev --extra mongo --extra postgres
+
+    - name: Run integration tests
+      env:
+        CAMPAIGN_REPOSITORY_MONGO_URI: mongodb://intersect:intersect@localhost:27017
+        CAMPAIGN_REPOSITORY_MONGO_DB: intersect_orchestrator
+        CAMPAIGN_REPOSITORY_POSTGRES_DSN: postgresql://intersect:intersect@localhost:5432/intersect_orchestrator
+      run: uv run pytest tests/integration

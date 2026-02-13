@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import shutil
 from uuid import uuid4
 
 import pytest
@@ -14,10 +15,11 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
     CampaignState,
     ExecutionStatus,
 )
-from intersect_orchestrator.app.core.campaign_repository import (
-    CampaignEvent,
-    InMemoryCampaignRepository,
-)
+from intersect_orchestrator.app.core.repository import CampaignEvent, PostgresCampaignRepository
+
+
+if shutil.which('pg_config') is None:
+    pytest.skip('pg_config not available; skipping postgres-backed tests', allow_module_level=True)
 
 
 @pytest.fixture
@@ -44,32 +46,43 @@ def simple_campaign() -> Campaign:
     )
 
 
-def test_repository_create_and_load_snapshot(simple_campaign: Campaign) -> None:
-    repo = InMemoryCampaignRepository()
+@pytest.fixture
+def repository(postgresql):
+    import psycopg
+
+    conn = psycopg.connect(postgresql.dsn())
+    conn.execute("SET TIME ZONE 'UTC'")
+    return PostgresCampaignRepository(conn)
+
+
+def test_postgres_repository_create_and_load_snapshot(
+    repository: PostgresCampaignRepository, simple_campaign: Campaign
+) -> None:
     campaign_id = uuid4()
 
     state = CampaignState.from_campaign(simple_campaign, status=ExecutionStatus.QUEUED)
-    repo.create_campaign(campaign_id, simple_campaign, state)
+    repository.create_campaign(campaign_id, simple_campaign, state)
 
-    assert repo.campaign_exists(campaign_id)
-    assert repo.get_campaign(campaign_id) == simple_campaign
+    assert repository.campaign_exists(campaign_id)
+    assert repository.get_campaign(campaign_id) == simple_campaign
 
-    snapshot = repo.load_snapshot(campaign_id)
+    snapshot = repository.load_snapshot(campaign_id)
     assert snapshot is not None
     assert snapshot.version == 0
     assert snapshot.state.status == ExecutionStatus.QUEUED
 
-    assert list(repo.load_events(campaign_id)) == []
+    assert list(repository.load_events(campaign_id)) == []
 
 
-def test_repository_append_event_and_update_snapshot(simple_campaign: Campaign) -> None:
-    repo = InMemoryCampaignRepository()
+def test_postgres_repository_append_event_and_update_snapshot(
+    repository: PostgresCampaignRepository, simple_campaign: Campaign
+) -> None:
     campaign_id = uuid4()
 
     state = CampaignState.from_campaign(simple_campaign, status=ExecutionStatus.QUEUED)
-    repo.create_campaign(campaign_id, simple_campaign, state)
+    repository.create_campaign(campaign_id, simple_campaign, state)
 
-    snapshot = repo.load_snapshot(campaign_id)
+    snapshot = repository.load_snapshot(campaign_id)
     assert snapshot is not None
 
     event = CampaignEvent(
@@ -81,27 +94,28 @@ def test_repository_append_event_and_update_snapshot(simple_campaign: Campaign) 
         timestamp=datetime.now(UTC),
     )
 
-    repo.append_event(event, expected_version=snapshot.version)
+    repository.append_event(event, expected_version=snapshot.version)
 
     snapshot.state.status = ExecutionStatus.RUNNING
     snapshot.version = event.seq
     snapshot.updated_at = event.timestamp
 
-    repo.update_snapshot(snapshot, expected_version=event.seq - 1)
+    repository.update_snapshot(snapshot, expected_version=event.seq - 1)
 
-    reloaded = repo.load_snapshot(campaign_id)
+    reloaded = repository.load_snapshot(campaign_id)
     assert reloaded is not None
     assert reloaded.version == 1
     assert reloaded.state.status == ExecutionStatus.RUNNING
-    assert [e.seq for e in repo.load_events(campaign_id)] == [1]
+    assert [e.seq for e in repository.load_events(campaign_id)] == [1]
 
 
-def test_repository_optimistic_locking(simple_campaign: Campaign) -> None:
-    repo = InMemoryCampaignRepository()
+def test_postgres_repository_optimistic_locking(
+    repository: PostgresCampaignRepository, simple_campaign: Campaign
+) -> None:
     campaign_id = uuid4()
 
     state = CampaignState.from_campaign(simple_campaign, status=ExecutionStatus.QUEUED)
-    repo.create_campaign(campaign_id, simple_campaign, state)
+    repository.create_campaign(campaign_id, simple_campaign, state)
 
     event = CampaignEvent(
         event_id=uuid4(),
@@ -113,4 +127,4 @@ def test_repository_optimistic_locking(simple_campaign: Campaign) -> None:
     )
 
     with pytest.raises(ValueError, match='version mismatch'):
-        repo.append_event(event, expected_version=2)
+        repository.append_event(event, expected_version=2)

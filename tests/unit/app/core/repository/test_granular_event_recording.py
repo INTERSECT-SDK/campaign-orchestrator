@@ -15,7 +15,7 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign im
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
     ExecutionStatus,
 )
-from intersect_orchestrator.app.core.campaign_repository import InMemoryCampaignRepository
+from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 
 

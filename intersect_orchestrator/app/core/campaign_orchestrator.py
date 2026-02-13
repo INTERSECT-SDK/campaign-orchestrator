@@ -33,11 +33,7 @@ from ..api.v1.endpoints.orchestrator.models.campaign_state import (
     ExecutionStatus,
 )
 from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
-from .campaign_repository import (
-    CampaignEvent,
-    CampaignRepository,
-    InMemoryCampaignRepository,
-)
+from .repository import CampaignEvent, CampaignRepository, InMemoryCampaignRepository
 
 
 @dataclass

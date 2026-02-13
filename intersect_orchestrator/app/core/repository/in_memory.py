@@ -1,62 +1,15 @@
-"""Repository interface for storing campaign state changes."""
+"""In-memory campaign repository implementation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Iterable, Protocol
 from uuid import UUID
 
-from pydantic import BaseModel
-
-from ..api.v1.endpoints.orchestrator.models.campaign import Campaign
-from ..api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
-
-
-class CampaignEvent(BaseModel):
-    """Event describing a campaign state change."""
-
-    event_id: UUID
-    campaign_id: UUID
-    seq: int
-    event_type: str
-    payload: dict[str, object]
-    timestamp: datetime
-
-
-class CampaignSnapshot(BaseModel):
-    """Snapshot of campaign state."""
-
-    campaign_id: UUID
-    version: int
-    state: CampaignState
-    updated_at: datetime
-
-
-class CampaignRepository(Protocol):
-    """Repository contract for campaign storage backends."""
-
-    def create_campaign(self, campaign_id: UUID, campaign: Campaign, state: CampaignState) -> None:
-        ...
-
-    def get_campaign(self, campaign_id: UUID) -> Campaign | None:
-        ...
-
-    def append_event(self, event: CampaignEvent, *, expected_version: int) -> None:
-        ...
-
-    def load_events(self, campaign_id: UUID, *, after_seq: int = 0) -> Iterable[CampaignEvent]:
-        ...
-
-    def load_snapshot(self, campaign_id: UUID) -> CampaignSnapshot | None:
-        ...
-
-    def update_snapshot(self, snapshot: CampaignSnapshot, *, expected_version: int) -> None:
-        ...
-
-    def campaign_exists(self, campaign_id: UUID) -> bool:
-        ...
+from ...api.v1.endpoints.orchestrator.models.campaign import Campaign
+from ...api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
+from .base import CampaignEvent, CampaignSnapshot
 
 
 @dataclass
@@ -103,7 +56,7 @@ class InMemoryCampaignRepository:
                 raise ValueError(msg)
             self._events[event.campaign_id].append(event)
 
-    def load_events(self, campaign_id: UUID, *, after_seq: int = 0) -> Iterable[CampaignEvent]:
+    def load_events(self, campaign_id: UUID, *, after_seq: int = 0) -> list[CampaignEvent]:
         with self._lock:
             events = self._events.get(campaign_id, [])
             return [event for event in events if event.seq > after_seq]

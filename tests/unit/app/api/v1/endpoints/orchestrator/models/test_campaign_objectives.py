@@ -11,13 +11,13 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign im
     Campaign,
     ObjectiveIterate,
 )
+from tests import TEST_DATA_DIR
 
 
 @pytest.fixture
 def test_data_dir():
     """Get the path to test data directory."""
-    # Go up from tests/app/api/v1/endpoints/orchestrator/models/ to tests/data/campaign/
-    return Path(__file__).parent.parent.parent.parent.parent.parent.parent / 'data' / 'campaign'
+    return Path(TEST_DATA_DIR, 'campaign')
 
 
 class TestCampaignDataFiles:
