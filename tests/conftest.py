@@ -90,6 +90,19 @@ def sample_campaign_data(random_number_campaign_data):
 
 
 @pytest.fixture
+def campaign_payloads():
+    """Load all campaign payloads from test data."""
+    campaign_dir = pathlib.Path(TEST_DATA_DIR, 'campaign')
+    payloads = []
+    for campaign_path in sorted(campaign_dir.glob('*.campaign.json')):
+        with campaign_path.open() as f:
+            data = json.load(f)
+        Campaign(**data)
+        payloads.append(data)
+    return payloads
+
+
+@pytest.fixture
 def client():
     """FastAPI test client with properly initialized app state."""
     # Create a mock client with mocked broker

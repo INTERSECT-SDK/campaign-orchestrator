@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from snakes.nets import PetriNet
+
 from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
     CampaignCompleteEvent,
     CampaignErrorFromServiceEvent,
@@ -22,7 +24,14 @@ if TYPE_CHECKING:
         CampaignStepId,
         IntersectCampaignId,
     )
+    from ..api.v1.endpoints.orchestrator.models.campaign_state import CampaignState as CampaignStateModel
     from .intersect_client import CoreServiceIntersectClient
+
+from ..api.v1.endpoints.orchestrator.models.campaign_state import (
+    CampaignState as CampaignStateModel,
+    ExecutionStatus,
+)
+from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
 
 
 @dataclass
@@ -43,6 +52,9 @@ class CampaignOrchestrator:
         self._lock = threading.Lock()
         self._campaigns: dict[IntersectCampaignId, CampaignState] = {}
         self._campaign_aliases: dict[str, IntersectCampaignId] = {}
+        self._campaign_payloads: dict[IntersectCampaignId, Campaign] = {}
+        self._campaign_states: dict[IntersectCampaignId, CampaignStateModel] = {}
+        self._campaign_petri_nets: dict[IntersectCampaignId, PetriNet] = {}
 
     def submit_campaign(self, campaign: Campaign) -> IntersectCampaignId:
         """Register a campaign and begin execution."""
@@ -50,6 +62,11 @@ class CampaignOrchestrator:
         steps = self._steps_from_campaign(campaign)
         aliases = self._campaign_aliases_from_campaign(campaign)
         aliases.add(str(campaign_id))
+        campaign_state = CampaignStateModel.from_campaign(
+            campaign,
+            status=ExecutionStatus.QUEUED,
+        )
+        petri_net = CampaignPetriNetConverter().convert(campaign_state)
 
         with self._lock:
             if campaign_id in self._campaigns:
@@ -64,6 +81,9 @@ class CampaignOrchestrator:
             self._campaigns[campaign_id] = state
             for alias in aliases:
                 self._campaign_aliases[alias] = campaign_id
+            self._campaign_payloads[campaign_id] = campaign
+            self._campaign_states[campaign_id] = campaign_state
+            self._campaign_petri_nets[campaign_id] = petri_net
 
         self._start_next_step(state)
         return campaign_id
@@ -79,6 +99,21 @@ class CampaignOrchestrator:
             event=UnknownErrorEvent(exception_message='Campaign cancelled by user'),
         )
         return True
+
+    def get_campaign(self, campaign_id: IntersectCampaignId) -> Campaign | None:
+        """Get a campaign payload from memory."""
+        with self._lock:
+            return self._campaign_payloads.get(campaign_id)
+
+    def get_campaign_state(self, campaign_id: IntersectCampaignId) -> CampaignStateModel | None:
+        """Get a campaign state snapshot from memory."""
+        with self._lock:
+            return self._campaign_states.get(campaign_id)
+
+    def get_campaign_petri_net(self, campaign_id: IntersectCampaignId) -> PetriNet | None:
+        """Get the Petri Net for a campaign from memory."""
+        with self._lock:
+            return self._campaign_petri_nets.get(campaign_id)
 
     def handle_broker_message(
         self, message: bytes, content_type: str, headers: dict[str, str]
