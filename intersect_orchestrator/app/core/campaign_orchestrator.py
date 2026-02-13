@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from snakes import ConstraintError
 from snakes.nets import PetriNet
 
 from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
@@ -32,6 +33,11 @@ from ..api.v1.endpoints.orchestrator.models.campaign_state import (
     ExecutionStatus,
 )
 from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
+from .campaign_repository import (
+    CampaignEvent,
+    CampaignRepository,
+    InMemoryCampaignRepository,
+)
 
 
 @dataclass
@@ -47,14 +53,17 @@ class CampaignState:
 class CampaignOrchestrator:
     """Track campaigns, execute steps, and react to broker callbacks."""
 
-    def __init__(self, intersect_client: CoreServiceIntersectClient) -> None:
+    def __init__(
+        self,
+        intersect_client: CoreServiceIntersectClient,
+        repository: CampaignRepository | None = None,
+    ) -> None:
         self._client = intersect_client
         self._lock = threading.Lock()
         self._campaigns: dict[IntersectCampaignId, CampaignState] = {}
         self._campaign_aliases: dict[str, IntersectCampaignId] = {}
-        self._campaign_payloads: dict[IntersectCampaignId, Campaign] = {}
-        self._campaign_states: dict[IntersectCampaignId, CampaignStateModel] = {}
         self._campaign_petri_nets: dict[IntersectCampaignId, PetriNet] = {}
+        self._repository = repository or InMemoryCampaignRepository()
 
     def submit_campaign(self, campaign: Campaign) -> IntersectCampaignId:
         """Register a campaign and begin execution."""
@@ -81,9 +90,9 @@ class CampaignOrchestrator:
             self._campaigns[campaign_id] = state
             for alias in aliases:
                 self._campaign_aliases[alias] = campaign_id
-            self._campaign_payloads[campaign_id] = campaign
-            self._campaign_states[campaign_id] = campaign_state
             self._campaign_petri_nets[campaign_id] = petri_net
+
+        self._repository.create_campaign(campaign_id, campaign, campaign_state)
 
         self._start_next_step(state)
         return campaign_id
@@ -98,22 +107,47 @@ class CampaignOrchestrator:
             campaign_id=state.campaign_id,
             event=UnknownErrorEvent(exception_message='Campaign cancelled by user'),
         )
+        self._record_campaign_event(
+            campaign_id=state.campaign_id,
+            event_type='CAMPAIGN_CANCELLED',
+            payload={'reason': 'Campaign cancelled by user'},
+        )
         return True
 
     def get_campaign(self, campaign_id: IntersectCampaignId) -> Campaign | None:
         """Get a campaign payload from memory."""
-        with self._lock:
-            return self._campaign_payloads.get(campaign_id)
+        return self._repository.get_campaign(campaign_id)
 
     def get_campaign_state(self, campaign_id: IntersectCampaignId) -> CampaignStateModel | None:
         """Get a campaign state snapshot from memory."""
-        with self._lock:
-            return self._campaign_states.get(campaign_id)
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return None
+        return snapshot.state
 
     def get_campaign_petri_net(self, campaign_id: IntersectCampaignId) -> PetriNet | None:
         """Get the Petri Net for a campaign from memory."""
         with self._lock:
             return self._campaign_petri_nets.get(campaign_id)
+
+    def fire_petri_transition(self, campaign_id: IntersectCampaignId, transition_name: str) -> None:
+        """Fire a Petri Net transition and update campaign state."""
+        petri_net = self.get_campaign_petri_net(campaign_id)
+        if petri_net is None:
+            msg = f'Petri Net not found for campaign: {campaign_id}'
+            raise ValueError(msg)
+
+        try:
+            transition = petri_net.transition(transition_name)
+            if not transition.enabled(petri_net):
+                msg = f"Transition '{transition_name}' is not enabled"
+                raise ValueError(msg)
+            transition.fire(petri_net)
+        except (KeyError, ConstraintError) as err:
+            msg = f"Transition '{transition_name}' does not exist in the Petri Net"
+            raise ValueError(msg) from err
+
+        self._handle_petri_transition(campaign_id, transition_name)
 
     def handle_broker_message(
         self, message: bytes, content_type: str, headers: dict[str, str]
@@ -153,6 +187,11 @@ class CampaignOrchestrator:
                     exception_message=error_message,
                 ),
             )
+            self._record_campaign_event(
+                campaign_id=state.campaign_id,
+                event_type='CAMPAIGN_ERROR',
+                payload={'error': error_message, 'step_id': str(state.active_step)},
+            )
             self._remove_campaign(state.campaign_id)
             return
 
@@ -166,6 +205,11 @@ class CampaignOrchestrator:
             self._finish_campaign(state)
             return
 
+        self._record_campaign_event(
+            campaign_id=state.campaign_id,
+            event_type='CAMPAIGN_STARTED',
+            payload={'step_id': str(state.steps[state.current_index])},
+        )
         state.active_step = state.steps[state.current_index]
         self._emit_event(
             campaign_id=state.campaign_id,
@@ -181,6 +225,11 @@ class CampaignOrchestrator:
             campaign_id=state.campaign_id,
             event=StepCompleteEvent(step_id=state.active_step, payload=payload),
         )
+        self._record_event(
+            campaign_id=state.campaign_id,
+            event_type='STEP_COMPLETE',
+            payload={'step_id': str(state.active_step)},
+        )
 
         state.current_index += 1
         state.active_step = None
@@ -190,6 +239,11 @@ class CampaignOrchestrator:
         self._emit_event(
             campaign_id=state.campaign_id,
             event=CampaignCompleteEvent(),
+        )
+        self._record_campaign_event(
+            campaign_id=state.campaign_id,
+            event_type='CAMPAIGN_COMPLETED',
+            payload={},
         )
         self._remove_campaign(state.campaign_id)
 
@@ -211,6 +265,11 @@ class CampaignOrchestrator:
                 campaign_id=state.campaign_id,
                 event=UnknownErrorEvent(exception_message=str(exc)),
             )
+            self._record_campaign_event(
+                campaign_id=state.campaign_id,
+                event_type='CAMPAIGN_ERROR',
+                payload={'error': str(exc)},
+            )
             self._remove_campaign(state.campaign_id)
             return
 
@@ -230,6 +289,242 @@ class CampaignOrchestrator:
             for alias in state.campaign_aliases:
                 self._campaign_aliases.pop(alias, None)
             return state
+
+    def _record_event(
+        self, campaign_id: IntersectCampaignId, event_type: str, payload: dict[str, Any]
+    ) -> None:
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return
+        event = CampaignEvent(
+            event_id=uuid.uuid4(),
+            campaign_id=campaign_id,
+            seq=snapshot.version + 1,
+            event_type=event_type,
+            payload=payload,
+            timestamp=datetime.now(UTC),
+        )
+        self._repository.append_event(event, expected_version=snapshot.version)
+
+    def _record_task_event(
+        self,
+        campaign_id: IntersectCampaignId,
+        task_group_id: str,
+        task_id: str,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Record a task-level event and update task state.
+        
+        Task event types: TASK_NOT_RUNNING, TASK_RUNNING, TASK_COMPLETED, TASK_FAILED, TASK_EVENT_RECEIVED
+        """
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return
+
+        # Add hierarchy info to payload
+        enriched_payload = {
+            'task_group_id': task_group_id,
+            'task_id': task_id,
+            **payload,
+        }
+
+        # Create and append event
+        event = CampaignEvent(
+            event_id=uuid.uuid4(),
+            campaign_id=campaign_id,
+            seq=snapshot.version + 1,
+            event_type=event_type,
+            payload=enriched_payload,
+            timestamp=datetime.now(UTC),
+        )
+        self._repository.append_event(event, expected_version=snapshot.version)
+
+        # Update task state based on event type
+        status_map = {
+            'TASK_NOT_RUNNING': ExecutionStatus.QUEUED,
+            'TASK_RUNNING': ExecutionStatus.RUNNING,
+            'TASK_COMPLETED': ExecutionStatus.COMPLETE,
+            'TASK_FAILED': ExecutionStatus.ERROR,
+            # TASK_EVENT_RECEIVED doesn't change status - task is still running
+        }
+
+        if event_type in status_map:
+            # Find and update task status in snapshot
+            for task_group in snapshot.state.task_groups:
+                if task_group.id == task_group_id:
+                    for task in task_group.tasks:
+                        if task.id == task_id:
+                            task.status = status_map[event_type]
+                            break
+                    break
+
+            # Update snapshot
+            snapshot.version = event.seq
+            snapshot.updated_at = event.timestamp
+            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+
+    def _record_task_group_event(
+        self,
+        campaign_id: IntersectCampaignId,
+        task_group_id: str,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Record a task group-level event and update task group state.
+        
+        Task group event types: TASK_GROUP_STARTED, TASK_GROUP_COMPLETED, TASK_GROUP_OBJECTIVE_MET
+        """
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return
+
+        # Add hierarchy info to payload
+        enriched_payload = {
+            'task_group_id': task_group_id,
+            **payload,
+        }
+
+        # Create and append event
+        event = CampaignEvent(
+            event_id=uuid.uuid4(),
+            campaign_id=campaign_id,
+            seq=snapshot.version + 1,
+            event_type=event_type,
+            payload=enriched_payload,
+            timestamp=datetime.now(UTC),
+        )
+        self._repository.append_event(event, expected_version=snapshot.version)
+
+        # Update task group state based on event type
+        status_map = {
+            'TASK_GROUP_STARTED': ExecutionStatus.RUNNING,
+            'TASK_GROUP_COMPLETED': ExecutionStatus.COMPLETE,
+        }
+
+        if event_type in status_map:
+            # Find and update task group status in snapshot
+            for task_group in snapshot.state.task_groups:
+                if task_group.id == task_group_id:
+                    task_group.status = status_map[event_type]
+                    break
+
+            # Update snapshot
+            snapshot.version = event.seq
+            snapshot.updated_at = event.timestamp
+            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+
+    def _record_task_group_objective_met(
+        self,
+        campaign_id: IntersectCampaignId,
+        task_group_id: str,
+        objective_id: str,
+    ) -> None:
+        """Record when a task group objective is met.
+        
+        Fires TWO events: TASK_GROUP_OBJECTIVE_MET followed by TASK_GROUP_COMPLETED.
+        """
+        # First: record objective met event
+        self._record_task_group_event(
+            campaign_id=campaign_id,
+            task_group_id=task_group_id,
+            event_type='TASK_GROUP_OBJECTIVE_MET',
+            payload={'objective_id': objective_id},
+        )
+
+        # Second: record task group completed event
+        self._record_task_group_event(
+            campaign_id=campaign_id,
+            task_group_id=task_group_id,
+            event_type='TASK_GROUP_COMPLETED',
+            payload={'reason': 'objective_met', 'objective_id': objective_id},
+        )
+
+    def _record_campaign_event(
+        self,
+        campaign_id: IntersectCampaignId,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Record a campaign-level event and update campaign state.
+        
+        Campaign event types: CAMPAIGN_STARTED, CAMPAIGN_COMPLETED, CAMPAIGN_OBJECTIVE_MET, CAMPAIGN_CANCELLED
+        """
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return
+
+        # Create and append event
+        event = CampaignEvent(
+            event_id=uuid.uuid4(),
+            campaign_id=campaign_id,
+            seq=snapshot.version + 1,
+            event_type=event_type,
+            payload=payload,
+            timestamp=datetime.now(UTC),
+        )
+        self._repository.append_event(event, expected_version=snapshot.version)
+
+        # Update campaign state based on event type
+        status_map = {
+            'CAMPAIGN_STARTED': ExecutionStatus.RUNNING,
+            'CAMPAIGN_COMPLETED': ExecutionStatus.COMPLETE,
+            'CAMPAIGN_CANCELLED': ExecutionStatus.ERROR,
+        }
+
+        if event_type in status_map:
+            snapshot.state.status = status_map[event_type]
+
+            # Update snapshot
+            snapshot.version = event.seq
+            snapshot.updated_at = event.timestamp
+            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+
+    def _handle_petri_transition(
+        self, campaign_id: IntersectCampaignId, transition_name: str
+    ) -> None:
+        """Map Petri Net transitions to campaign state updates."""
+        snapshot = self._repository.load_snapshot(campaign_id)
+        if snapshot is None:
+            return
+
+        if transition_name == 'finalize_campaign':
+            self._record_campaign_event(
+                campaign_id=campaign_id,
+                event_type='CAMPAIGN_COMPLETED',
+                payload={'transition': transition_name},
+            )
+            return
+
+        for task_group in snapshot.state.task_groups:
+            if transition_name == f'activate_{task_group.id}':
+                self._record_task_group_event(
+                    campaign_id=campaign_id,
+                    task_group_id=task_group.id,
+                    event_type='TASK_GROUP_STARTED',
+                    payload={'transition': transition_name},
+                )
+                return
+
+            if transition_name == f'complete_{task_group.id}':
+                self._record_task_group_event(
+                    campaign_id=campaign_id,
+                    task_group_id=task_group.id,
+                    event_type='TASK_GROUP_COMPLETED',
+                    payload={'transition': transition_name},
+                )
+                return
+
+            for task in task_group.tasks:
+                if transition_name == f'task_{task_group.id}_{task.id}':
+                    self._record_task_event(
+                        campaign_id=campaign_id,
+                        task_group_id=task_group.id,
+                        task_id=task.id,
+                        event_type='TASK_COMPLETED',
+                        payload={'transition': transition_name},
+                    )
+                    return
 
     def _get_state_for_campaign_alias(self, campaign_id_raw: str) -> CampaignState | None:
         with self._lock:
