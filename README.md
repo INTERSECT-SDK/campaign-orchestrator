@@ -1,3 +1,5 @@
+[![CI](https://github.com/INTERSECT-SDK/campaign-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/INTERSECT-SDK/campaign-orchestrator/actions/workflows/ci.yml)
+
 # Campaign orchestrator
 
 WIP
