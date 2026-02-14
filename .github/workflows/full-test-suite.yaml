@@ -10,6 +10,19 @@ jobs:
   full-tests:
     runs-on: ubuntu-latest
     services:
+      broker:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+          - 15672:15672
+        env:
+          RABBITMQ_DEFAULT_USER: intersect_username
+          RABBITMQ_DEFAULT_PASS: intersect_password
+        options: >-
+          --health-cmd="rabbitmq-diagnostics ping"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=5
       mongo:
         image: mongo:7.0
         ports:
@@ -57,6 +70,11 @@ jobs:
 
     - name: Run all tests with coverage
       env:
+        BROKER_HOST: localhost
+        BROKER_PORT: 5672
+        BROKER_USERNAME: intersect_username
+        BROKER_PASSWORD: intersect_password
+        BROKER_PROTOCOL: amqp0.9.1
         CAMPAIGN_REPOSITORY_MONGO_URI: mongodb://intersect:intersect@localhost:27017
         CAMPAIGN_REPOSITORY_MONGO_DB: intersect_orchestrator
         CAMPAIGN_REPOSITORY_POSTGRES_DSN: postgresql://intersect:intersect@localhost:5432/intersect_orchestrator
