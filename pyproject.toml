@@ -162,6 +162,10 @@ warn_untyped_fields = true
 [tool.pytest.ini_options]
 log_cli = true
 addopts = "-ra"
+markers = [
+    "integration: mark test as an integration test",
+    "unit: mark test as a unit test",
+]
 
 [tool.coverage.report]
 omit = [
