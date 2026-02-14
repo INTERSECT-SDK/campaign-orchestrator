@@ -153,20 +153,21 @@ class PostgresCampaignRepository:
         )
 
     def update_snapshot(self, snapshot: CampaignSnapshot, *, expected_version: int) -> None:
-        cursor = self._connection.execute(
-            'UPDATE snapshots SET version = %s, state = %s, updated_at = %s '
-            'WHERE campaign_id = %s AND version = %s',
-            (
-                snapshot.version,
-                self._json(snapshot.state.model_dump(by_alias=True)),
-                snapshot.updated_at,
-                snapshot.campaign_id,
-                expected_version,
-            ),
-        )
-        if cursor.rowcount == 0:
-            msg = 'version mismatch when updating snapshot'
-            raise ValueError(msg)
+        with self._connection.transaction():
+            cursor = self._connection.execute(
+                'UPDATE snapshots SET version = %s, state = %s, updated_at = %s '
+                'WHERE campaign_id = %s AND version = %s',
+                (
+                    snapshot.version,
+                    self._json(snapshot.state.model_dump(by_alias=True)),
+                    snapshot.updated_at,
+                    snapshot.campaign_id,
+                    expected_version,
+                ),
+            )
+            if cursor.rowcount == 0:
+                msg = 'version mismatch when updating snapshot'
+                raise ValueError(msg)
 
     def campaign_exists(self, campaign_id: UUID) -> bool:
         cursor = self._connection.execute(
