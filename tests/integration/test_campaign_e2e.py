@@ -24,7 +24,7 @@ def is_broker_available() -> bool:
     """Check if the broker is available."""
     broker_host = os.getenv('BROKER_HOST', 'localhost')
     broker_port = int(os.getenv('BROKER_PORT', '5672'))
-    
+
     try:
         with socket.create_connection((broker_host, broker_port), timeout=2):
             return True
@@ -37,11 +37,10 @@ def check_broker_available() -> None:
     """Check broker availability and skip tests if unavailable."""
     if not is_broker_available():
         pytest.skip(
-            f"RabbitMQ broker not available at "
-            f"{os.getenv('BROKER_HOST', 'localhost')}:{os.getenv('BROKER_PORT', '5672')}. "
+            f'RabbitMQ broker not available at '
+            f'{os.getenv("BROKER_HOST", "localhost")}:{os.getenv("BROKER_PORT", "5672")}. '
             f"Run 'docker-compose up -d' to start the broker."
         )
-
 
 
 def load_campaign_json() -> dict:
@@ -50,7 +49,7 @@ def load_campaign_json() -> dict:
         return json.load(f)
 
 
-def create_intersect_client() -> "CoreServiceIntersectClient":  # noqa: F821
+def create_intersect_client() -> 'CoreServiceIntersectClient':  # noqa: F821
     """Create a real CoreServiceIntersectClient connected to the broker from docker-compose."""
     from intersect_orchestrator.app.core.environment import Settings
     from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
@@ -99,9 +98,7 @@ class TestCampaignE2E:
         # Create orchestrator with real client and in-memory repository
         repository = InMemoryCampaignRepository()
         real_client = create_intersect_client()
-        orchestrator = CampaignOrchestrator(
-            intersect_client=real_client, repository=repository
-        )
+        orchestrator = CampaignOrchestrator(intersect_client=real_client, repository=repository)
 
         # Submit campaign
         campaign_id = orchestrator.submit_campaign(campaign)
@@ -140,9 +137,7 @@ class TestCampaignE2E:
         # Create orchestrator with real client
         repository = InMemoryCampaignRepository()
         real_client = create_intersect_client()
-        orchestrator = CampaignOrchestrator(
-            intersect_client=real_client, repository=repository
-        )
+        orchestrator = CampaignOrchestrator(intersect_client=real_client, repository=repository)
 
         # Submit campaign
         campaign_id = orchestrator.submit_campaign(campaign)
