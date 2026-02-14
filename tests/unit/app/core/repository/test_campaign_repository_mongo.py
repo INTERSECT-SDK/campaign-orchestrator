@@ -10,6 +10,11 @@ try:
 except ImportError:
     pytest.skip('mongomock not available; skipping mongo unit tests', allow_module_level=True)
 
+try:
+    import pymongo  # noqa: F401
+except ImportError:
+    pytest.skip('pymongo not available; skipping mongo unit tests', allow_module_level=True)
+
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
     Campaign,
     Task,
