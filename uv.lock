@@ -921,7 +921,6 @@ mongo = [
 ]
 postgres = [
     { name = "psycopg", extra = ["binary"] },
-    { name = "pytest-postgresql" },
 ]
 
 [package.dev-dependencies]
@@ -933,6 +932,9 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+]
+integration = [
+    { name = "pytest-postgresql" },
 ]
 
 [package.metadata]
@@ -950,7 +952,6 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.3.2" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "pymongo", marker = "extra == 'mongo'", specifier = ">=4.11.1" },
-    { name = "pytest-postgresql", marker = "extra == 'postgres'", specifier = ">=8.0.0" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "retrying", specifier = ">=1.4.2" },
@@ -972,6 +973,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.1.0" },
     { name = "ruff", specifier = "==0.9.4" },
 ]
+integration = [{ name = "pytest-postgresql", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "intersect-sdk"
