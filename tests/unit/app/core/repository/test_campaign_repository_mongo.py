@@ -3,8 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import mongomock
 import pytest
+
+try:
+    import mongomock
+except ImportError:
+    pytest.skip('mongomock not available; skipping mongo unit tests', allow_module_level=True)
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
     Campaign,

@@ -11,6 +11,20 @@ from intersect_orchestrator.app.core.repository import (
 )
 from intersect_orchestrator.app.core.repository import factory as repository_factory
 
+try:
+    import mongomock  # noqa: F401
+
+    HAS_MONGOMOCK = True
+except ImportError:
+    HAS_MONGOMOCK = False
+
+try:
+    import psycopg  # noqa: F401
+
+    HAS_PSYCOPG = True
+except ImportError:
+    HAS_PSYCOPG = False
+
 
 def _settings(**overrides):
     defaults = {
@@ -28,6 +42,7 @@ def test_create_repository_defaults_to_memory() -> None:
     assert isinstance(repo, InMemoryCampaignRepository)
 
 
+@pytest.mark.skipif(not HAS_MONGOMOCK, reason='mongomock not available')
 def test_create_repository_mongo(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeCollection:
         def create_index(self, *_args, **_kwargs):
@@ -57,6 +72,7 @@ def test_create_repository_mongo(monkeypatch: pytest.MonkeyPatch) -> None:
     assert repo._client.uri == 'mongodb://fake'
 
 
+@pytest.mark.skipif(not HAS_PSYCOPG, reason='psycopg not available')
 def test_create_repository_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_psycopg = types.SimpleNamespace()
 
