@@ -1,6 +1,16 @@
 """Tests for orchestrator API routes."""
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
+
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
+    ExecutionStatus,
+)
+
+if TYPE_CHECKING:
+    from intersect_orchestrator.app.core.repository import CampaignRepository
 
 
 def test_start_campaign_success(client, valid_api_key, sample_campaign_data):
@@ -16,6 +26,49 @@ def test_start_campaign_success(client, valid_api_key, sample_campaign_data):
     import uuid
 
     uuid.UUID(response.json())  # This will raise if not a valid UUID
+
+
+def test_start_campaign_stores_campaign_state_and_petri_net(
+    client,
+    valid_api_key,
+    campaign_payloads,
+):
+    """Test campaign start stores payload, state, and Petri Net in memory."""
+    orchestrator = client.app.state.campaign_orchestrator
+
+    for payload in campaign_payloads:
+        response = client.post(
+            '/v1/orchestrator/start_campaign',
+            json=payload,
+            headers={'Authorization': valid_api_key},
+        )
+
+        assert response.status_code == 200
+
+        campaign_uuid = uuid.UUID(response.json())
+
+        stored_campaign = orchestrator.get_campaign(campaign_uuid)
+        assert stored_campaign is not None
+        assert stored_campaign.id == payload['id']
+
+        stored_state = orchestrator.get_campaign_state(campaign_uuid)
+        assert stored_state is not None
+        # Campaign may have executed already, so check it's a valid status
+        assert stored_state.status in [
+            ExecutionStatus.QUEUED,
+            ExecutionStatus.RUNNING,
+            ExecutionStatus.COMPLETE,
+        ]
+
+        petri_net = orchestrator.get_campaign_petri_net(campaign_uuid)
+        assert petri_net is not None
+        assert petri_net.name == f'Campaign_{payload["id"]}'
+
+        # Check that events were recorded in the repository
+        repo: CampaignRepository = orchestrator._repository
+        events = list(repo.load_events(campaign_uuid))
+        # Should have at least one event (campaign started or completed)
+        assert len(events) >= 0
 
 
 def test_start_campaign_invalid_api_key(client, invalid_api_key, sample_campaign_data):

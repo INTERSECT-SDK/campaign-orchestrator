@@ -9,8 +9,7 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign im
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.environment import settings
 from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
-
-from . import TEST_DATA_DIR
+from tests import TEST_DATA_DIR
 
 
 # Create pytest hook to set up mocking before any modules are imported
@@ -87,6 +86,19 @@ def random_number_and_histogram_campaign_data():
 def sample_campaign_data(random_number_campaign_data):
     """Default campaign payload for API tests."""
     return random_number_campaign_data
+
+
+@pytest.fixture
+def campaign_payloads():
+    """Load all campaign payloads from test data."""
+    campaign_dir = pathlib.Path(TEST_DATA_DIR, 'campaign')
+    payloads = []
+    for campaign_path in sorted(campaign_dir.glob('*.campaign.json')):
+        with campaign_path.open() as f:
+            data = json.load(f)
+        Campaign(**data)
+        payloads.append(data)
+    return payloads
 
 
 @pytest.fixture

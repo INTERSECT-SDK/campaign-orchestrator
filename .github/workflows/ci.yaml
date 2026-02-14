@@ -1,4 +1,4 @@
-name: Test
+name: Code Checks
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +28,38 @@ jobs:
     - name: Run lint and format checks
       run: |
         uv run ruff format --check
-        # TODO: need to add more business logic before this check makes sense
-        #uv run ruff check
+        uv run ruff check
 
-    - name: Run tests
-      run: uv run pytest
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        extra-deps:
+          - name: "No optional dependencies"
+            args: ""
+          - name: "With MongoDB"
+            args: "--extra mongo"
+          - name: "With PostgreSQL"
+            args: "--extra postgres"
+
+    name: Unit Tests (${{ matrix.extra-deps.name }})
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: uv sync --dev ${{ matrix.extra-deps.args }}
+
+    - name: Run unit tests with coverage
+      run: uv run pytest tests/unit --cov=intersect_orchestrator --cov-report=term-missing
+

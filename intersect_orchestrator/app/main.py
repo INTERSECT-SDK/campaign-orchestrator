@@ -12,6 +12,7 @@ from .core.campaign_orchestrator import CampaignOrchestrator
 from .core.environment import settings
 from .core.intersect_client import CoreServiceIntersectClient
 from .core.log_config import logger, setup_logging
+from .core.repository.factory import create_campaign_repository
 from .middlewares.logging_context import add_logging_middleware
 
 # this needs to be called per uvicorn worker
@@ -25,7 +26,11 @@ async def lifespan(_app: FastAPI) -> typing.AsyncGenerator[None, None]:  # noqa:
 
     # TODO - add broker connection here later
     app.state.intersect_client = CoreServiceIntersectClient(settings)
-    app.state.campaign_orchestrator = CampaignOrchestrator(app.state.intersect_client)
+    repository = create_campaign_repository(settings)
+    app.state.campaign_orchestrator = CampaignOrchestrator(
+        app.state.intersect_client,
+        repository=repository,
+    )
     app.state.intersect_client.set_campaign_orchestrator(app.state.campaign_orchestrator)
     if not app.state.intersect_client.can_reconnect():
         logger.critical('Unable to connect to INTERSECT broker, exiting')

@@ -80,6 +80,22 @@ class Settings(BaseSettings):
     BROKER_USERNAME: str = 'guest'
     BROKER_PASSWORD: str = 'guest'  # noqa: S105
 
+    ### CAMPAIGN REPOSITORY ###
+
+    CAMPAIGN_REPOSITORY_BACKEND: Literal['memory', 'mongo', 'postgres'] = 'memory'
+    """Repository backend for campaign state storage."""
+
+    CAMPAIGN_REPOSITORY_MONGO_URI: str = 'mongodb://localhost:27017'
+    """MongoDB connection URI for campaign storage."""
+
+    CAMPAIGN_REPOSITORY_MONGO_DB: str = 'intersect_orchestrator'
+    """MongoDB database name for campaign storage."""
+
+    CAMPAIGN_REPOSITORY_POSTGRES_DSN: str = (
+        'postgresql://user:pass@localhost:5432/intersect_orchestrator'
+    )
+    """PostgreSQL DSN for campaign storage."""
+
     MINIO_URI: HttpUrl = 'http://localhost:9000'
     """(should include port)"""
     MINIO_USERNAME: str = 'minioadmin'
