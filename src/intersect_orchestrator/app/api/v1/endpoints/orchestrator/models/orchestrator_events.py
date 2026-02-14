@@ -19,7 +19,7 @@ class StepCompleteEvent(BaseModel):
     step_id: CampaignStepId
     payload: bytes
     """"The raw payload output.
-    
+
     TODO: This will eventually emit a pointer to data, rather than the data
     """
 
