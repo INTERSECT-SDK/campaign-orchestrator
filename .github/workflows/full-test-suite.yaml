@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ main ]
+    branches: [ main, 4-creating-campaign-via-ihub-swap-from-icmp-input-to-campaign-input ]
 
 jobs:
   full-tests:
