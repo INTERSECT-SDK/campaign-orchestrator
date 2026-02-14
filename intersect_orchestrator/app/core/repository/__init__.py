@@ -5,8 +5,8 @@ from .base import (
     CampaignEvent,
     CampaignRepository,
     CampaignSnapshot,
-    _require_psycopg,
-    _require_pymongo,
+    require_psycopg,
+    require_pymongo,
 )
 from .in_memory import InMemoryCampaignRepository
 from .mongo import MongoCampaignRepository
@@ -16,10 +16,10 @@ __all__ = [
     'CampaignEvent',
     'CampaignRepository',
     'CampaignSnapshot',
-    'factory',
     'InMemoryCampaignRepository',
     'MongoCampaignRepository',
     'PostgresCampaignRepository',
-    '_require_pymongo',
-    '_require_psycopg',
+    'factory',
+    'require_psycopg',
+    'require_pymongo',
 ]

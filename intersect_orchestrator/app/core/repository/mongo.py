@@ -9,8 +9,7 @@ from uuid import UUID
 
 from ...api.v1.endpoints.orchestrator.models.campaign import Campaign
 from ...api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
-from . import base as repository_base
-from .base import CampaignEvent, CampaignSnapshot
+from .base import CampaignEvent, CampaignSnapshot, require_pymongo
 
 
 @dataclass
@@ -18,7 +17,7 @@ class MongoCampaignRepository:
     """MongoDB-backed campaign repository with optimistic locking."""
 
     def __init__(self, client: Any, db_name: str = 'intersect_orchestrator') -> None:
-        _, ascending = repository_base._require_pymongo()
+        _, ascending = require_pymongo()
         self._ascending = ascending
         self._client = client
         self._db = client[db_name]

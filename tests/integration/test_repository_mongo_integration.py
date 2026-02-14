@@ -40,9 +40,10 @@ def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
         try:
             client = pymongo.MongoClient(uri)
             client.admin.command('ping')
-            return
         except Exception:  # noqa: BLE001
             time.sleep(0.5)
+        else:
+            return
     pytest.skip('MongoDB not available for integration tests')
 
 

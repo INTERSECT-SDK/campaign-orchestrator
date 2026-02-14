@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from snakes import ConstraintError
-from snakes.nets import PetriNet
 
 from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
     CampaignCompleteEvent,
@@ -20,16 +19,22 @@ from ..api.v1.endpoints.orchestrator.models.orchestrator_events import (
 )
 
 if TYPE_CHECKING:
+    from snakes.nets import PetriNet
+
     from ..api.v1.endpoints.orchestrator.models.campaign import (
         Campaign,
         CampaignStepId,
         IntersectCampaignId,
     )
-    from ..api.v1.endpoints.orchestrator.models.campaign_state import CampaignState as CampaignStateModel
+    from ..api.v1.endpoints.orchestrator.models.campaign_state import (
+        CampaignState as CampaignStateModel,
+    )
     from .intersect_client import CoreServiceIntersectClient
 
 from ..api.v1.endpoints.orchestrator.models.campaign_state import (
     CampaignState as CampaignStateModel,
+)
+from ..api.v1.endpoints.orchestrator.models.campaign_state import (
     ExecutionStatus,
 )
 from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
@@ -311,7 +316,7 @@ class CampaignOrchestrator:
         payload: dict[str, Any],
     ) -> None:
         """Record a task-level event and update task state.
-        
+
         Task event types: TASK_NOT_RUNNING, TASK_RUNNING, TASK_COMPLETED, TASK_FAILED, TASK_EVENT_RECEIVED
         """
         snapshot = self._repository.load_snapshot(campaign_id)
@@ -368,7 +373,7 @@ class CampaignOrchestrator:
         payload: dict[str, Any],
     ) -> None:
         """Record a task group-level event and update task group state.
-        
+
         Task group event types: TASK_GROUP_STARTED, TASK_GROUP_COMPLETED, TASK_GROUP_OBJECTIVE_MET
         """
         snapshot = self._repository.load_snapshot(campaign_id)
@@ -417,7 +422,7 @@ class CampaignOrchestrator:
         objective_id: str,
     ) -> None:
         """Record when a task group objective is met.
-        
+
         Fires TWO events: TASK_GROUP_OBJECTIVE_MET followed by TASK_GROUP_COMPLETED.
         """
         # First: record objective met event
@@ -443,7 +448,7 @@ class CampaignOrchestrator:
         payload: dict[str, Any],
     ) -> None:
         """Record a campaign-level event and update campaign state.
-        
+
         Campaign event types: CAMPAIGN_STARTED, CAMPAIGN_COMPLETED, CAMPAIGN_OBJECTIVE_MET, CAMPAIGN_CANCELLED
         """
         snapshot = self._repository.load_snapshot(campaign_id)

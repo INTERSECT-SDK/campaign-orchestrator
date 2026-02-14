@@ -5,11 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
-from uuid import UUID
+from typing import TYPE_CHECKING
 
-from ...api.v1.endpoints.orchestrator.models.campaign import Campaign
-from ...api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
 from .base import CampaignEvent, CampaignSnapshot
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from ...api.v1.endpoints.orchestrator.models.campaign import Campaign
+    from ...api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
 
 
 @dataclass

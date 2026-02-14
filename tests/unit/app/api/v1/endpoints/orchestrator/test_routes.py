@@ -1,10 +1,16 @@
 """Tests for orchestrator API routes."""
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
     ExecutionStatus,
 )
+
+if TYPE_CHECKING:
+    from intersect_orchestrator.app.core.repository import CampaignRepository
 
 
 def test_start_campaign_success(client, valid_api_key, sample_campaign_data):
@@ -56,11 +62,9 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
 
         petri_net = orchestrator.get_campaign_petri_net(campaign_uuid)
         assert petri_net is not None
-        assert petri_net.name == f"Campaign_{payload['id']}"
+        assert petri_net.name == f'Campaign_{payload["id"]}'
 
         # Check that events were recorded in the repository
-        from intersect_orchestrator.app.core.repository import CampaignRepository
-
         repo: CampaignRepository = orchestrator._repository
         events = list(repo.load_events(campaign_uuid))
         # Should have at least one event (campaign started or completed)

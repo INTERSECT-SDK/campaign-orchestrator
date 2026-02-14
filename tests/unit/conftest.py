@@ -9,7 +9,6 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign im
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.environment import settings
 from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
-
 from tests import TEST_DATA_DIR
 
 

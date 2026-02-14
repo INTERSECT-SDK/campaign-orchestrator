@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from ...api.v1.endpoints.orchestrator.models.campaign import Campaign
 from ...api.v1.endpoints.orchestrator.models.campaign_state import CampaignState
-from . import base as repository_base
-from .base import CampaignEvent, CampaignSnapshot
+from .base import CampaignEvent, CampaignSnapshot, require_psycopg
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 @dataclass
@@ -19,7 +20,7 @@ class PostgresCampaignRepository:
 
     def __init__(self, connection: Any) -> None:
         self._connection = connection
-        self._json = repository_base._require_psycopg()
+        self._json = require_psycopg()
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:

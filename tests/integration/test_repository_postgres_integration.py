@@ -36,9 +36,10 @@ def _wait_for_postgres(dsn: str, timeout: float = 10.0) -> None:
             conn = psycopg.connect(dsn)
             conn.execute('SELECT 1')
             conn.close()
-            return
         except Exception:  # noqa: BLE001
             time.sleep(0.5)
+        else:
+            return
     pytest.skip('PostgreSQL not available for integration tests')
 
 

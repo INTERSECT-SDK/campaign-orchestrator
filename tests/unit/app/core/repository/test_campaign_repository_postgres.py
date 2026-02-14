@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import shutil
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -16,7 +16,6 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
     ExecutionStatus,
 )
 from intersect_orchestrator.app.core.repository import CampaignEvent, PostgresCampaignRepository
-
 
 if shutil.which('pg_config') is None:
     pytest.skip('pg_config not available; skipping postgres-backed tests', allow_module_level=True)

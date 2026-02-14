@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .base import _require_psycopg, _require_pymongo
+from .base import require_psycopg, require_pymongo
 from .in_memory import InMemoryCampaignRepository
 from .mongo import MongoCampaignRepository
 from .postgres import PostgresCampaignRepository
 
+if TYPE_CHECKING:
+    from .base import CampaignRepository
 
-def create_campaign_repository(settings: Any):
+
+def create_campaign_repository(settings: Any) -> CampaignRepository:
     """Create campaign repository from settings.
 
     Expected settings fields:
@@ -26,14 +29,14 @@ def create_campaign_repository(settings: Any):
         return InMemoryCampaignRepository()
 
     if backend == 'mongo':
-        mongo_client, _ = _require_pymongo()
+        mongo_client, _ = require_pymongo()
         uri = getattr(settings, 'CAMPAIGN_REPOSITORY_MONGO_URI', 'mongodb://localhost:27017')
         db_name = getattr(settings, 'CAMPAIGN_REPOSITORY_MONGO_DB', 'intersect_orchestrator')
         client = mongo_client(uri)
         return MongoCampaignRepository(client, db_name=db_name)
 
     if backend == 'postgres':
-        _require_psycopg()
+        require_psycopg()
         dsn = getattr(
             settings,
             'CAMPAIGN_REPOSITORY_POSTGRES_DSN',
@@ -41,7 +44,9 @@ def create_campaign_repository(settings: Any):
         )
         psycopg = sys.modules.get('psycopg')
         if psycopg is None:
-            import psycopg as psycopg  # type: ignore[redefined-outer-name]
+            import psycopg
+
+            psycopg = sys.modules.get('psycopg')
         connection = psycopg.connect(dsn)
         return PostgresCampaignRepository(connection)
 

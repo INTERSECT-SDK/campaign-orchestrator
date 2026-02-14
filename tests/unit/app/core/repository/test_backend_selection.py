@@ -8,7 +8,6 @@ import pytest
 from intersect_orchestrator.app.core.repository import (
     InMemoryCampaignRepository,
     MongoCampaignRepository,
-    PostgresCampaignRepository,
 )
 from intersect_orchestrator.app.core.repository import factory as repository_factory
 
@@ -45,7 +44,7 @@ def test_create_repository_mongo(monkeypatch: pytest.MonkeyPatch) -> None:
         def __getitem__(self, _name):
             return FakeDB()
 
-    monkeypatch.setattr(repository_factory, '_require_pymongo', lambda: (FakeMongoClient, 1))
+    monkeypatch.setattr(repository_factory, 'require_pymongo', lambda: (FakeMongoClient, 1))
 
     settings = _settings(
         CAMPAIGN_REPOSITORY_BACKEND='mongo',
@@ -65,16 +64,14 @@ def test_create_repository_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
         return {'dsn': dsn}
 
     fake_psycopg.connect = fake_connect
-    monkeypatch.setattr(repository_factory, '_require_psycopg', lambda: object())
+    monkeypatch.setattr(repository_factory, 'require_psycopg', lambda: object())
     monkeypatch.setitem(repository_factory.sys.modules, 'psycopg', fake_psycopg)
 
     class FakePostgresRepository:
         def __init__(self, connection):
             self.connection = connection
 
-    monkeypatch.setattr(
-        repository_factory, 'PostgresCampaignRepository', FakePostgresRepository
-    )
+    monkeypatch.setattr(repository_factory, 'PostgresCampaignRepository', FakePostgresRepository)
 
     settings = _settings(
         CAMPAIGN_REPOSITORY_BACKEND='postgres',
