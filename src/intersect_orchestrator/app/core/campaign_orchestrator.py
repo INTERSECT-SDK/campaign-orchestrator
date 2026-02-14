@@ -287,8 +287,11 @@ class CampaignOrchestrator:
             state = self._campaigns.pop(campaign_id, None)
             if state is None:
                 return None
+            # Clean up aliases
             for alias in state.campaign_aliases:
                 self._campaign_aliases.pop(alias, None)
+            # Clean up Petri Net to avoid memory leaks
+            self._campaign_petri_nets.pop(campaign_id, None)
             return state
 
     def _record_event(
@@ -306,6 +309,12 @@ class CampaignOrchestrator:
             timestamp=datetime.now(UTC),
         )
         self._repository.append_event(event, expected_version=snapshot.version)
+
+        # Even if this event doesn't change the in-memory state, we must advance
+        # the snapshot version and updated_at to keep event sequencing consistent.
+        snapshot.version = event.seq
+        snapshot.updated_at = event.timestamp
+        self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
 
     def _record_task_event(
         self,
@@ -341,6 +350,11 @@ class CampaignOrchestrator:
         )
         self._repository.append_event(event, expected_version=snapshot.version)
 
+        # Always update snapshot version after appending event to ensure seq increments
+        # for subsequent events (critical for events like TASK_EVENT_RECEIVED that don't change status)
+        snapshot.version = event.seq
+        snapshot.updated_at = event.timestamp
+
         # Update task state based on event type
         status_map = {
             'TASK_NOT_RUNNING': ExecutionStatus.QUEUED,
@@ -360,10 +374,8 @@ class CampaignOrchestrator:
                             break
                     break
 
-            # Update snapshot
-            snapshot.version = event.seq
-            snapshot.updated_at = event.timestamp
-            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+        # Update snapshot with version incremented
+        self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
 
     def _record_task_group_event(
         self,
@@ -397,6 +409,11 @@ class CampaignOrchestrator:
         )
         self._repository.append_event(event, expected_version=snapshot.version)
 
+        # Always update snapshot version after appending event to ensure seq increments
+        # for subsequent events (critical for multi-event sequences like objective_met -> completed)
+        snapshot.version = event.seq
+        snapshot.updated_at = event.timestamp
+
         # Update task group state based on event type
         status_map = {
             'TASK_GROUP_STARTED': ExecutionStatus.RUNNING,
@@ -410,10 +427,8 @@ class CampaignOrchestrator:
                     task_group.status = status_map[event_type]
                     break
 
-            # Update snapshot
-            snapshot.version = event.seq
-            snapshot.updated_at = event.timestamp
-            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+        # Update snapshot with version incremented
+        self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
 
     def _record_task_group_objective_met(
         self,
@@ -466,6 +481,11 @@ class CampaignOrchestrator:
         )
         self._repository.append_event(event, expected_version=snapshot.version)
 
+        # Always update snapshot version after appending event to ensure seq increments
+        # for subsequent events (critical for events like CAMPAIGN_OBJECTIVE_MET that don't change status)
+        snapshot.version = event.seq
+        snapshot.updated_at = event.timestamp
+
         # Update campaign state based on event type
         status_map = {
             'CAMPAIGN_STARTED': ExecutionStatus.RUNNING,
@@ -476,10 +496,8 @@ class CampaignOrchestrator:
         if event_type in status_map:
             snapshot.state.status = status_map[event_type]
 
-            # Update snapshot
-            snapshot.version = event.seq
-            snapshot.updated_at = event.timestamp
-            self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
+        # Update snapshot with version incremented
+        self._repository.update_snapshot(snapshot, expected_version=event.seq - 1)
 
     def _handle_petri_transition(
         self, campaign_id: IntersectCampaignId, transition_name: str
