@@ -185,6 +185,12 @@ class TestGranularEventRecording:
         assert events[1].event_type == 'TASK_GROUP_COMPLETED'
         assert events[1].payload['task_group_id'] == task_group_id
 
+        # Verify seq numbers are incremented (not duplicated)
+        # This ensures Mongo/Postgres unique (campaign_id, seq) constraint won't fail
+        assert events[0].seq == 1, 'First event should have seq=1'
+        assert events[1].seq == 2, 'Second event should have seq=2 (incremented)'
+        assert events[0].seq != events[1].seq, 'Events must have different seq numbers'
+
         # Verify task group state is COMPLETE
         snapshot = repository.load_snapshot(campaign_id)
         task_group_state = next(
