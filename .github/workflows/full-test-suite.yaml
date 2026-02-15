@@ -68,7 +68,7 @@ jobs:
     - name: Install dependencies with DB extras
       run: uv sync --dev --extra mongo --extra postgres
 
-    - name: Run all tests with coverage
+    - name: Run integration tests with coverage
       env:
         BROKER_HOST: localhost
         BROKER_PORT: 5672
@@ -78,7 +78,7 @@ jobs:
         CAMPAIGN_REPOSITORY_MONGO_URI: mongodb://intersect:intersect@localhost:27017
         CAMPAIGN_REPOSITORY_MONGO_DB: intersect_orchestrator
         CAMPAIGN_REPOSITORY_POSTGRES_DSN: postgresql://intersect:intersect@localhost:5432/intersect_orchestrator
-      run: uv run pytest tests/ --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
+      run: uv run pytest tests/integration --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
 
     - name: Upload coverage HTML report
       uses: actions/upload-artifact@v4
@@ -109,14 +109,14 @@ jobs:
       run: uv sync --dev --extra mongo --extra postgres
 
     - name: Start services with docker-compose
-      run: docker compose up -d broker mongo postgres
+      run: docker compose up -d
 
     - name: Wait for services to be healthy
       run: |
-        timeout 60 bash -c 'until docker compose ps broker mongo postgres | grep -q "healthy"; do sleep 2; done'
+        timeout 120 bash -c 'until docker compose ps | grep -E "broker|mongo|postgres|orchestrator" | grep -q "healthy"; do sleep 2; done'
         docker compose ps
 
-    - name: Run all tests with coverage
+    - name: Run integration tests with coverage
       env:
         BROKER_HOST: localhost
         BROKER_PORT: 5672
@@ -126,7 +126,9 @@ jobs:
         CAMPAIGN_REPOSITORY_MONGO_URI: mongodb://intersect:intersect@localhost:27017
         CAMPAIGN_REPOSITORY_MONGO_DB: intersect_orchestrator
         CAMPAIGN_REPOSITORY_POSTGRES_DSN: postgresql://intersect:intersect@localhost:5432/intersect_orchestrator
-      run: uv run pytest tests/ --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
+        ORCHESTRATOR_HOST: localhost
+        ORCHESTRATOR_PORT: 8000
+      run: uv run pytest tests/integration --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
 
     - name: Show docker-compose logs on failure
       if: failure()
