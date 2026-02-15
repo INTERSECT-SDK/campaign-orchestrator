@@ -42,8 +42,8 @@ def check_orchestrator_available() -> None:
     """Check orchestrator availability and skip tests if unavailable."""
     if not is_orchestrator_available():
         pytest.skip(
-            f"Campaign orchestrator not available at "
-            f"{os.getenv('ORCHESTRATOR_HOST', 'localhost')}:{os.getenv('ORCHESTRATOR_PORT', '8000')}. "
+            f'Campaign orchestrator not available at '
+            f'{os.getenv("ORCHESTRATOR_HOST", "localhost")}:{os.getenv("ORCHESTRATOR_PORT", "8000")}. '
             f"Run 'docker-compose up' to start all services."
         )
 
@@ -101,7 +101,7 @@ async def test_full_campaign_loop_with_websocket() -> None:
             async for message in websocket:
                 event = json.loads(message)
                 received_events.append(event)
-                print(f"Received event: {event.get('event_type', 'UNKNOWN')}")
+                print(f'Received event: {event.get("event_type", "UNKNOWN")}')
 
                 # Check if campaign is complete
                 if event.get('event_type') == 'CAMPAIGN_COMPLETE':
@@ -154,6 +154,8 @@ async def test_full_campaign_loop_with_websocket() -> None:
     print(f'Received event types: {event_types}')
 
     # We should at least see CAMPAIGN_COMPLETE
-    assert 'CAMPAIGN_COMPLETE' in event_types, f'Missing CAMPAIGN_COMPLETE event. Got: {event_types}'
+    assert 'CAMPAIGN_COMPLETE' in event_types, (
+        f'Missing CAMPAIGN_COMPLETE event. Got: {event_types}'
+    )
 
     print(f'✅ Campaign {campaign_id} completed successfully with {len(received_events)} events')
