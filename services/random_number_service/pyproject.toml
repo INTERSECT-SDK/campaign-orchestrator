@@ -1,0 +1,9 @@
+[project]
+name = "random-number-service"
+version = "0.1.0"
+description = "Random number generator service"
+requires-python = ">=3.9"
+dependencies = [
+    "intersect-sdk[amqp]",
+    "pydantic",
+]
