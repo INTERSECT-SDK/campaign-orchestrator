@@ -5,6 +5,9 @@ import os
 import random
 from dataclasses import dataclass
 
+# from typing import Optional
+from typing import Annotated
+
 from intersect_sdk import (
     HierarchyConfig,
     IntersectBaseCapabilityImplementation,
@@ -15,9 +18,6 @@ from intersect_sdk import (
     intersect_status,
 )
 from pydantic import BaseModel, Field
-
-# from typing import Optional
-from typing_extensions import Annotated
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Generate random number."""
         random.seed(seed)
-        random_int = random.randint(1, 100)
+        random_int = random.randint(1, 100)  # noqa: S311
 
         # Update state
         numbers = self.state.numbers
@@ -90,7 +90,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         )
 
     @staticmethod
-    def run():
+    def run() -> None:
         from_config_file = {
             'brokers': [
                 {
@@ -116,9 +116,8 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         capability = RandomServiceRandomNumGenCapabilityImpl()
         service = IntersectService([capability], config)
         logger.info(
-            f'Starting {
-                RandomServiceRandomNumGenCapabilityImpl.intersect_sdk_capability_name
-            }, use Ctrl+C to exit.'
+            'Starting %s, use Ctrl+C to exit.',
+            RandomServiceRandomNumGenCapabilityImpl.intersect_sdk_capability_name,
         )
         default_intersect_lifecycle_loop(
             service,

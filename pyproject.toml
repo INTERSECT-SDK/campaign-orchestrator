@@ -64,6 +64,7 @@ line-length = 100
 format = { quote-style = 'single' }
 exclude = [
     "concepts/**",
+    "services/**",
 ]
 
 [tool.ruff.lint]

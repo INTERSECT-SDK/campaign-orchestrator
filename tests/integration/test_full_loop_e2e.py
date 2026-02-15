@@ -33,7 +33,7 @@ def is_orchestrator_available() -> bool:
     try:
         with socket.create_connection((orchestrator_host, orchestrator_port), timeout=2):
             return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
+    except (TimeoutError, ConnectionRefusedError, OSError):
         return False
 
 
@@ -91,7 +91,6 @@ async def test_full_campaign_loop_with_websocket() -> None:
 
     # Track received events
     received_events: list[dict[str, Any]] = []
-    campaign_id: str | None = None
     campaign_complete = False
 
     async def listen_to_events(websocket: websockets.WebSocketClientProtocol) -> None:
@@ -101,7 +100,6 @@ async def test_full_campaign_loop_with_websocket() -> None:
             async for message in websocket:
                 event = json.loads(message)
                 received_events.append(event)
-                print(f'Received event: {event.get("event_type", "UNKNOWN")}')
 
                 # Check if campaign is complete
                 if event.get('event_type') == 'CAMPAIGN_COMPLETE':
@@ -134,13 +132,11 @@ async def test_full_campaign_loop_with_websocket() -> None:
                 timeout=10.0,
             )
             assert response.status_code == 200, f'Failed to start campaign: {response.text}'
-            campaign_id = response.text.strip('"')  # Remove quotes from JSON string response
-            print(f'Started campaign: {campaign_id}')
 
         # Wait for events (with timeout)
         try:
             await asyncio.wait_for(listen_task, timeout=30.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail('Campaign did not complete within 30 seconds')
 
     # Verify we received events
@@ -151,11 +147,8 @@ async def test_full_campaign_loop_with_websocket() -> None:
 
     # Verify we got some expected event types
     event_types = {event.get('event_type') for event in received_events}
-    print(f'Received event types: {event_types}')
 
     # We should at least see CAMPAIGN_COMPLETE
     assert 'CAMPAIGN_COMPLETE' in event_types, (
         f'Missing CAMPAIGN_COMPLETE event. Got: {event_types}'
     )
-
-    print(f'✅ Campaign {campaign_id} completed successfully with {len(received_events)} events')
