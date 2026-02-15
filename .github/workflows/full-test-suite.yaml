@@ -86,3 +86,59 @@ jobs:
       with:
         name: coverage-report
         path: htmlcov/
+
+  full-tests-docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
+    - name: Install dependencies with DB extras
+      run: uv sync --dev --extra mongo --extra postgres
+
+    - name: Start services with docker-compose
+      run: docker compose up -d broker mongo postgres
+
+    - name: Wait for services to be healthy
+      run: |
+        timeout 60 bash -c 'until docker compose ps broker mongo postgres | grep -q "healthy"; do sleep 2; done'
+        docker compose ps
+
+    - name: Run all tests with coverage
+      env:
+        BROKER_HOST: localhost
+        BROKER_PORT: 5672
+        BROKER_USERNAME: intersect_username
+        BROKER_PASSWORD: intersect_password
+        BROKER_PROTOCOL: amqp0.9.1
+        CAMPAIGN_REPOSITORY_MONGO_URI: mongodb://intersect:intersect@localhost:27017
+        CAMPAIGN_REPOSITORY_MONGO_DB: intersect_orchestrator
+        CAMPAIGN_REPOSITORY_POSTGRES_DSN: postgresql://intersect:intersect@localhost:5432/intersect_orchestrator
+      run: uv run pytest tests/ --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
+
+    - name: Show docker-compose logs on failure
+      if: failure()
+      run: docker compose logs
+
+    - name: Cleanup docker-compose
+      if: always()
+      run: docker compose down -v
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report-docker-compose
+        path: htmlcov/

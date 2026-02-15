@@ -46,3 +46,46 @@ services:
       retries: 5
       start_period: 10s
       timeout: 10s
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      BROKER_HOST: "broker"
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: "intersect_username"
+      BROKER_PASSWORD: "intersect_password"
+      BROKER_PROTOCOL: "amqp0.9.1"
+      CAMPAIGN_REPOSITORY_MONGO_URI: "mongodb://intersect:intersect@mongo:27017"
+      CAMPAIGN_REPOSITORY_MONGO_DB: "intersect_orchestrator"
+      CAMPAIGN_REPOSITORY_POSTGRES_DSN: "postgresql://intersect:intersect@postgres:5432/intersect_orchestrator"
+    depends_on:
+      broker:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+  random-number-service:
+    build:
+      context: .
+      dockerfile: services/random_number_service/Dockerfile
+    environment:
+      BROKER_HOST: "broker"
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: "intersect_username"
+      BROKER_PASSWORD: "intersect_password"
+      BROKER_PROTOCOL: "amqp0.9.1"
+    depends_on:
+      broker:
+        condition: service_healthy
