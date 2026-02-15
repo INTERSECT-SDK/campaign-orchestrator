@@ -28,7 +28,7 @@ def is_broker_available() -> bool:
     try:
         with socket.create_connection((broker_host, broker_port), timeout=2):
             return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
+    except (TimeoutError, ConnectionRefusedError, OSError):
         return False
 
 
@@ -49,7 +49,7 @@ def load_campaign_json() -> dict:
         return json.load(f)
 
 
-def create_intersect_client() -> 'CoreServiceIntersectClient':  # noqa: F821
+def create_intersect_client() -> CoreServiceIntersectClient:  # noqa: F821
     """Create a real CoreServiceIntersectClient connected to the broker from docker-compose."""
     from intersect_orchestrator.app.core.environment import Settings
     from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
