@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --frozen --no-install-project --no-editable
 
 # Sync the project
-COPY intersect_orchestrator intersect_orchestrator
+COPY src/intersect_orchestrator intersect_orchestrator
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
