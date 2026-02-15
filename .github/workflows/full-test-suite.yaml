@@ -118,6 +118,7 @@ jobs:
 
     - name: Run integration tests with coverage
       env:
+        API_KEY: test-api-key-12345678901234567890
         BROKER_HOST: localhost
         BROKER_PORT: 5672
         BROKER_USERNAME: intersect_username
