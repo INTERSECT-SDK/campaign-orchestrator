@@ -1,18 +1,15 @@
 services:
   broker:
-    image: "bitnamilegacy/rabbitmq:3.13.3"
+    image: "rabbitmq:3-management-alpine"
     ports:
       - "1883:1883" # MQTT port
       - "5672:5672" # AMQP port
       - "15672:15672" # Web UI
     environment:
-      # full list of env variables available at https://github.com/bitnami/containers/blob/main/bitnami/rabbitmq/README.md
-      RABBITMQ_PLUGINS: "rabbitmq_management rabbitmq_mqtt"
-      RABBITMQ_USERNAME: "intersect_username"
-      RABBITMQ_PASSWORD: "intersect_password"
-      RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: "yes"
+      RABBITMQ_DEFAULT_USER: "intersect_username"
+      RABBITMQ_DEFAULT_PASS: "intersect_password"
     healthcheck:
-      test: rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       retries: 5
       start_period: 10s
@@ -54,6 +51,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      PRODUCTION: "true"
       BROKER_HOST: "broker"
       BROKER_PORT: "5672"
       BROKER_USERNAME: "intersect_username"
@@ -70,7 +68,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/healthcheck')"]
       interval: 10s
       retries: 5
       start_period: 30s
