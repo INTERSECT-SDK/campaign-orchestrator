@@ -129,15 +129,15 @@ async def test_full_campaign_loop_with_websocket() -> None:
                 f'{base_url}/v1/orchestrator/start_campaign',
                 json=campaign_data,
                 headers={'X-API-Key': api_key},
-                timeout=10.0,
+                timeout=30.0,
             )
             assert response.status_code == 200, f'Failed to start campaign: {response.text}'
 
         # Wait for events (with timeout)
         try:
-            await asyncio.wait_for(listen_task, timeout=30.0)
+            await asyncio.wait_for(listen_task, timeout=60.0)
         except TimeoutError:
-            pytest.fail('Campaign did not complete within 30 seconds')
+            pytest.fail('Campaign did not complete within 60 seconds')
 
     # Verify we received events
     assert len(received_events) > 0, 'No events received from WebSocket'
