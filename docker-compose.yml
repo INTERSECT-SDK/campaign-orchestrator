@@ -76,8 +76,8 @@ services:
 
   random-number-service:
     build:
-      context: .
-      dockerfile: services/random_number_service/Dockerfile
+      context: ./services/random_number_service/
+      dockerfile: Dockerfile
     environment:
       BROKER_HOST: "broker"
       BROKER_PORT: "5672"

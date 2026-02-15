@@ -1,7 +1,8 @@
 # ignore everything by default
 *
 # but do not ignore core files
-!intersect_orchestrator
+!src/
+!services/
 !pyproject.toml
 !uv.lock
 # but make sure to ignore cache
