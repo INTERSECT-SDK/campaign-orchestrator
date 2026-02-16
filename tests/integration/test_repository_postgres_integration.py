@@ -1,80 +1,32 @@
 from __future__ import annotations
 
-import os
-import time
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 
-from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
-    Campaign,
-    Task,
-    TaskGroup,
-)
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
     CampaignState,
     ExecutionStatus,
 )
 from intersect_orchestrator.app.core.repository import CampaignEvent, PostgresCampaignRepository
 
-
-@pytest.fixture(scope='session')
-def postgres_dsn() -> str:
-    return os.getenv(
-        'CAMPAIGN_REPOSITORY_POSTGRES_DSN',
-        'postgresql://intersect:intersect@localhost:5432/intersect_orchestrator',
+if TYPE_CHECKING:
+    from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+        Campaign,
     )
 
-
-def _wait_for_postgres(dsn: str, timeout: float = 10.0) -> None:
-    import psycopg
-
-    start = time.time()
-    while time.time() - start < timeout:
-        try:
-            conn = psycopg.connect(dsn)
-            conn.execute('SELECT 1')
-            conn.close()
-        except Exception:  # noqa: BLE001
-            time.sleep(0.5)
-        else:
-            return
-    pytest.skip('PostgreSQL not available for integration tests')
+# Use fixtures from conftest.py:
+# - postgres_dsn
+# - simple_campaign
+# - repository_postgres (aliased below as repository)
 
 
 @pytest.fixture
-def repository(postgres_dsn: str) -> PostgresCampaignRepository:
-    _wait_for_postgres(postgres_dsn)
-    import psycopg
-
-    conn = psycopg.connect(postgres_dsn)
-    conn.execute("SET TIME ZONE 'UTC'")
-    return PostgresCampaignRepository(conn)
-
-
-@pytest.fixture
-def simple_campaign() -> Campaign:
-    return Campaign(
-        id='campaign-repo-1',
-        name='Repo Campaign',
-        user='tester',
-        description='Repo campaign description',
-        task_groups=[
-            TaskGroup(
-                id='tg-1',
-                group_dependencies=[],
-                tasks=[
-                    Task(
-                        id='task-1',
-                        hierarchy='capability',
-                        capability='capability-1',
-                        operation_id='op-1',
-                    )
-                ],
-            )
-        ],
-    )
+def repository(repository_postgres: PostgresCampaignRepository) -> PostgresCampaignRepository:
+    """Alias repository_postgres fixture for backward compatibility."""
+    return repository_postgres
 
 
 def test_postgres_repository_integration(

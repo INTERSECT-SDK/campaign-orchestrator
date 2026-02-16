@@ -1,83 +1,33 @@
 from __future__ import annotations
 
-import os
-import time
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 
-from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
-    Campaign,
-    Task,
-    TaskGroup,
-)
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
     CampaignState,
     ExecutionStatus,
 )
 from intersect_orchestrator.app.core.repository import CampaignEvent, MongoCampaignRepository
 
-
-@pytest.fixture(scope='session')
-def mongo_uri() -> str:
-    return os.getenv(
-        'CAMPAIGN_REPOSITORY_MONGO_URI',
-        'mongodb://intersect:intersect@localhost:27017/?authSource=admin',
+if TYPE_CHECKING:
+    from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+        Campaign,
     )
 
-
-@pytest.fixture(scope='session')
-def mongo_db() -> str:
-    return os.getenv('CAMPAIGN_REPOSITORY_MONGO_DB', 'intersect_orchestrator')
-
-
-def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
-    import pymongo
-
-    start = time.time()
-    while time.time() - start < timeout:
-        try:
-            client = pymongo.MongoClient(uri)
-            client.admin.command('ping')
-        except Exception:  # noqa: BLE001
-            time.sleep(0.5)
-        else:
-            return
-    pytest.skip('MongoDB not available for integration tests')
+# Use fixtures from conftest.py:
+# - mongo_uri
+# - mongo_db
+# - simple_campaign
+# - repository_mongo (aliased below as repository)
 
 
 @pytest.fixture
-def repository(mongo_uri: str, mongo_db: str) -> MongoCampaignRepository:
-    _wait_for_mongo(mongo_uri)
-    import pymongo
-
-    client = pymongo.MongoClient(mongo_uri)
-    return MongoCampaignRepository(client, db_name=mongo_db)
-
-
-@pytest.fixture
-def simple_campaign() -> Campaign:
-    return Campaign(
-        id='campaign-repo-1',
-        name='Repo Campaign',
-        user='tester',
-        description='Repo campaign description',
-        task_groups=[
-            TaskGroup(
-                id='tg-1',
-                group_dependencies=[],
-                tasks=[
-                    Task(
-                        id='task-1',
-                        hierarchy='capability',
-                        capability='capability-1',
-                        operation_id='op-1',
-                    )
-                ],
-            )
-        ],
-    )
+def repository(repository_mongo: MongoCampaignRepository) -> MongoCampaignRepository:
+    """Alias repository_mongo fixture for backward compatibility."""
+    return repository_mongo
 
 
 def test_mongo_repository_integration(
