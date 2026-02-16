@@ -98,18 +98,22 @@ async def test_full_campaign_loop_with_websocket() -> None:
         nonlocal campaign_complete
         try:
             async for message in websocket:
-                event = json.loads(message)
-                received_events.append(event)
+                orchestrator_event = json.loads(message)
+                received_events.append(orchestrator_event)
+
+                # Extract the nested event
+                event = orchestrator_event.get('event', {})
+                event_type = event.get('event_type')
 
                 # Check if campaign is complete
-                if event.get('event_type') == 'CAMPAIGN_COMPLETE':
+                if event_type == 'CAMPAIGN_COMPLETE':
                     campaign_complete = True
                     break
 
                 # Also break on errors
-                if event.get('event_type') in [
+                if event_type in [
                     'CAMPAIGN_ERROR_FROM_SERVICE',
-                    'CAMPAIGN_ERROR_DATA_CONVERSION',
+                    'CAMPAIGN_ERROR_SCHEMA',
                 ]:
                     break
         except websockets.exceptions.ConnectionClosed:

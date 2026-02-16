@@ -164,9 +164,11 @@ warn_untyped_fields = true
 [tool.pytest.ini_options]
 log_cli = true
 addopts = "-ra"
+asyncio_mode = "auto"
 markers = [
     "integration: mark test as an integration test",
     "unit: mark test as a unit test",
+    "asyncio: mark test as an async test",
 ]
 
 [tool.coverage.report]

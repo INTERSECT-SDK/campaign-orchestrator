@@ -87,8 +87,12 @@ async def campaign_events(websocket: WebSocket) -> None:
         raise
     except WebSocketDisconnect:
         client.remove_http_connection(queue)
-
-    await websocket.close()
+    finally:
+        try:
+            await websocket.close()
+        except RuntimeError:
+            # WebSocket already closed
+            pass
 
 
 from fastapi.responses import HTMLResponse  # noqa: E402
