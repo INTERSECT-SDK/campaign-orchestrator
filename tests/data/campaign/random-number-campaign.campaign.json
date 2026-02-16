@@ -10,7 +10,7 @@
       "tasks": [
         {
           "id": "generate_random_number",
-          "hierarchy": "capability",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
           "capability": "Random_Number_Generator",
           "operation_id": "generate_random_number",
           "event_name": null,
@@ -55,7 +55,7 @@
         },
         {
           "id": "validate_random_number",
-          "hierarchy": "capability",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
           "capability": "Random_Number_Validator",
           "operation_id": "validate_random_number",
           "event_name": null,
