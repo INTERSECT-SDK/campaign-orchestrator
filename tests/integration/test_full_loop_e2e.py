@@ -12,70 +12,25 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-import pathlib
-import socket
 from typing import Any
 
 import httpx
 import pytest
 import websockets
 
-TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / 'data'
-CAMPAIGN_FILE = TEST_DATA_DIR / 'campaign' / 'random-number-campaign.campaign.json'
-
-
-def is_orchestrator_available() -> bool:
-    """Check if the orchestrator is available."""
-    orchestrator_host = os.getenv('ORCHESTRATOR_HOST', 'localhost')
-    orchestrator_port = int(os.getenv('ORCHESTRATOR_PORT', '8000'))
-
-    try:
-        with socket.create_connection((orchestrator_host, orchestrator_port), timeout=2):
-            return True
-    except (TimeoutError, ConnectionRefusedError, OSError):
-        return False
-
-
-@pytest.fixture(scope='session', autouse=True)
-def check_orchestrator_available() -> None:
-    """Check orchestrator availability and skip tests if unavailable."""
-    if not is_orchestrator_available():
-        pytest.skip(
-            f'Campaign orchestrator not available at '
-            f'{os.getenv("ORCHESTRATOR_HOST", "localhost")}:{os.getenv("ORCHESTRATOR_PORT", "8000")}. '
-            f"Run 'docker-compose up' to start all services."
-        )
-
-
-def load_campaign_json() -> dict[str, Any]:
-    """Load campaign JSON from test data."""
-    with CAMPAIGN_FILE.open() as f:
-        return json.load(f)
-
-
-def get_orchestrator_url() -> str:
-    """Get the base URL for the orchestrator."""
-    host = os.getenv('ORCHESTRATOR_HOST', 'localhost')
-    port = os.getenv('ORCHESTRATOR_PORT', '8000')
-    return f'http://{host}:{port}'
-
-
-def get_orchestrator_ws_url() -> str:
-    """Get the WebSocket URL for the orchestrator."""
-    host = os.getenv('ORCHESTRATOR_HOST', 'localhost')
-    port = os.getenv('ORCHESTRATOR_PORT', '8000')
-    return f'ws://{host}:{port}'
-
-
-def get_api_key() -> str:
-    """Get the API key for authentication."""
-    return os.getenv('API_KEY', 'test-api-key-12345678901234567890')
+from tests.integration.conftest import (
+    get_api_key,
+    get_orchestrator_url,
+    get_orchestrator_ws_url,
+    load_campaign_json,
+)
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_full_campaign_loop_with_websocket() -> None:
+async def test_full_campaign_loop_with_websocket(
+    check_orchestrator_available: None,
+) -> None:
     """Test submitting a campaign via REST API and monitoring via WebSocket.
 
     This test:
