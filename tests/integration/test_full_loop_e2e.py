@@ -150,7 +150,7 @@ async def test_full_campaign_loop_with_websocket() -> None:
     assert campaign_complete, f'Campaign did not complete. Last events: {received_events[-3:]}'
 
     # Verify we got some expected event types
-    event_types = {event.get('event_type') for event in received_events}
+    event_types = {event.get('event', {}).get('event_type') for event in received_events}
 
     # We should at least see CAMPAIGN_COMPLETE
     assert 'CAMPAIGN_COMPLETE' in event_types, (
