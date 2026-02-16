@@ -52,6 +52,7 @@ services:
       - "8000:8000"
     environment:
       PRODUCTION: "true"
+      API_KEY: "test-api-key-12345678901234567890"
       BROKER_HOST: "broker"
       BROKER_PORT: "5672"
       BROKER_USERNAME: "intersect_username"

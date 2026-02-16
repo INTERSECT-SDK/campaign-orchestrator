@@ -70,7 +70,7 @@ def get_orchestrator_ws_url() -> str:
 
 def get_api_key() -> str:
     """Get the API key for authentication."""
-    return os.getenv('API_KEY', 'test-api-key')
+    return os.getenv('API_KEY', 'test-api-key-12345678901234567890')
 
 
 @pytest.mark.integration
@@ -128,7 +128,7 @@ async def test_full_campaign_loop_with_websocket() -> None:
             response = await client.post(
                 f'{base_url}/v1/orchestrator/start_campaign',
                 json=campaign_data,
-                headers={'X-API-Key': api_key},
+                headers={'Authorization': api_key},
                 timeout=30.0,
             )
             assert response.status_code == 200, f'Failed to start campaign: {response.text}'
