@@ -13,10 +13,8 @@ These library interactions cover:
 import logging
 from asyncio import Queue
 
-from ..intersect_control_plane_fork.control_plane_manager import (
-    ControlPlaneConfig,
-    ControlPlaneManager,
-)
+from intersect_sdk_common import ControlPlaneConfig, ControlPlaneManager
+
 from .campaign_orchestrator import CampaignOrchestrator
 from .environment import Settings
 

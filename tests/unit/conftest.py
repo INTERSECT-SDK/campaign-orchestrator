@@ -27,7 +27,7 @@ def pytest_configure(config):
 
     # Patch at the module level
     patcher = patch(
-        'intersect_orchestrator.app.intersect_control_plane_fork.control_plane_manager.ControlPlaneManager',
+        'intersect_sdk_common.ControlPlaneManager',
         return_value=mock_manager_instance,
     )
     patcher.start()

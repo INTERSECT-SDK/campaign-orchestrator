@@ -53,7 +53,6 @@ app = FastAPI(
     title='INTERSECT Orchestrator',
     description='Execute INTERSECT Campaigns',
     version=version('intersect-orchestrator'),
-    # only provide API documentation for public API URLs. Do not provide documentation for the UI URLs.
     redoc_url='/',
     docs_url='/docs',
     openapi_url='/openapi.json',
