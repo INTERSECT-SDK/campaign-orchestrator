@@ -29,6 +29,9 @@ from intersect_sdk._internal.messages.userspace import UserspaceMessage
 _log = logging.getLogger(__name__)
 
 
+RESERVED_QUEUE_NAME = 'intersect-orchestrator'
+
+
 class CoreServiceIntersectClient:
     """
     This class handles interactions with INTERSECT and also helps out with broadcasting websocket events to connected clients.
@@ -64,7 +67,7 @@ class CoreServiceIntersectClient:
 
         self.control_plane_manager.connect()
         self.control_plane_manager.add_subscription_channel(
-            'test-topic', {self._handle_message}, True
+            'test-topic', {self._handle_message}, True, RESERVED_QUEUE_NAME
         )
 
     def _handle_message(self, message: bytes, content_type: str, headers: dict[str, str]) -> None:

@@ -1,8 +1,8 @@
 """This module consists of core definitions which are meant to transcend the entire application"""
 
-from typing import Literal
+from intersect_sdk_common.config import ControlProvider
 
-BrokerProtocol = Literal['amqp0.9.1', 'mqtt3.1.1', 'mqtt5.0']
+BrokerProtocol = ControlProvider
 """PubSub protocols we support."""
 
 INTERSECT_MESSAGE_EXCHANGE = 'intersect-messages'
