@@ -1,15 +1,18 @@
 services:
   broker:
-    image: "rabbitmq:3-management-alpine"
+    image: "bitnamilegacy/rabbitmq:4.1"
     ports:
       - "1883:1883" # MQTT port
       - "5672:5672" # AMQP port
       - "15672:15672" # Web UI
     environment:
-      RABBITMQ_DEFAULT_USER: "intersect_username"
-      RABBITMQ_DEFAULT_PASS: "intersect_password"
+      # full list of env variables available at https://github.com/bitnami/containers/blob/main/bitnami/rabbitmq/README.md
+      RABBITMQ_PLUGINS: "rabbitmq_management rabbitmq_mqtt"
+      RABBITMQ_USERNAME: "intersect_username"
+      RABBITMQ_PASSWORD: "intersect_password"
+      RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: "yes"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
       interval: 10s
       retries: 5
       start_period: 10s

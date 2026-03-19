@@ -922,7 +922,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "graphviz", specifier = ">=0.21" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "intersect-sdk-common", specifier = "==0.9.1" },
+    { name = "intersect-sdk-common", specifier = "==0.9.3" },
     { name = "jsonschema", specifier = ">=4.25.1" },
     { name = "minio", specifier = ">=7.2.15" },
     { name = "paho-mqtt", specifier = ">=2.1.0" },
@@ -957,7 +957,7 @@ integration = [{ name = "pytest-postgresql", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "intersect-sdk-common"
-version = "0.9.1"
+version = "0.9.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "minio" },
@@ -965,9 +965,9 @@ dependencies = [
     { name = "pika" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/46/9a/e1877d63eacb735644ebfa1fd43460e5f5bfebda6be2b959fbe0335d46e0/intersect_sdk_common-0.9.1.tar.gz", hash = "sha256:2f5cf9e5cb098fc136d3db4dfee202dd56e324071e0b69d66ac76720b4dfff0c", size = 28051, upload-time = "2026-02-26T02:04:05.347Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/d3/d25c33683ff07f4bc4ce662621435fcf5cea8160962f73039c649a1739e6/intersect_sdk_common-0.9.3.tar.gz", hash = "sha256:54ca99bea516aa3e4498a8eb22a0abd27c8eeff9f2109fd5154dea79e048c05e", size = 30287, upload-time = "2026-03-18T23:04:56.858Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/bf/9c694b3509ade00a9cf9633e56bcb8e6fe5f57cf09d2642b4ddf1de5e8a4/intersect_sdk_common-0.9.1-py3-none-any.whl", hash = "sha256:c4b8c59de273a142ee0a7066537d242068058ccf5907e620900df01796c76647", size = 39869, upload-time = "2026-02-26T02:04:03.934Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/cd/9e9e01e811c593d95461eb8e479a6f1bef34f6887052d9e352179e8ab468/intersect_sdk_common-0.9.3-py3-none-any.whl", hash = "sha256:69c1408f4b0b9cd195b79833c06ef40c9181d57888b355f231baa6734b9c4381", size = 42175, upload-time = "2026-03-18T23:04:55.581Z" },
 ]
 
 [[package]]

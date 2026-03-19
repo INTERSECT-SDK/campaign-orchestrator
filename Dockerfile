@@ -2,12 +2,15 @@
 
 FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:debian-slim AS builder
 
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.13
+# set to "0" to include dev dependencies, "1" to exclude them (default: "1")
+ARG UV_NO_DEV="1"
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_INSTALL_DIR=/python
 ENV UV_PYTHON_PREFERENCE=only-managed
+ENV UV_NO_DEV=${UV_NO_DEV}
 
 RUN uv python install ${PYTHON_VERSION}
 
@@ -17,14 +20,14 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --no-dev --frozen --no-install-project --no-editable
+    uv sync --locked --no-install-project --no-editable
 
 # Sync the project
 COPY src src
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --no-dev --frozen --no-editable
+    uv sync --locked --no-editable
 
 FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS runner
 
@@ -38,4 +41,3 @@ ENV PATH="/app/.venv/bin:$PATH"
 # override CMD at container runtime for tests
 # note that you generally will NOT want to set UVICORN_WORKERS if running in a Kubernetes cluster, let Kubernetes handle that for you
 CMD ["python", "-m", "intersect_orchestrator"]
-
