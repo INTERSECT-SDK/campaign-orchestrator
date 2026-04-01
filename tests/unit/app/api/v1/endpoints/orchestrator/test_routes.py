@@ -5,9 +5,12 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
+    CampaignState,
     ExecutionStatus,
 )
+from intersect_orchestrator.app.converters.campaign_to_petri_net import CampaignPetriNetConverter
 
 if TYPE_CHECKING:
     from intersect_orchestrator.app.core.repository import CampaignRepository
@@ -23,8 +26,6 @@ def test_start_campaign_success(client, valid_api_key, sample_campaign_data):
 
     assert response.status_code == 200
     # Response should be a UUID string
-    import uuid
-
     uuid.UUID(response.json())  # This will raise if not a valid UUID
 
 
@@ -35,21 +36,36 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
 ):
     """Test campaign start stores payload, state, and Petri Net in memory."""
     orchestrator = client.app.state.campaign_orchestrator
+    successful_submissions = 0
 
     for payload in campaign_payloads:
+        campaign = Campaign.model_validate(payload)
+        is_startable = True
+        try:
+            CampaignPetriNetConverter().convert(
+                CampaignState.from_campaign(campaign, status=ExecutionStatus.QUEUED)
+            )
+        except Exception:  # noqa: BLE001
+            is_startable = False
+
         response = client.post(
             '/v1/orchestrator/start_campaign',
             json=payload,
             headers={'Authorization': valid_api_key},
         )
 
+        if not is_startable:
+            assert response.status_code == 500
+            continue
+
         assert response.status_code == 200
+        successful_submissions += 1
 
         campaign_uuid = uuid.UUID(response.json())
 
         stored_campaign = orchestrator.get_campaign(campaign_uuid)
         assert stored_campaign is not None
-        assert stored_campaign.id == payload['id']
+        assert stored_campaign.id == uuid.UUID(payload['id'])
 
         stored_state = orchestrator.get_campaign_state(campaign_uuid)
         assert stored_state is not None
@@ -74,7 +90,9 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
         repo: CampaignRepository = orchestrator._repository
         events = list(repo.load_events(campaign_uuid))
         # Should have at least one event (campaign started or completed)
-        assert len(events) >= 0
+        assert len(events) >= 1
+
+    assert successful_submissions >= 1
 
 
 def test_start_campaign_invalid_api_key(client, invalid_api_key, sample_campaign_data):

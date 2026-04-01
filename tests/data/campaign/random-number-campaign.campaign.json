@@ -1,15 +1,15 @@
 {
-  "id": "Campaign-b86608",
+  "id": "89335b8a-acbb-4e16-9e50-6633bb16d0e4",
   "name": "Campaign-b86608",
   "user": "system",
   "description": "Campaign converted from ICMP: Campaign-b86608",
   "task_groups": [
     {
-      "id": "capability_group",
+      "id": "6726b2ca-8d25-4be9-bb34-6ec95a090d56",
       "group_dependencies": [],
       "tasks": [
         {
-          "id": "generate_random_number",
+          "id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
           "capability": "Random_Number_Generator",
           "operation_id": "generate_random_number",
@@ -26,7 +26,7 @@
             },
             "values": [
               {
-                "id": "random_output",
+                "id": "2fb51c47-67df-44c1-8a98-1ad476676b51",
                 "var": "random_number"
               }
             ]
@@ -45,7 +45,7 @@
             },
             "values": [
               {
-                "id": "seed_input",
+                "id": "28721a7e-19dc-4a63-8f06-2900cd52205d",
                 "var": "seed"
               }
             ]
@@ -54,20 +54,20 @@
           "task_objectives": null
         },
         {
-          "id": "validate_random_number",
+          "id": "bf0c4877-14f3-4c88-9019-503f4c10dd90",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
           "capability": "Random_Number_Validator",
           "operation_id": "validate_random_number",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["generate_random_number"],
+          "task_dependencies": ["0434b32a-f7c9-4a10-908a-aff0b5daa696"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "capability_group_iterate",
+          "id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
           "type": "iterate",
           "iterations": 1
         }

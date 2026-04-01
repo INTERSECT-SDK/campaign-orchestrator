@@ -1,15 +1,15 @@
 {
-  "id": "campaign-with-threshold-objectives",
+  "id": "b6aa5545-d8c4-4813-b4ab-831f10becba5",
   "name": "Threshold-Based Campaign",
   "user": "researcher",
   "description": "Campaign demonstrating threshold-based objectives for scientific constraints",
   "task_groups": [
     {
-      "id": "data_collection_phase",
+      "id": "84bdd8e1-4af9-40f7-9b88-cf1739f0a693",
       "group_dependencies": [],
       "tasks": [
         {
-          "id": "measure_temperature",
+          "id": "51f1d2a9-7921-475d-83ec-50bf4e10ee4d",
           "hierarchy": "measurement",
           "capability": "TemperatureSensor",
           "operation_id": "measure_temperature",
@@ -26,7 +26,7 @@
             },
             "values": [
               {
-                "id": "temp_output",
+                "id": "b08a486e-bc95-49d1-841b-d7926a25bb56",
                 "var": "temperature"
               }
             ]
@@ -36,31 +36,31 @@
           "task_objectives": null
         },
         {
-          "id": "validate_temperature",
+          "id": "fe0f0e9b-e09c-4d93-a47e-a258d72cf9b5",
           "hierarchy": "measurement",
           "capability": "TemperatureSensor",
           "operation_id": "validate_temperature",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["measure_temperature"],
+          "task_dependencies": ["51f1d2a9-7921-475d-83ec-50bf4e10ee4d"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "temp_iterate_20_times",
+          "id": "dd7f8444-874b-4e1b-b7df-02ea3f1aa35c",
           "type": "iterate",
           "iterations": 20
         }
       ]
     },
     {
-      "id": "analysis_phase",
-      "group_dependencies": ["data_collection_phase"],
+      "id": "26c1de93-3b36-40e6-b9c6-1228c10fa31e",
+      "group_dependencies": ["84bdd8e1-4af9-40f7-9b88-cf1739f0a693"],
       "tasks": [
         {
-          "id": "verify_temperature_range",
+          "id": "eab423b9-31fd-472d-a6ff-257b31442477",
           "hierarchy": "analysis",
           "capability": "TemperatureAnalysis",
           "operation_id": "verify_temp_range",
@@ -77,7 +77,7 @@
             },
             "values": [
               {
-                "id": "in_range_output",
+                "id": "c3618a33-a45e-4b96-b308-06db917991fd",
                 "var": "in_range"
               }
             ]
@@ -87,20 +87,20 @@
           "task_objectives": null
         },
         {
-          "id": "report_temperature_range",
+          "id": "30dbfd2e-e6e9-42ab-a479-2aa693e49bea",
           "hierarchy": "analysis",
           "capability": "TemperatureAnalysis",
           "operation_id": "report_temp_range",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["verify_temperature_range"],
+          "task_dependencies": ["eab423b9-31fd-472d-a6ff-257b31442477"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "analysis_iterate",
+          "id": "2b2ce69b-79eb-4fd2-a44f-6c5ec5497ba8",
           "type": "iterate",
           "iterations": 1
         }
@@ -111,18 +111,18 @@
     "max_runtime": [],
     "threshold": [
       {
-        "id": "temp_upper_limit_20c",
+        "id": "79c28bbb-8af9-4f66-85f8-514b34769d5b",
         "var": "temperature",
         "type": "upper_limit",
         "target": 20,
-        "task_group": "data_collection_phase"
+        "task_group": "84bdd8e1-4af9-40f7-9b88-cf1739f0a693"
       },
       {
-        "id": "temp_range_check",
+        "id": "2d9310e5-26fb-4dfc-9b33-d0a18402c828",
         "var": "temperature",
         "type": "range",
         "target": 2.5,
-        "task_group": "analysis_phase"
+        "task_group": "26c1de93-3b36-40e6-b9c6-1228c10fa31e"
       }
     ]
   },

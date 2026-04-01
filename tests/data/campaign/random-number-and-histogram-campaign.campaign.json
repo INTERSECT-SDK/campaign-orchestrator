@@ -1,15 +1,15 @@
 {
-  "id": "Campaign-b86608",
+  "id": "bb5fa776-8f3a-4c9d-961f-4cc6359adbcb",
   "name": "Campaign-b86608",
   "user": "system",
   "description": "Campaign converted from ICMP: Campaign-b86608",
   "task_groups": [
     {
-      "id": "capability_group",
+      "id": "5bb1cb46-f541-4517-a544-40f2ae18a7e7",
       "group_dependencies": [],
       "tasks": [
         {
-          "id": "generate_random_number",
+          "id": "754bfbb8-2b81-422b-9906-2b291ac77a33",
           "hierarchy": "capability",
           "capability": "Random_Number_Generator",
           "operation_id": "generate_random_number",
@@ -26,7 +26,7 @@
             },
             "values": [
               {
-                "id": "random_output",
+                "id": "af08940a-f9b1-41ab-87c0-76ced7681873",
                 "var": "random_number"
               }
             ]
@@ -45,7 +45,7 @@
             },
             "values": [
               {
-                "id": "seed_input",
+                "id": "fee40d34-c0ad-4bfd-a33c-793bb1f17f2c",
                 "var": "seed"
               }
             ]
@@ -54,33 +54,33 @@
           "task_objectives": null
         },
         {
-          "id": "validate_random_number",
+          "id": "f94d1a7f-ffea-4570-83e0-48f8e520c9f2",
           "hierarchy": "capability",
           "capability": "Random_Number_Validator",
           "operation_id": "validate_random_number",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["generate_random_number"],
+          "task_dependencies": ["754bfbb8-2b81-422b-9906-2b291ac77a33"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "capability_group_iterate",
+          "id": "bffc449c-2d41-4f18-ad2c-c1c00a8a9c73",
           "type": "iterate",
           "iterations": 1
         }
       ]
     },
     {
-      "id": "visualization_group",
+      "id": "475e09fa-eaac-4cd1-8d45-22bc2580befd",
       "group_dependencies": [
-        "capability_group"
+        "5bb1cb46-f541-4517-a544-40f2ae18a7e7"
       ],
       "tasks": [
         {
-          "id": "vega-histogram_histogram",
+          "id": "93b5f409-ae29-413d-96a9-b173d0265f25",
           "hierarchy": "visualization",
           "capability": "Visualization",
           "operation_id": "vega-histogram_histogram",
@@ -91,20 +91,20 @@
           "task_objectives": null
         },
         {
-          "id": "vega-histogram_postprocess",
+          "id": "d69fb669-d47f-4514-b721-f11ca646efb1",
           "hierarchy": "visualization",
           "capability": "Visualization",
           "operation_id": "vega-histogram_postprocess",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["vega-histogram_histogram"],
+          "task_dependencies": ["93b5f409-ae29-413d-96a9-b173d0265f25"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "visualization_group_iterate",
+          "id": "74d9993c-1112-4f2d-91a3-7b63b88be7d7",
           "type": "iterate",
           "iterations": 1
         }

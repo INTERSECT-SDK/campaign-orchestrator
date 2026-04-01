@@ -8,12 +8,19 @@ import pathlib
 import socket
 import time
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 import pytest
 
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+    Campaign,
+    Task,
+    TaskGroup,
+)
+from intersect_orchestrator.app.core.environment import Settings, settings
+from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
+
 if TYPE_CHECKING:
-    from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
-    from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
     from intersect_orchestrator.app.core.repository import (
         MongoCampaignRepository,
         PostgresCampaignRepository,
@@ -55,7 +62,7 @@ def is_orchestrator_available() -> bool:
 def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
     """Wait for MongoDB to become available."""
     try:
-        import pymongo
+        import pymongo  # noqa: PLC0415
     except ImportError:
         pytest.skip('pymongo not installed - skipping MongoDB tests')
 
@@ -74,7 +81,7 @@ def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
 def _wait_for_postgres(dsn: str, timeout: float = 10.0) -> None:
     """Wait for PostgreSQL to become available."""
     try:
-        import psycopg
+        import psycopg  # noqa: PLC0415
     except ImportError:
         pytest.skip('psycopg not installed - skipping PostgreSQL tests')
 
@@ -158,7 +165,7 @@ def get_orchestrator_ws_url() -> str:
 
 def get_api_key() -> str:
     """Get the API key for authentication."""
-    return os.getenv('API_KEY', 'test-api-key-12345678901234567890')
+    return settings.API_KEY
 
 
 def create_intersect_client() -> CoreServiceIntersectClient:
@@ -167,8 +174,6 @@ def create_intersect_client() -> CoreServiceIntersectClient:
     This creates a client configured to connect to the broker from docker-compose,
     using environment variables or sensible defaults.
     """
-    from intersect_orchestrator.app.core.environment import Settings
-    from intersect_orchestrator.app.core.intersect_client import CoreServiceIntersectClient
 
     # Get broker config from environment or use docker-compose defaults
     broker_host = os.getenv('BROKER_HOST', 'localhost')
@@ -228,10 +233,11 @@ def repository_mongo(mongo_uri: str, mongo_db: str) -> MongoCampaignRepository:
     repository instance.
     """
     _wait_for_mongo(mongo_uri)
-    import pymongo
+    import pymongo  # noqa: PLC0415
+
+    from intersect_orchestrator.app.core.repository import MongoCampaignRepository  # noqa: PLC0415
 
     client = pymongo.MongoClient(mongo_uri)
-    from intersect_orchestrator.app.core.repository import MongoCampaignRepository
 
     return MongoCampaignRepository(client, db_name=mongo_db)
 
@@ -244,11 +250,14 @@ def repository_postgres(postgres_dsn: str) -> PostgresCampaignRepository:
     repository instance.
     """
     _wait_for_postgres(postgres_dsn)
-    import psycopg
+    import psycopg  # noqa: PLC0415
+
+    from intersect_orchestrator.app.core.repository import (  # noqa: PLC0415
+        PostgresCampaignRepository,
+    )
 
     conn = psycopg.connect(postgres_dsn)
     conn.execute("SET TIME ZONE 'UTC'")
-    from intersect_orchestrator.app.core.repository import PostgresCampaignRepository
 
     return PostgresCampaignRepository(conn)
 
@@ -261,24 +270,18 @@ def repository_postgres(postgres_dsn: str) -> PostgresCampaignRepository:
 @pytest.fixture
 def simple_campaign() -> Campaign:
     """Create a simple campaign for repository testing."""
-    from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
-        Campaign,
-        Task,
-        TaskGroup,
-    )
-
     return Campaign(
-        id='campaign-repo-1',
+        id=uuid4(),
         name='Repo Campaign',
         user='tester',
         description='Repo campaign description',
         task_groups=[
             TaskGroup(
-                id='tg-1',
+                id=uuid4(),
                 group_dependencies=[],
                 tasks=[
                     Task(
-                        id='task-1',
+                        id=uuid4(),
                         hierarchy='capability',
                         capability='capability-1',
                         operation_id='op-1',

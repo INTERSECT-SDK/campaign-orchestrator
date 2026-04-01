@@ -19,7 +19,6 @@ from intersect_sdk import (
 )
 from pydantic import BaseModel, Field
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -50,6 +49,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     @intersect_status()
     def status(self) -> RandomServiceRandomNumGenCapabilityImplState:
         """Return status of current state."""
+        logger.info('Status requested, current state: %s', self.state)
         return self.state
 
     @intersect_message()
@@ -66,6 +66,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         ],
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Generate random number."""
+        logger.warning('generate_random_number called with seed %s', seed)
         random.seed(seed)
         random_int = random.randint(1, 100)  # noqa: S311
 
@@ -82,6 +83,8 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     @intersect_message()
     def reset(self) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Reset state."""
+        logger.warning('reset called')
+
         self.state.numbers = []
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
@@ -125,4 +128,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.WARNING)
+    #logging.getLogger('intersect-sdk').setLevel(logging.DEBUG)
+    #logging.getLogger('intersect-sdk-common').setLevel(logging.DEBUG)
     RandomServiceRandomNumGenCapabilityImpl.run()

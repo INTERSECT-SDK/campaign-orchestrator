@@ -71,12 +71,12 @@ class PostgresCampaignRepository:
 
             self._connection.execute(
                 'INSERT INTO campaigns (campaign_id, campaign) VALUES (%s, %s)',
-                (campaign_id, self._json(campaign.model_dump(by_alias=True))),
+                (campaign_id, self._json(campaign.model_dump(mode='json', by_alias=True))),
             )
             self._connection.execute(
                 'INSERT INTO snapshots (campaign_id, version, state, updated_at) '
                 'VALUES (%s, %s, %s, %s)',
-                (campaign_id, 0, self._json(state.model_dump(by_alias=True)), now),
+                (campaign_id, 0, self._json(state.model_dump(mode='json', by_alias=True)), now),
             )
 
     def get_campaign(self, campaign_id: UUID) -> Campaign | None:
@@ -159,7 +159,7 @@ class PostgresCampaignRepository:
                 'WHERE campaign_id = %s AND version = %s',
                 (
                     snapshot.version,
-                    self._json(snapshot.state.model_dump(by_alias=True)),
+                    self._json(snapshot.state.model_dump(mode='json', by_alias=True)),
                     snapshot.updated_at,
                     snapshot.campaign_id,
                     expected_version,

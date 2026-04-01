@@ -17,10 +17,12 @@ class StepCompleteEvent(BaseModel):
 
     event_type: Literal['STEP_COMPLETE'] = 'STEP_COMPLETE'
     step_id: CampaignStepId
+    # content_type: str  # i.e. application/json, text/csv, etc.
+    # data_handler: IntersectDataHandler
     payload: bytes
     """"The raw payload output.
 
-    TODO: This will eventually emit a pointer to data, rather than the data
+    TODO: will be based off of 'data_handler'
     """
 
 
@@ -66,18 +68,21 @@ class UnknownErrorEvent(BaseModel):
     exception_message: str
 
 
+OrchestratorEventType = (
+    StepStartEvent
+    | StepCompleteEvent
+    | CampaignCompleteEvent
+    | CampaignErrorFromServiceEvent
+    | CampaignErrorSchemaIncompatibilityEvent
+    | ReadyForUserInputEvent
+    | UnknownErrorEvent
+)
+
+
 class OrchestratorEvent(BaseModel):
     """Campaigns periodically"""
 
     campaign_id: IntersectCampaignId
     """this is the ID of the campaign which emitted the event"""
-    event: (
-        StepStartEvent
-        | StepCompleteEvent
-        | CampaignCompleteEvent
-        | CampaignErrorFromServiceEvent
-        | CampaignErrorSchemaIncompatibilityEvent
-        | ReadyForUserInputEvent
-        | UnknownErrorEvent
-    ) = Field(discriminator='event_type')
+    event: OrchestratorEventType = Field(discriminator='event_type')
     """This is the event itself. All event types will have a field named 'event_type' which can be used for assistance in parsing this output."""

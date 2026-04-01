@@ -1,6 +1,6 @@
 import json
 import pathlib
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,7 +15,6 @@ from tests import TEST_DATA_DIR
 # Create pytest hook to set up mocking before any modules are imported
 def pytest_configure(config):
     """Set up mocking before test collection."""
-    from unittest.mock import patch
 
     # Mock the ControlPlaneManager module before anything imports it
     mock_manager_instance = MagicMock()
@@ -24,6 +23,7 @@ def pytest_configure(config):
     mock_manager_instance.connect.return_value = None
     mock_manager_instance.add_subscription_channel.return_value = None
     mock_manager_instance.disconnect.return_value = None
+    mock_manager_instance.orchestrator_base_topic.return_value = 'test/orchestrator'
 
     # Patch at the module level
     patcher = patch(
@@ -110,6 +110,8 @@ def client():
     mock_client.can_reconnect.return_value = True
     mock_client.broadcast_message.return_value = None
     mock_client.add_http_connection.return_value = MagicMock()
+    mock_client.orchestrator_base_topic = 'test/orchestrator'
+    mock_client.control_plane_manager = MagicMock()
 
     # Create the orchestrator
     orchestrator = CampaignOrchestrator(mock_client)
@@ -131,4 +133,4 @@ def valid_api_key():
 @pytest.fixture
 def invalid_api_key():
     """Invalid API key for testing."""
-    return 'invalid_key'
+    return settings.API_KEY + '_invalid'

@@ -30,17 +30,17 @@ from intersect_orchestrator.app.core.repository import CampaignEvent, MongoCampa
 @pytest.fixture
 def simple_campaign() -> Campaign:
     return Campaign(
-        id='campaign-repo-1',
+        id=uuid4(),
         name='Repo Campaign',
         user='tester',
         description='Repo campaign description',
         task_groups=[
             TaskGroup(
-                id='tg-1',
+                id=uuid4(),
                 group_dependencies=[],
                 tasks=[
                     Task(
-                        id='task-1',
+                        id=uuid4(),
                         hierarchy='capability',
                         capability='capability-1',
                         operation_id='op-1',

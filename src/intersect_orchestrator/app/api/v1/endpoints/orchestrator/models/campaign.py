@@ -30,11 +30,11 @@ class ThresholdUpperLimit(BaseModel):
         task_group: The task group for this objective.
     """
 
-    id: str
+    id: uuid.UUID
     var: str
     type: Literal['upper_limit']
     target: int = Field(gt=0, le=20)
-    task_group: str
+    task_group: uuid.UUID
 
 
 class ThresholdRange(BaseModel):
@@ -48,11 +48,11 @@ class ThresholdRange(BaseModel):
         task_group: The task group for this objective.
     """
 
-    id: str
+    id: uuid.UUID
     var: str
     type: Literal['range']
     target: float = Field(gt=1.62, lt=3.14)
-    task_group: str
+    task_group: uuid.UUID
 
 
 class MaxRuntime(BaseModel):
@@ -64,9 +64,9 @@ class MaxRuntime(BaseModel):
         task_group: The task group for this objective.
     """
 
-    id: str
+    id: uuid.UUID
     max_time: datetime.timedelta
-    task_group: str
+    task_group: uuid.UUID
 
 
 class Objective(BaseModel):
@@ -78,7 +78,10 @@ class Objective(BaseModel):
     """
 
     max_runtime: Annotated[list[MaxRuntime], Field(default_factory=list)]
-    threshold: Annotated[list[ThresholdUpperLimit | ThresholdRange], Field(default_factory=list)]
+    threshold: Annotated[
+        list[Annotated[ThresholdUpperLimit | ThresholdRange, Field(discriminator='type')]],
+        Field(default_factory=list),
+    ]
 
 
 # Task group and task
@@ -93,7 +96,7 @@ class Value(BaseModel):
         var: The associated variable.
     """
 
-    id: str
+    id: uuid.UUID
     var: str
 
 
@@ -152,7 +155,7 @@ class ObjectiveAssert(BaseModel):
         target: The target boolean.
     """
 
-    id: str
+    id: uuid.UUID
     type: str
     """TODO make this an enum"""
     var: str
@@ -168,7 +171,7 @@ class ObjectiveIterate(BaseModel):
         iterations: The number of iterations for the objective.
     """
 
-    id: str
+    id: uuid.UUID
     type: str
     """TODO make this an enum"""
     iterations: int
@@ -189,15 +192,27 @@ class Task(BaseModel):
         task_objectives: Objectives for the task.
     """
 
-    id: str
+    id: uuid.UUID
+    """ID for the task. If the task is a Request/Reply task, this ID should be unique between a Request/Reply 'pairs'."""
     hierarchy: str
+    """URI PREFIX of the INTERSECT Service which should execute this task. Note that this is not a full URI; the full URI will generally end with 'request', 'response', or 'events', but is not captured in this field."""
     capability: str
+    """Name of the INTERSECT Capability associated with this Task. Capabilities are used in both Request/Reply and Event messages. Capabilities are the top-level domain science objects."""
     operation_id: str | None = None
+    """The operation ID is ONLY used for Request/Reply tasks, and for these tasks MUST be defined. This is the name of the function on the Service wrapped by '@intersect_message'.
+
+    Each operation has an input schema and an output schema. Operations are namespaced to Capabilities."""
     event_name: str | None = None
+    """The event name is ONLY used for Event tasks, and for these tasks MUST be defined. This is the name of the event type which gets emitted by the Service through 'intersect_sdk_emit_event'.
+
+    Each event name has an output schema. Event names are namespaced to Capabilities.
+    """
     output: Output | None = None
     input: Input | None = None
-    task_dependencies: Annotated[list[str], Field(default_factory=list)]
-    task_objectives: Annotated[Objective | None, Field(None)]
+    task_dependencies: Annotated[list[uuid.UUID], Field(default_factory=list)]
+    """List of other Task IDs WITHIN A TASK GROUP which must finish before this Task can start. Empty dependencies means this task can start immediately."""
+    task_objectives: Annotated[Objective | None, Field(None)] = None
+    """Sub-goals or limitations of a Task."""
 
     @model_validator(mode='after')
     def _validate_task(self) -> Self:
@@ -223,10 +238,13 @@ class TaskGroup(BaseModel):
         objectives: The objectives for the task group.
     """
 
-    id: str
-    group_dependencies: Annotated[list[str], Field(default_factory=list)]
-    tasks: Annotated[list[Task], Field(default_factory=list)]
+    id: uuid.UUID
+    """Unique ID for the task group. These are generally only used by the Orchestrator."""
+    group_dependencies: Annotated[list[uuid.UUID], Field(default_factory=list)]
+    """List of other Task Group IDs which must finish before this Task Group can start. Empty group dependencies means this task group can start immediately."""
+    tasks: Annotated[list[Task], Field(min_length=1)]
     objectives: Annotated[list[ObjectiveAssert | ObjectiveIterate], Field(default_factory=list)]
+    """Sub-goals or limitations of a Task Group."""
 
 
 # Campaign
@@ -247,12 +265,20 @@ class Campaign(BaseModel):
         outputs: Outputs for the campaign.
     """
 
-    id: str
+    id: uuid.UUID
+    """The ID of the campaign. This is the primary identifier used to obtain both the campaign and any supplemental data.
+
+    This ID should be sent across Request/Reply messages. Services should NEVER modify this ID.
+    """
     name: str
     """TODO consider removing"""
     user: str
-    description: str
-    task_groups: Annotated[list[TaskGroup], Field(default_factory=list)]
+    """TODO consider removing"""
+    description: str = ''
+    """Human-readable description of the campaign."""
+    task_groups: Annotated[list[TaskGroup], Field(min_length=1)]
+    """Task groups are effectively 'mini-campaigns' within a campaign."""
     objectives: Annotated[Objective | None, Field(None)]
+    """Objectives are sub-goals or limitations of a campaign."""
     inputs: Annotated[list[Input], Field(default_factory=list)]
     outputs: Annotated[list[Output], Field(default_factory=list)]

@@ -16,22 +16,23 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
     ExecutionStatus,
 )
 from intersect_orchestrator.app.core.repository import CampaignEvent, PostgresCampaignRepository
+from intersect_orchestrator.app.core.repository import postgres as postgres_module
 
 
 @pytest.fixture
 def simple_campaign() -> Campaign:
     return Campaign(
-        id='campaign-repo-1',
+        id=uuid4(),
         name='Repo Campaign',
         user='tester',
         description='Repo campaign description',
         task_groups=[
             TaskGroup(
-                id='tg-1',
+                id=uuid4(),
                 group_dependencies=[],
                 tasks=[
                     Task(
-                        id='task-1',
+                        id=uuid4(),
                         hierarchy='capability',
                         capability='capability-1',
                         operation_id='op-1',
@@ -68,8 +69,6 @@ def repository(mock_connection, monkeypatch):
     # Mock require_psycopg to return a mock Json class
     mock_json = MagicMock()
     mock_json.side_effect = lambda x: x  # Just return the input as-is
-
-    from intersect_orchestrator.app.core.repository import postgres as postgres_module
 
     monkeypatch.setattr(postgres_module, 'require_psycopg', lambda: mock_json)
 

@@ -4,6 +4,7 @@ Tests for loading and validating campaign JSON files with objectives.
 
 import json
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 
@@ -32,16 +33,18 @@ class TestCampaignDataFiles:
             data = json.load(f)
 
         # Validate structure
-        assert data['id'] == 'campaign-with-taskgroup-objectives'
+        assert data['id'] == 'bfe4f7c7-ffc4-4b6e-bf5a-7645815cda88'
         assert len(data['task_groups']) == 3
-        assert data['task_groups'][0]['id'] == 'measurement_setup'
-        assert data['task_groups'][1]['id'] == 'data_collection'
-        assert data['task_groups'][2]['id'] == 'data_analysis'
+        tg_1 = '41a29588-6367-47a7-9e8f-aac3a37768ec'
+        tg_2 = '1b6edcec-8948-4473-ad07-17e2472e69c7'
+        assert data['task_groups'][0]['id'] == tg_1
+        assert data['task_groups'][1]['id'] == tg_2
+        assert data['task_groups'][2]['id'] == '01a35df9-ae29-48a8-b5d3-5db6d6acc801'
 
         # Validate dependencies
         assert data['task_groups'][0]['group_dependencies'] == []
-        assert data['task_groups'][1]['group_dependencies'] == ['measurement_setup']
-        assert data['task_groups'][2]['group_dependencies'] == ['data_collection']
+        assert data['task_groups'][1]['group_dependencies'] == [tg_1]
+        assert data['task_groups'][2]['group_dependencies'] == [tg_2]
 
         # Validate task-group level objectives
         setup_objectives = data['task_groups'][0]['objectives']
@@ -67,12 +70,14 @@ class TestCampaignDataFiles:
         with file_path.open() as f:
             data = json.load(f)
 
+        campaign_id = '6285f1bd-da63-4fb4-ae07-268badc6681d'
+
         # Validate structure
-        assert data['id'] == 'campaign-with-campaign-objectives'
+        assert data['id'] == campaign_id
         assert len(data['task_groups']) == 3
-        assert data['task_groups'][0]['id'] == 'phase_one'
-        assert data['task_groups'][1]['id'] == 'phase_two'
-        assert data['task_groups'][2]['id'] == 'phase_three'
+        assert data['task_groups'][0]['id'] == '187bd63a-35a0-44ac-86bf-a8c80eea8c9e'
+        assert data['task_groups'][1]['id'] == 'e2d48d0b-4bbb-41cb-9c29-01eaa33248f5'
+        assert data['task_groups'][2]['id'] == '8fad4059-041d-4bfb-9571-7c85b043f2ec'
 
         # Validate campaign-level objectives
         objectives = data['objectives']
@@ -80,7 +85,7 @@ class TestCampaignDataFiles:
         assert 'max_runtime' in objectives
         assert len(objectives['max_runtime']) == 1
         assert objectives['max_runtime'][0]['max_time'] == 'PT1H'
-        assert objectives['max_runtime'][0]['task_group'] == 'campaign'
+        assert objectives['max_runtime'][0]['task_group'] == campaign_id
 
     def test_load_threshold_objectives_campaign(self, test_data_dir):
         """Test loading campaign with threshold-based objectives."""
@@ -91,7 +96,7 @@ class TestCampaignDataFiles:
             data = json.load(f)
 
         # Validate structure
-        assert data['id'] == 'campaign-with-threshold-objectives'
+        assert data['id'] == 'b6aa5545-d8c4-4813-b4ab-831f10becba5'
         assert len(data['task_groups']) == 2
 
         # Validate task-group level objectives
@@ -125,15 +130,15 @@ class TestCampaignDataFiles:
             data = json.load(f)
 
         # Validate structure
-        assert data['id'] == 'complex-campaign-all-objectives'
+        assert data['id'] == '394fce1d-10cc-40a6-85b0-727ca7523bd9'
         assert len(data['task_groups']) == 4
 
         # Validate task group chain dependencies
         expected_deps = [
             [],
-            ['sample_preparation'],
-            ['scattering_measurement'],
-            ['data_quality_check'],
+            ['97a7a343-0ac0-443c-8c15-9bf42207f70b'],
+            ['97f2a1d0-67ab-4c49-8353-a4364158c155'],
+            ['06dcec83-ab8f-4068-a871-060e31963a5f'],
         ]
         for tg, expected_dep in zip(data['task_groups'], expected_deps, strict=False):
             assert tg['group_dependencies'] == expected_dep
@@ -160,7 +165,7 @@ class TestCampaignDataFiles:
         # Should not raise validation error
         campaign = Campaign(**data)
 
-        assert campaign.id == 'campaign-with-taskgroup-objectives'
+        assert campaign.id == UUID('bfe4f7c7-ffc4-4b6e-bf5a-7645815cda88')
         assert len(campaign.task_groups) == 3
 
         # Verify task group objectives are loaded (should be ObjectiveIterate)
@@ -187,7 +192,7 @@ class TestCampaignDataFiles:
 
         campaign = Campaign(**data)
 
-        assert campaign.id == 'complex-campaign-all-objectives'
+        assert campaign.id == UUID('394fce1d-10cc-40a6-85b0-727ca7523bd9')
         assert len(campaign.task_groups) == 4
 
         # Verify task group objectives

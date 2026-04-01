@@ -1,15 +1,15 @@
 {
-  "id": "complex-campaign-all-objectives",
+  "id": "394fce1d-10cc-40a6-85b0-727ca7523bd9",
   "name": "Complex Campaign with Mixed Objectives",
   "user": "researcher",
   "description": "Comprehensive campaign demonstrating task-group and campaign-level objectives with thresholds",
   "task_groups": [
     {
-      "id": "sample_preparation",
+      "id": "97a7a343-0ac0-443c-8c15-9bf42207f70b",
       "group_dependencies": [],
       "tasks": [
         {
-          "id": "prepare_sample_1",
+          "id": "4e7bd0a7-00a5-4299-b58c-87870d84e6f2",
           "hierarchy": "prep",
           "capability": "SamplePrep",
           "operation_id": "prepare_sample",
@@ -28,11 +28,11 @@
             },
             "values": [
               {
-                "id": "sample_id_out",
+                "id": "9f3215fc-f71f-496e-a8ff-246a7d08fdda",
                 "var": "sample_id"
               },
               {
-                "id": "weight_out",
+                "id": "6a8a0d0d-c161-4eb9-8f67-7a6507e8f6fc",
                 "var": "weight"
               }
             ]
@@ -42,31 +42,31 @@
           "task_objectives": null
         },
         {
-          "id": "record_sample_metadata",
+          "id": "3c8377dd-28b7-424a-98de-ef7e23523a4f",
           "hierarchy": "prep",
           "capability": "SamplePrep",
           "operation_id": "record_sample_metadata",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["prepare_sample_1"],
+          "task_dependencies": ["4e7bd0a7-00a5-4299-b58c-87870d84e6f2"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "prep_iterate",
+          "id": "c3448c64-5a17-40f3-ba4c-e30ab416887e",
           "type": "iterate",
           "iterations": 2
         }
       ]
     },
     {
-      "id": "scattering_measurement",
-      "group_dependencies": ["sample_preparation"],
+      "id": "97f2a1d0-67ab-4c49-8353-a4364158c155",
+      "group_dependencies": ["97a7a343-0ac0-443c-8c15-9bf42207f70b"],
       "tasks": [
         {
-          "id": "measure_scattering",
+          "id": "cdef7cb6-9132-4a35-a259-5851f484fdfb",
           "hierarchy": "measurement",
           "capability": "XRayScattering",
           "operation_id": "measure_scattering",
@@ -85,11 +85,11 @@
             },
             "values": [
               {
-                "id": "intensity_out",
+                "id": "007971d5-7481-4100-8099-02da113ec3f9",
                 "var": "scattering_intensity"
               },
               {
-                "id": "meas_id_out",
+                "id": "ed08ce99-0ab6-424d-a162-637b0455a82d",
                 "var": "measurement_id"
               }
             ]
@@ -99,31 +99,31 @@
           "task_objectives": null
         },
         {
-          "id": "validate_scattering",
+          "id": "e70a6bb5-c32a-4fc5-8719-8e35c8765c0a",
           "hierarchy": "measurement",
           "capability": "XRayScattering",
           "operation_id": "validate_scattering",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["measure_scattering"],
+          "task_dependencies": ["cdef7cb6-9132-4a35-a259-5851f484fdfb"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "scattering_iterate_5_times",
+          "id": "d799e731-43f9-4ded-980b-c5bfcd319fb6",
           "type": "iterate",
           "iterations": 5
         }
       ]
     },
     {
-      "id": "data_quality_check",
-      "group_dependencies": ["scattering_measurement"],
+      "id": "06dcec83-ab8f-4068-a871-060e31963a5f",
+      "group_dependencies": ["97f2a1d0-67ab-4c49-8353-a4364158c155"],
       "tasks": [
         {
-          "id": "check_data_quality",
+          "id": "6f61ddd3-27ef-41a9-8c8f-293c65af3548",
           "hierarchy": "validation",
           "capability": "DataQualityCheck",
           "operation_id": "check_quality",
@@ -144,11 +144,11 @@
             },
             "values": [
               {
-                "id": "quality_out",
+                "id": "35d3d2ff-c688-4080-b1c8-d2572673ea51",
                 "var": "quality_score"
               },
               {
-                "id": "valid_out",
+                "id": "7c6f6873-69f0-40f3-adae-a3f5dd587a7f",
                 "var": "is_valid"
               }
             ]
@@ -158,31 +158,31 @@
           "task_objectives": null
         },
         {
-          "id": "archive_quality_check",
+          "id": "e9d3bb7f-2c2e-4d83-a941-de4986c8b10b",
           "hierarchy": "validation",
           "capability": "DataQualityCheck",
           "operation_id": "archive_quality_check",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["check_data_quality"],
+          "task_dependencies": ["6f61ddd3-27ef-41a9-8c8f-293c65af3548"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "quality_check_iterate",
+          "id": "bf822330-3fc7-471f-9aee-b8e496c050e5",
           "type": "iterate",
           "iterations": 1
         }
       ]
     },
     {
-      "id": "data_storage",
-      "group_dependencies": ["data_quality_check"],
+      "id": "dc63a8f4-8fe0-4d12-af47-e0fd639c66a8",
+      "group_dependencies": ["06dcec83-ab8f-4068-a871-060e31963a5f"],
       "tasks": [
         {
-          "id": "store_results",
+          "id": "41a52078-fc3f-4caf-9771-af4b552327ff",
           "hierarchy": "finalization",
           "capability": "DataStorage",
           "operation_id": "store_data",
@@ -193,14 +193,14 @@
           "task_objectives": null
         },
         {
-          "id": "verify_storage",
+          "id": "76d0a567-c98e-414b-b66d-7863b54687a4",
           "hierarchy": "finalization",
           "capability": "DataStorage",
           "operation_id": "verify_storage",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["store_results"],
+          "task_dependencies": ["41a52078-fc3f-4caf-9771-af4b552327ff"],
           "task_objectives": null
         }
       ],
@@ -210,40 +210,40 @@
   "objectives": {
     "max_runtime": [
       {
-        "id": "campaign_max_2_hours",
+        "id": "b2995b27-0634-4970-aa8d-c865217fb74a",
         "max_time": "PT2H",
-        "task_group": "campaign"
+        "task_group": "394fce1d-10cc-40a6-85b0-727ca7523bd9"
       },
       {
-        "id": "prep_max_15_min",
+        "id": "b197bd0d-6bb1-40c5-949e-1b6e2ac21703",
         "max_time": "PT15M",
-        "task_group": "sample_preparation"
+        "task_group": "97a7a343-0ac0-443c-8c15-9bf42207f70b"
       },
       {
-        "id": "scattering_max_30_min",
+        "id": "dde67f8f-aeb6-431f-9a09-2e2f5de2f0cb",
         "max_time": "PT30M",
-        "task_group": "scattering_measurement"
+        "task_group": "97f2a1d0-67ab-4c49-8353-a4364158c155"
       },
       {
-        "id": "quality_check_max_10_min",
+        "id": "ed2de2bd-b354-4868-8642-6d9a271b3354",
         "max_time": "PT10M",
-        "task_group": "data_quality_check"
+        "task_group": "06dcec83-ab8f-4068-a871-060e31963a5f"
       }
     ],
     "threshold": [
       {
-        "id": "sample_weight_check",
+        "id": "bb07a77c-58eb-40c6-a510-c28a28882fa8",
         "var": "weight",
         "type": "range",
         "target": 2.5,
-        "task_group": "sample_preparation"
+        "task_group": "97a7a343-0ac0-443c-8c15-9bf42207f70b"
       },
       {
-        "id": "quality_minimum",
+        "id": "f64a244d-865f-4fce-aa6e-78d384dfe436",
         "var": "quality_score",
         "type": "upper_limit",
         "target": 15,
-        "task_group": "data_quality_check"
+        "task_group": "06dcec83-ab8f-4068-a871-060e31963a5f"
       }
     ]
   },

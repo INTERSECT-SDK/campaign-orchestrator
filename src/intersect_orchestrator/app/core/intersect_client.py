@@ -65,9 +65,20 @@ class CoreServiceIntersectClient:
             ]
         )
 
+        self.orchestrator_base_topic = f'{settings.SYSTEM_NAME}/orchestrator'
+        """
+        Base topic for orchestrator when providing a return channel for reply messages
+
+        TODO - the registry service needs to make sure to disallow non-root users from subscribing to this channel (publishing is universal)
+        """
+
         self.control_plane_manager.connect()
+        # must add "/response" suffix due to INTERSECT-SDK convention
         self.control_plane_manager.add_subscription_channel(
-            'test-topic', {self._handle_message}, True, RESERVED_QUEUE_NAME
+            f'{self.orchestrator_base_topic}/response',
+            {self._handle_message},
+            True,
+            RESERVED_QUEUE_NAME,
         )
 
     def _handle_message(self, message: bytes, content_type: str, headers: dict[str, str]) -> None:
@@ -87,7 +98,9 @@ class CoreServiceIntersectClient:
         # (this will eventually be managed by checking the message's Content-Type)
 
         if self.campaign_orchestrator is not None:
-            self.campaign_orchestrator.handle_broker_message(message, content_type, headers)
+            self.campaign_orchestrator.handle_request_reply_broker_message(
+                message, content_type, headers
+            )
 
         for connection in self.http_connections:
             connection.put_nowait(message)

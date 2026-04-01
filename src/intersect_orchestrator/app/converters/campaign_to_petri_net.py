@@ -10,6 +10,7 @@ Objectives are modeled as:
 - Guards on transitions ensure constraints are respected during execution
 """
 
+import uuid
 from typing import Any
 
 from snakes import ConstraintError
@@ -45,10 +46,12 @@ class CampaignPetriNetConverter:
         """Initialize the converter."""
         self.net: PetriNet | None = None
         self.campaign: Campaign | None = None
-        self.task_group_map: dict[str, TaskGroup] = {}
+        self.task_group_map: dict[uuid.UUID, TaskGroup] = {}
         self.transition_map: dict[str, str] = {}  # Maps task group id to transition name
         self.places_created: set[str] = set()
-        self.objectives_metadata: dict[str, dict[str, Any]] = {}  # Stores objective constraints
+        self.objectives_metadata: dict[
+            uuid.UUID, dict[str, Any]
+        ] = {}  # Stores objective constraints
         self.campaign_objectives: dict[str, Any] = {}  # Campaign-level objectives
 
     def convert(self, campaign: Campaign) -> PetriNet:
@@ -86,10 +89,10 @@ class CampaignPetriNetConverter:
             ValueError: If circular dependencies are detected in task groups
         """
         # Check for circular dependencies in task groups
-        visited: set[str] = set()
-        rec_stack: set[str] = set()
+        visited: set[uuid.UUID] = set()
+        rec_stack: set[uuid.UUID] = set()
 
-        def has_cycle(task_group_id: str) -> bool:
+        def has_cycle(task_group_id: uuid.UUID) -> bool:
             visited.add(task_group_id)
             rec_stack.add(task_group_id)
 
@@ -437,7 +440,7 @@ class CampaignPetriNetConverter:
             msg = f"Transition '{transition_name}' does not exist in the Petri Net"
             raise ValueError(msg) from err
 
-    def get_taskgroup_objectives(self, task_group_id: str) -> dict[str, Any]:
+    def get_taskgroup_objectives(self, task_group_id: uuid.UUID) -> dict[str, Any]:
         """Get objectives for a specific task group.
 
         Args:

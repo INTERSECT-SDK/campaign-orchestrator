@@ -37,7 +37,7 @@ def repository() -> InMemoryCampaignRepository:
 @pytest.fixture
 def simple_campaign() -> Campaign:
     task = Task(
-        id='task_1',
+        id=uuid.uuid4(),
         hierarchy='org.fac.system.subsystem.service',
         capability='measure',
         operation_id='op_measure',
@@ -45,13 +45,13 @@ def simple_campaign() -> Campaign:
         task_dependencies=[],
     )
     task_group = TaskGroup(
-        id='tg_1',
+        id=uuid.uuid4(),
         group_dependencies=[],
         tasks=[task],
         objectives=[],
     )
     return Campaign(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         name='test-campaign',
         user='test-user',
         description='Test campaign for petri transitions',
@@ -66,28 +66,31 @@ def test_fire_petri_transition_updates_state_and_records_events(
     client = _FakeClient()
     orchestrator = CampaignOrchestrator(client, repository)
 
-    campaign_id = uuid.UUID(simple_campaign.id)
+    campaign_id = simple_campaign.id
     campaign_state = CampaignState.from_campaign(simple_campaign, status=ExecutionStatus.QUEUED)
     repository.create_campaign(campaign_id, simple_campaign, campaign_state)
 
     petri_net = CampaignPetriNetConverter().convert(simple_campaign)
     orchestrator._campaign_petri_nets[campaign_id] = petri_net
 
-    orchestrator.fire_petri_transition(campaign_id, 'activate_tg_1')
+    tg_id_str = str(simple_campaign.task_groups[0].id)
+    task_id_str = str(simple_campaign.task_groups[0].tasks[0].id)
+
+    orchestrator.fire_petri_transition(campaign_id, f'activate_{tg_id_str}')
     events = repository.load_events(campaign_id)
     assert events[-1].event_type == 'TASK_GROUP_STARTED'
 
     snapshot = repository.load_snapshot(campaign_id)
     assert snapshot.state.task_groups[0].status == ExecutionStatus.RUNNING
 
-    orchestrator.fire_petri_transition(campaign_id, 'task_tg_1_task_1')
+    orchestrator.fire_petri_transition(campaign_id, f'task_{tg_id_str}_{task_id_str}')
     events = repository.load_events(campaign_id)
     assert events[-1].event_type == 'TASK_COMPLETED'
 
     snapshot = repository.load_snapshot(campaign_id)
     assert snapshot.state.task_groups[0].tasks[0].status == ExecutionStatus.COMPLETE
 
-    orchestrator.fire_petri_transition(campaign_id, 'complete_tg_1')
+    orchestrator.fire_petri_transition(campaign_id, f'complete_{tg_id_str}')
     events = repository.load_events(campaign_id)
     assert events[-1].event_type == 'TASK_GROUP_COMPLETED'
 

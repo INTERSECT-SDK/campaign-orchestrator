@@ -1,15 +1,15 @@
 {
-  "id": "campaign-with-campaign-objectives",
+  "id": "6285f1bd-da63-4fb4-ae07-268badc6681d",
   "name": "Time-Limited Campaign Objectives",
   "user": "researcher",
   "description": "Campaign demonstrating campaign-level objectives like total runtime constraints",
   "task_groups": [
     {
-      "id": "phase_one",
+      "id": "187bd63a-35a0-44ac-86bf-a8c80eea8c9e",
       "group_dependencies": [],
       "tasks": [
         {
-          "id": "task_phase_one",
+          "id": "c6c811b9-a105-469d-89f1-3b00e28c2485",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "execute_phase_one",
@@ -20,31 +20,31 @@
           "task_objectives": null
         },
         {
-          "id": "task_phase_one_validate",
+          "id": "723e6f0c-45a3-4244-8414-87594ea86591",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "validate_phase_one",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["task_phase_one"],
+          "task_dependencies": ["c6c811b9-a105-469d-89f1-3b00e28c2485"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "phase_one_iterate",
+          "id": "5a25cfce-f58c-43f3-ae71-0968dfdf4da2",
           "type": "iterate",
           "iterations": 1
         }
       ]
     },
     {
-      "id": "phase_two",
-      "group_dependencies": ["phase_one"],
+      "id": "e2d48d0b-4bbb-41cb-9c29-01eaa33248f5",
+      "group_dependencies": ["187bd63a-35a0-44ac-86bf-a8c80eea8c9e"],
       "tasks": [
         {
-          "id": "task_phase_two",
+          "id": "b742be86-7ae6-4c8f-9757-7c0d32895f53",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "execute_phase_two",
@@ -55,31 +55,31 @@
           "task_objectives": null
         },
         {
-          "id": "task_phase_two_validate",
+          "id": "23b64c18-48ef-4718-ab46-95218582eb35",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "validate_phase_two",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["task_phase_two"],
+          "task_dependencies": ["b742be86-7ae6-4c8f-9757-7c0d32895f53"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "phase_two_iterate",
+          "id": "9dcb1be8-f7e1-486e-945a-e215bd70b72e",
           "type": "iterate",
           "iterations": 1
         }
       ]
     },
     {
-      "id": "phase_three",
-      "group_dependencies": ["phase_two"],
+      "id": "8fad4059-041d-4bfb-9571-7c85b043f2ec",
+      "group_dependencies": ["e2d48d0b-4bbb-41cb-9c29-01eaa33248f5"],
       "tasks": [
         {
-          "id": "task_phase_three",
+          "id": "85adead2-41f8-4549-93fc-6876195abec8",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "execute_phase_three",
@@ -90,20 +90,20 @@
           "task_objectives": null
         },
         {
-          "id": "task_phase_three_validate",
+          "id": "4d36dff1-4771-4e2c-b5e3-160a544655d8",
           "hierarchy": "phase",
           "capability": "PhaseExecution",
           "operation_id": "validate_phase_three",
           "event_name": null,
           "output": null,
           "input": null,
-          "task_dependencies": ["task_phase_three"],
+          "task_dependencies": ["8fad4059-041d-4bfb-9571-7c85b043f2ec"],
           "task_objectives": null
         }
       ],
       "objectives": [
         {
-          "id": "phase_three_iterate",
+          "id": "4e284420-0b7d-4f6a-afed-52f3cf5abc7f",
           "type": "iterate",
           "iterations": 1
         }
@@ -113,9 +113,9 @@
   "objectives": {
     "max_runtime": [
       {
-        "id": "campaign_max_runtime_one_hour",
+        "id": "46db9155-656d-4478-a6ba-59374f0912eb",
         "max_time": "PT1H",
-        "task_group": "campaign"
+        "task_group": "6285f1bd-da63-4fb4-ae07-268badc6681d"
       }
     ],
     "threshold": []
