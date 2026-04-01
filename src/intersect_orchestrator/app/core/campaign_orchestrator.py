@@ -166,8 +166,6 @@ class CampaignOrchestrator:
 
         This does not apply to Event messages, use another callback for this.
         """
-        logger.warning('GOT A REPLY MESSAGE FROM THE BROKER!!')
-
         # FIXME - several of the fast-return error cases should emit events and CANCEL the campaign
         try:
             headers = validate_userspace_message_headers(raw_headers)
@@ -249,9 +247,9 @@ class CampaignOrchestrator:
         self._remove_campaign(state.campaign_id)
 
     def _start_next_step(self, state: CampaignState) -> None:
-        logger.info('_start_next_step')
+        logger.debug('_start_next_step')
         if state.current_index >= len(state.steps):
-            logger.info('finishing campaign early')
+            logger.debug('finishing campaign early')
             self._finish_campaign(state)
             return
 
@@ -270,15 +268,12 @@ class CampaignOrchestrator:
         self._dispatch_step(state)
 
     def _complete_step(self, state: CampaignState, payload: bytes) -> None:
-        logger.info('_complete_step')
         if state.active_step is None:
             logger.warning(
                 'Active step is None while trying to complete step for campaign ID: %s',
                 state.campaign_id,
             )
             return
-
-        logger.info('step complete, incrementing index')
 
         self._emit_event(
             campaign_id=state.campaign_id,
@@ -307,11 +302,11 @@ class CampaignOrchestrator:
 
     def _emit_event(self, campaign_id: IntersectCampaignId, event: OrchestratorEventType) -> None:
         logger.info('emitting event: %s for campaign ID: %s', event.event_type, campaign_id)
+        logger.info('EVENT VALUE: %s', event)
         orchestrator_event = OrchestratorEvent(campaign_id=campaign_id, event=event)
         self._client.broadcast_message(orchestrator_event.model_dump_json().encode('utf-8'))
 
     def _dispatch_step(self, state: CampaignState) -> None:
-        logger.info('DISPATCH STEP')
         if state.active_step is None:
             logger.info('Cannot dispatch step because active step is None')
             return
@@ -348,8 +343,8 @@ class CampaignOrchestrator:
         content_type = 'application/json'
         payload = b''
 
-        logger.info('current campaigns: %s', list(self._campaigns.keys()))
-        logger.info('PUBLISHING MESSAGE %s %s', broker_channel, headers)
+        logger.debug('current campaigns: %s', list(self._campaigns.keys()))
+        logger.debug('PUBLISHING MESSAGE %s %s', broker_channel, headers)
         self._client.control_plane_manager.publish_message(
             broker_channel,
             payload,

@@ -75,6 +75,8 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         numbers.append(random_int)
         self.state.numbers = numbers
 
+        logger.info('Generated random number: %s', random_int)
+
         return RandomServiceRandomNumGenCapabilityImplResponse(
             state=self.state,
             success=True,
