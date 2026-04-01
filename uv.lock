@@ -910,10 +910,8 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
-    { name = "ruff" },
-]
-integration = [
     { name = "pytest-postgresql" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -922,7 +920,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "graphviz", specifier = ">=0.21" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "intersect-sdk-common", specifier = "==0.9.3" },
+    { name = "intersect-sdk-common", specifier = "==0.9.4" },
     { name = "jsonschema", specifier = ">=4.25.1" },
     { name = "minio", specifier = ">=7.2.15" },
     { name = "paho-mqtt", specifier = ">=2.1.0" },
@@ -951,13 +949,13 @@ dev = [
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=6.1.0" },
+    { name = "pytest-postgresql", specifier = ">=8.0.0" },
     { name = "ruff", specifier = "==0.9.4" },
 ]
-integration = [{ name = "pytest-postgresql", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "intersect-sdk-common"
-version = "0.9.3"
+version = "0.9.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "minio" },
@@ -965,9 +963,9 @@ dependencies = [
     { name = "pika" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/93/d3/d25c33683ff07f4bc4ce662621435fcf5cea8160962f73039c649a1739e6/intersect_sdk_common-0.9.3.tar.gz", hash = "sha256:54ca99bea516aa3e4498a8eb22a0abd27c8eeff9f2109fd5154dea79e048c05e", size = 30287, upload-time = "2026-03-18T23:04:56.858Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/14/b4/af8fe2f4eb026af8a5e7b83bf7be9f257fb623b9662acd1faee4966ed045/intersect_sdk_common-0.9.4.tar.gz", hash = "sha256:c5fb6ae7bd25691ff6d495d265a9b26135903eba4a4c3a261d1e68e7d6797dbd", size = 31479, upload-time = "2026-03-31T21:19:08.277Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/cd/9e9e01e811c593d95461eb8e479a6f1bef34f6887052d9e352179e8ab468/intersect_sdk_common-0.9.3-py3-none-any.whl", hash = "sha256:69c1408f4b0b9cd195b79833c06ef40c9181d57888b355f231baa6734b9c4381", size = 42175, upload-time = "2026-03-18T23:04:55.581Z" },
+    { url = "https://files.pythonhosted.org/packages/14/ab/5212a9463e7d83db1abefcae96e2ef136a1692b9f9c9dcf9837b4f45443d/intersect_sdk_common-0.9.4-py3-none-any.whl", hash = "sha256:4bb5488f74d111fd95a3cea162d3bdee5231b0bcface531461d08006ea4747f9", size = 43869, upload-time = "2026-03-31T21:19:07.291Z" },
 ]
 
 [[package]]

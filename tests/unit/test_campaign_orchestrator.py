@@ -28,6 +28,7 @@ class FakeClient:
     def __init__(self) -> None:
         self.control_plane_manager = FakeControlPlaneManager()
         self.broadcasts: list[bytes] = []
+        self.orchestrator_base_topic = 'test/orchestrator'
 
     def broadcast_message(self, message: bytes) -> None:
         self.broadcasts.append(message)
@@ -40,13 +41,13 @@ def _event_types(broadcasts: list[bytes]) -> list[str]:
 def _make_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
     """Create a test Campaign with a single task."""
     return Campaign(
-        id=str(campaign_id),
+        id=campaign_id,
         name='test-campaign',
         user='test-user',
         description='Test campaign for orchestrator',
         task_groups=[
             {
-                'id': 'task-group-1',
+                'id': str(uuid.uuid4()),
                 'tasks': [
                     {
                         'id': str(step_id),
@@ -76,14 +77,19 @@ def test_handle_broker_message_completes_step() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{}',
         'application/json',
         {
-            'campaignId': str(campaign_id),
-            'nodeId': str(step_id),
             'has_error': 'false',
             'source': 'org.fac.system.subsystem.service',
+            'campaign_id': str(campaign_id),
+            'request_id': str(step_id),
+            'message_id': str(uuid.uuid4()),
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
@@ -104,14 +110,19 @@ def test_handle_broker_message_emits_error() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    orchestrator.handle_broker_message(
-        b'{}',
-        'application/json',
+    orchestrator.handle_request_reply_broker_message(
+        b"I'm an error, here to ruin your program.",
+        'text/plain',
         {
-            'campaignId': str(campaign_id),
-            'nodeId': str(step_id),
+            'campaign_id': str(campaign_id),
+            'request_id': str(step_id),
+            'message_id': str(uuid.uuid4()),
             'has_error': 'true',
             'source': 'org.fac.system.subsystem.service',
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
@@ -158,7 +169,7 @@ def test_get_campaign() -> None:
     retrieved = orchestrator.get_campaign(campaign_id)
 
     assert retrieved is not None
-    assert retrieved.id == str(campaign_id)
+    assert retrieved.id == campaign_id
 
 
 def test_get_nonexistent_campaign() -> None:
@@ -315,13 +326,19 @@ def test_handle_broker_message_invalid_json() -> None:
     orchestrator.submit_campaign(campaign)
 
     # Invalid JSON should be handled gracefully
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'not valid json',
         'application/json',
         {
-            'campaignId': str(campaign_id),
-            'nodeId': str(step_id),
+            'campaign_id': str(campaign_id),
+            'request_id': str(step_id),
+            'message_id': str(uuid.uuid4()),
             'has_error': 'false',
+            'source': 'org.fac.system.subsystem.service',
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
@@ -331,10 +348,11 @@ def test_handle_broker_message_no_campaign_id() -> None:
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
 
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{}',
         'application/json',
-        {'nodeId': str(uuid.uuid4())},
+        # campaign ID is the first thing we check, so might as well not bother including other headers
+        {},
     )
 
 
@@ -343,12 +361,19 @@ def test_handle_broker_message_unknown_campaign() -> None:
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
 
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{}',
         'application/json',
         {
-            'campaignId': str(uuid.uuid4()),
-            'nodeId': str(uuid.uuid4()),
+            'campaign_id': str(uuid.uuid4()),
+            'request_id': str(uuid.uuid4()),
+            'message_id': str(uuid.uuid4()),
+            'has_error': 'false',
+            'source': 'org.fac.system.subsystem.service',
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
@@ -364,10 +389,10 @@ def test_handle_broker_message_no_node_id() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{}',
         'application/json',
-        {'campaignId': str(campaign_id)},
+        {'campaign_id': str(campaign_id)},
     )
 
 
@@ -383,13 +408,19 @@ def test_handle_broker_message_wrong_node_id() -> None:
     orchestrator.submit_campaign(campaign)
 
     # Send message with different node ID
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{}',
         'application/json',
         {
-            'campaignId': str(campaign_id),
-            'nodeId': str(uuid.uuid4()),  # Different from step_id
+            'campaign_id': str(campaign_id),
+            'request_id': str(uuid.uuid4()),  # Different from step_id
+            'message_id': str(uuid.uuid4()),
             'has_error': 'false',
+            'source': 'org.fac.system.subsystem.service',
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
@@ -405,82 +436,20 @@ def test_handle_broker_message_with_error_message() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    orchestrator.handle_broker_message(
+    orchestrator.handle_request_reply_broker_message(
         b'{"error": "Something went wrong"}',
         'application/json',
         {
-            'campaignId': str(campaign_id),
-            'nodeId': str(step_id),
+            'campaign_id': str(campaign_id),
+            'request_id': str(step_id),
             'has_error': 'true',
             'source': 'org.fac.system.subsystem.service',
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'test-capability.test-operation',
         },
     )
 
     events = _event_types(client.broadcasts)
     assert 'CAMPAIGN_ERROR_FROM_SERVICE' in events
-
-
-def test_handle_broker_message_campaign_id_from_payload() -> None:
-    """Test extracting campaign ID from payload."""
-    client = FakeClient()
-    orchestrator = CampaignOrchestrator(client)
-
-    campaign_id = uuid.uuid4()
-    step_id = uuid.uuid4()
-    campaign = _make_campaign(campaign_id, step_id)
-
-    orchestrator.submit_campaign(campaign)
-
-    # Campaign ID in payload instead of headers
-    orchestrator.handle_broker_message(
-        json.dumps({'campaignId': str(campaign_id)}).encode('utf-8'),
-        'application/json',
-        {
-            'nodeId': str(step_id),
-            'has_error': 'false',
-        },
-    )
-
-
-def test_handle_broker_message_node_id_from_payload() -> None:
-    """Test extracting node ID from payload."""
-    client = FakeClient()
-    orchestrator = CampaignOrchestrator(client)
-
-    campaign_id = uuid.uuid4()
-    step_id = uuid.uuid4()
-    campaign = _make_campaign(campaign_id, step_id)
-
-    orchestrator.submit_campaign(campaign)
-
-    # Node ID in payload instead of headers
-    orchestrator.handle_broker_message(
-        json.dumps({'nodeId': str(step_id)}).encode('utf-8'),
-        'application/json',
-        {
-            'campaignId': str(campaign_id),
-            'has_error': 'false',
-        },
-    )
-
-
-def test_handle_broker_message_has_error_boolean() -> None:
-    """Test handling has_error as a boolean in headers."""
-    client = FakeClient()
-    orchestrator = CampaignOrchestrator(client)
-
-    campaign_id = uuid.uuid4()
-    step_id = uuid.uuid4()
-    campaign = _make_campaign(campaign_id, step_id)
-
-    orchestrator.submit_campaign(campaign)
-
-    # This should be parsed from the payload's header field
-    orchestrator.handle_broker_message(
-        json.dumps({'header': {'has_error': False}}).encode('utf-8'),
-        'application/json',
-        {
-            'campaignId': str(campaign_id),
-            'nodeId': str(step_id),
-        },
-    )

@@ -16,6 +16,11 @@ from .base import CampaignEvent, CampaignSnapshot, require_pymongo
 class MongoCampaignRepository:
     """MongoDB-backed campaign repository with optimistic locking."""
 
+    # A NOTE on reading/writing to the database:
+    # use mode='json' and NOT model_dump_json() ; this allows for fields to stay queriable (e.g. enums as strings instead of JSON objects), while also ensuring that any non-JSON-serializable types (e.g. UUID) are properly converted to strings
+    # not specifying mode='json' leads to some issues with serializing enums and UUIDs
+    # do not store campaign state as simple JSON strings in MongoDB with model_dump_json()
+
     def __init__(self, client: Any, db_name: str = 'intersect_orchestrator') -> None:
         _, ascending = require_pymongo()
         self._ascending = ascending
@@ -40,14 +45,16 @@ class MongoCampaignRepository:
         self._campaigns.insert_one(
             {
                 'campaign_id': campaign_key,
-                'campaign': campaign.model_dump(by_alias=True),
+                # see NOTE at top of file regarding model_dump with mode='json'
+                'campaign': campaign.model_dump(mode='json', by_alias=True),
             }
         )
         self._snapshots.insert_one(
             {
                 'campaign_id': campaign_key,
                 'version': 0,
-                'state': state.model_dump(by_alias=True),
+                # see NOTE at top of file regarding model_dump with mode='json'
+                'state': state.model_dump(mode='json', by_alias=True),
                 'updated_at': now,
             }
         )
@@ -114,7 +121,8 @@ class MongoCampaignRepository:
             {
                 '$set': {
                     'version': snapshot.version,
-                    'state': snapshot.state.model_dump(by_alias=True),
+                    # see NOTE at top of file regarding model_dump with mode='json'
+                    'state': snapshot.state.model_dump(mode='json', by_alias=True),
                     'updated_at': snapshot.updated_at,
                 }
             },
