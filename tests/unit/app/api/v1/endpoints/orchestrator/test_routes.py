@@ -55,7 +55,7 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
         )
 
         if not is_startable:
-            assert response.status_code == 500
+            assert response.status_code == 422
             continue
 
         assert response.status_code == 200

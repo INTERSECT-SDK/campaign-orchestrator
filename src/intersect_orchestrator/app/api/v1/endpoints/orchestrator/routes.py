@@ -12,6 +12,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from snakes import SnakesError
 
 from .....core.environment import settings
 from ...api_key import api_key_header
@@ -36,7 +37,12 @@ async def start_campaign(
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
     orchestrator = request.app.state.campaign_orchestrator
-    campaign_id = orchestrator.submit_campaign(campaign)
+    try:
+        campaign_id = orchestrator.submit_campaign(campaign)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    except SnakesError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return str(campaign_id)
 
 

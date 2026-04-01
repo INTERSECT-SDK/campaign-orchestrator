@@ -41,7 +41,7 @@ def _event_types(broadcasts: list[bytes]) -> list[str]:
 def _make_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
     """Create a test Campaign with a single task."""
     return Campaign(
-        id=str(campaign_id),
+        id=campaign_id,
         name='test-campaign',
         user='test-user',
         description='Test campaign for orchestrator',

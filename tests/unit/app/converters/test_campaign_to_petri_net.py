@@ -3,7 +3,7 @@ Tests for the campaign to Petri Net converter.
 """
 
 import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -24,7 +24,7 @@ from intersect_orchestrator.app.converters.campaign_to_petri_net import (
 def simple_campaign() -> Campaign:
     """Create a simple campaign with two independent task groups."""
     return Campaign(
-        id=UUID('bd3d15a8-e57d-4e5a-9253-252cec3719df'),
+        id=uuid4(),
         name='Simple Campaign',
         user='test_user',
         description='A simple test campaign',
@@ -93,7 +93,7 @@ def simple_campaign() -> Campaign:
 def dependent_campaign() -> Campaign:
     """Create a campaign with dependent task groups."""
     return Campaign(
-        id=UUID('c19c9e1d-533b-45fb-9485-7cff577cea57'),
+        id=uuid4(),
         name='Dependent Campaign',
         user='test_user',
         description='A campaign with task group dependencies',
@@ -190,7 +190,7 @@ def dependent_campaign() -> Campaign:
 def circular_dependency_campaign() -> Campaign:
     """Create a campaign with circular dependencies (invalid)."""
     return Campaign(
-        id=UUID('f1d76ff5-045c-4c0f-9a51-81b88acd510f'),
+        id=uuid4(),
         name='Circular Campaign',
         user='test_user',
         description='A campaign with circular dependencies',

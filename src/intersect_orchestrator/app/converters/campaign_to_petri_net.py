@@ -65,6 +65,7 @@ class CampaignPetriNetConverter:
 
         Raises:
             ValueError: If the campaign has invalid structure or circular dependencies
+            snakes.net.NodeError: If there are issues creating the Petri Net.
         """
         self.campaign = campaign
         self.task_group_map = {tg.id: tg for tg in campaign.task_groups}
