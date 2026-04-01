@@ -62,7 +62,7 @@ def is_orchestrator_available() -> bool:
 def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
     """Wait for MongoDB to become available."""
     try:
-        import pymongo  # noqa: PLC0415
+        import pymongo
     except ImportError:
         pytest.skip('pymongo not installed - skipping MongoDB tests')
 
@@ -81,7 +81,7 @@ def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
 def _wait_for_postgres(dsn: str, timeout: float = 10.0) -> None:
     """Wait for PostgreSQL to become available."""
     try:
-        import psycopg  # noqa: PLC0415
+        import psycopg
     except ImportError:
         pytest.skip('psycopg not installed - skipping PostgreSQL tests')
 
@@ -233,9 +233,9 @@ def repository_mongo(mongo_uri: str, mongo_db: str) -> MongoCampaignRepository:
     repository instance.
     """
     _wait_for_mongo(mongo_uri)
-    import pymongo  # noqa: PLC0415
+    import pymongo
 
-    from intersect_orchestrator.app.core.repository import MongoCampaignRepository  # noqa: PLC0415
+    from intersect_orchestrator.app.core.repository import MongoCampaignRepository
 
     client = pymongo.MongoClient(mongo_uri)
 
@@ -250,9 +250,9 @@ def repository_postgres(postgres_dsn: str) -> PostgresCampaignRepository:
     repository instance.
     """
     _wait_for_postgres(postgres_dsn)
-    import psycopg  # noqa: PLC0415
+    import psycopg
 
-    from intersect_orchestrator.app.core.repository import (  # noqa: PLC0415
+    from intersect_orchestrator.app.core.repository import (
         PostgresCampaignRepository,
     )
 

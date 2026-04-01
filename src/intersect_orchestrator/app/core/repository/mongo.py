@@ -22,7 +22,7 @@ class MongoCampaignRepository:
     # do not store campaign state as simple JSON strings in MongoDB with model_dump_json()
 
     def __init__(self, client: Any, db_name: str = 'intersect_orchestrator') -> None:
-        _, ascending = require_pymongo()  # noqa: RUF059
+        _, ascending = require_pymongo()
         self._ascending = ascending
         self._client = client
         self._db = client[db_name]
