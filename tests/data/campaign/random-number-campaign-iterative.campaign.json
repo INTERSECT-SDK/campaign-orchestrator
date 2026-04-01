@@ -1,0 +1,119 @@
+{
+  "id": "89335b8a-acbb-4e16-9e50-6633bb16d0e4",
+  "name": "Campaign-b86608",
+  "user": "system",
+  "description": "Campaign converted from ICMP: Campaign-b86608",
+  "task_groups": [
+    {
+      "id": "6726b2ca-8d25-4be9-bb34-6ec95a090d56",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
+          "capability": "Random_Number_Generator",
+          "operation_id": "generate_random_number",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "random_number": {
+                  "type": "number",
+                  "description": "Generated random number."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "2fb51c47-67df-44c1-8a98-1ad476676b51",
+                "var": "random_number"
+              }
+            ]
+          },
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "seed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Random number generator seed."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "28721a7e-19dc-4a63-8f06-2900cd52205d",
+                "var": "seed"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
+          "capability": "Random_Number_Generator",
+          "operation_id": "generate_random_number",
+          "event_name": null,
+          "output": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "random_number": {
+                  "type": "number",
+                  "description": "Generated random number."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "2fb51c47-67df-44c1-8a98-1ad476676b51",
+                "var": "random_number"
+              }
+            ]
+          },
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "seed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Random number generator seed."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "28721a7e-19dc-4a63-8f06-2900cd52205d",
+                "var": "seed"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+          "type": "iterate",
+          "iterations": 10
+        },
+        {
+          "id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+          "type": "iterate",
+          "iterations": 10
+        }
+      ]
+    }
+  ],
+  "objectives": null,
+  "inputs": [],
+  "outputs": []
+}
