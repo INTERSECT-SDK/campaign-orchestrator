@@ -140,7 +140,7 @@ def check_random_number_service_available() -> None:
     if not is_random_number_service_available():
         pytest.skip(
             'Random-number-service not available. '
-            "Set RANDOM_NUMBER_SERVICE_AVAILABLE=true or run "
+            'Set RANDOM_NUMBER_SERVICE_AVAILABLE=true or run '
             "'docker-compose up -d broker random-number-service' to enable."
         )
 
