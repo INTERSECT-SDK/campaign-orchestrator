@@ -65,10 +65,12 @@ class TestAssertChecker:
         obj = ObjectiveAssert(id=uuid.uuid4(), type='assert', var='success', target=True)
         checker = AssertChecker(obj)
 
-        checker.record_iteration({
-            uuid.uuid4(): b'{"success": false}',
-            uuid.uuid4(): b'{"success": true}',
-        })
+        checker.record_iteration(
+            {
+                uuid.uuid4(): b'{"success": false}',
+                uuid.uuid4(): b'{"success": true}',
+            }
+        )
         assert checker.is_met()
 
     def test_objective_id_matches(self) -> None:

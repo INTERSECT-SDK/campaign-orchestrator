@@ -27,8 +27,12 @@ from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrches
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
 TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / 'data'
-ITERATIVE_CAMPAIGN_FILE = TEST_DATA_DIR / 'campaign' / 'random-number-campaign-iterative.campaign.json'
-EXPECTED_EVENTS_FILE = TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
+ITERATIVE_CAMPAIGN_FILE = (
+    TEST_DATA_DIR / 'campaign' / 'random-number-campaign-iterative.campaign.json'
+)
+EXPECTED_EVENTS_FILE = (
+    TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
+)
 
 
 def _load_iterative_campaign_json() -> dict:
@@ -61,7 +65,7 @@ def _campaign_with_fresh_ids(campaign_data: dict) -> dict:
 @pytest.mark.integration
 class TestIterativeCampaignE2E:
     """End-to-end tests for iterative (looping) campaign execution.
-    
+
     Note: Tests in this class run sequentially to avoid RabbitMQ queue contention.
     The shared broker queue is drained between tests via the intersect_client_with_cleanup fixture.
     """
@@ -74,7 +78,9 @@ class TestIterativeCampaignE2E:
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
-        orchestrator = CampaignOrchestrator(intersect_client=intersect_client_with_cleanup, repository=repository)
+        orchestrator = CampaignOrchestrator(
+            intersect_client=intersect_client_with_cleanup, repository=repository
+        )
 
         campaign_id = orchestrator.submit_campaign(campaign)
 
@@ -106,7 +112,9 @@ class TestIterativeCampaignE2E:
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
-        orchestrator = CampaignOrchestrator(intersect_client=intersect_client_with_cleanup, repository=repository)
+        orchestrator = CampaignOrchestrator(
+            intersect_client=intersect_client_with_cleanup, repository=repository
+        )
         intersect_client_with_cleanup.set_campaign_orchestrator(orchestrator)
 
         campaign_id = orchestrator.submit_campaign(campaign)
@@ -153,5 +161,3 @@ class TestIterativeCampaignE2E:
         # No duplicate seq numbers (event-sourcing invariant)
         seqs = [e.seq for e in events]
         assert len(seqs) == len(set(seqs)), 'Events must have unique seq numbers'
-
-

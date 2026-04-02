@@ -239,9 +239,7 @@ class CampaignOrchestrator:
         # Check that the reply matches one of the currently active tasks
         if state.current_group_index >= len(state.task_group_executions):
             logger.error('Campaign has no active task group for ID: %s', campaign_id)
-            self._handle_request_reply_service_error(
-                state, headers.source, 'No active task group'
-            )
+            self._handle_request_reply_service_error(state, headers.source, 'No active task group')
             return
 
         execution = state.task_group_executions[state.current_group_index]
@@ -283,8 +281,16 @@ class CampaignOrchestrator:
         and that we have a source in "org.fac.sys.subsys.svc" format.
         """
         # Report the first active task as the failed step for the event
-        execution = state.task_group_executions[state.current_group_index] if state.current_group_index < len(state.task_group_executions) else None
-        failed_step = next(iter(execution.active_tasks)) if execution and execution.active_tasks else uuid.UUID(int=0)
+        execution = (
+            state.task_group_executions[state.current_group_index]
+            if state.current_group_index < len(state.task_group_executions)
+            else None
+        )
+        failed_step = (
+            next(iter(execution.active_tasks))
+            if execution and execution.active_tasks
+            else uuid.UUID(int=0)
+        )
 
         self._emit_event(
             campaign_id=state.campaign_id,

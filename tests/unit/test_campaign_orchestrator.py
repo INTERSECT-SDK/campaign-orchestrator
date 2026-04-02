@@ -551,7 +551,9 @@ def test_no_objectives_runs_once() -> None:
 
     # Reply for the single task
     orchestrator.handle_request_reply_broker_message(
-        b'{}', 'application/json', _reply_headers(campaign_id, step_id),
+        b'{}',
+        'application/json',
+        _reply_headers(campaign_id, step_id),
     )
 
     events = _event_types(client.broadcasts)
@@ -574,16 +576,20 @@ def test_iterative_campaign_two_iterations() -> None:
     for _ in range(2):  # noqa: B007
         # Both tasks dispatch in parallel; complete them in order
         orchestrator.handle_request_reply_broker_message(
-            b'{}', 'application/json', _reply_headers(campaign_id, step_a),
+            b'{}',
+            'application/json',
+            _reply_headers(campaign_id, step_a),
         )
         orchestrator.handle_request_reply_broker_message(
-            b'{}', 'application/json', _reply_headers(campaign_id, step_b),
+            b'{}',
+            'application/json',
+            _reply_headers(campaign_id, step_b),
         )
 
     events = _event_types(client.broadcasts)
 
     step_starts = [e for e in events if e == 'STEP_START']
     step_completes = [e for e in events if e == 'STEP_COMPLETE']
-    assert len(step_starts) == 4   # 2 tasks x 2 iterations
+    assert len(step_starts) == 4  # 2 tasks x 2 iterations
     assert len(step_completes) == 4
     assert events[-1] == 'CAMPAIGN_COMPLETE'
