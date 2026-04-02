@@ -5,7 +5,6 @@ import os
 import random
 from dataclasses import dataclass
 
-# from typing import Optional
 from typing import Annotated
 
 from intersect_sdk import (
@@ -20,6 +19,9 @@ from intersect_sdk import (
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_RANDOM_SEED = 0
 
 
 class RandomServiceRandomNumGenCapabilityImplState(BaseModel):
@@ -45,6 +47,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Constructors are never exposed to INTERSECT."""
         super().__init__()
         self.state = RandomServiceRandomNumGenCapabilityImplState()
+        self._rng = random.Random(DEFAULT_RANDOM_SEED)
 
     @intersect_status()
     def status(self) -> RandomServiceRandomNumGenCapabilityImplState:
@@ -56,19 +59,20 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     def generate_random_number(
         self,
         seed: Annotated[
-            int,
+            int | None,
             Field(
                 title='seed',
-                description='Random number generator seed.',
-                default=0,
+                description='Optional random number generator seed. If omitted, the service continues its current random stream.',
+                default=None,
                 ge=0,
             ),
         ],
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Generate random number."""
         logger.warning('generate_random_number called with seed %s', seed)
-        random.seed(seed)
-        random_int = random.randint(1, 100)  # noqa: S311
+        if seed is not None:
+            self._rng.seed(seed)
+        random_int = self._rng.randint(1, 100)  # noqa: S311
 
         # Update state
         numbers = self.state.numbers
@@ -88,6 +92,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         logger.warning('reset called')
 
         self.state.numbers = []
+        self._rng.seed(DEFAULT_RANDOM_SEED)
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
             state=self.state,
