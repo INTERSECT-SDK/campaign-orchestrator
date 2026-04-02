@@ -325,13 +325,23 @@ class CampaignOrchestrator:
                 execution.task_group_id,
                 execution.current_iteration,
             )
-            for checker in execution.objective_checkers:
-                self._record_task_group_objective_met(
+            if execution.objective_checkers:
+                # Record objective-met events for each objective
+                for checker in execution.objective_checkers:
+                    self._record_task_group_event(
+                        campaign_id=state.campaign_id,
+                        task_group_id=execution.task_group_id,
+                        event_type='TASK_GROUP_OBJECTIVE_MET',
+                        payload={'objective_id': str(checker.objective_id)},
+                    )
+                # Record a single completion event now that all objectives are met
+                self._record_task_group_event(
                     campaign_id=state.campaign_id,
                     task_group_id=execution.task_group_id,
-                    objective_id=str(checker.objective_id),
+                    event_type='TASK_GROUP_COMPLETED',
+                    payload={'reason': 'objectives_met'},
                 )
-            if not execution.objective_checkers:
+            else:
                 # No objectives — just record task group completed
                 self._record_task_group_event(
                     campaign_id=state.campaign_id,
