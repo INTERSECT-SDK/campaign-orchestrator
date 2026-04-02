@@ -196,6 +196,19 @@ def create_intersect_client() -> CoreServiceIntersectClient:
     return client
 
 
+@pytest.fixture
+def intersect_client_with_cleanup() -> CoreServiceIntersectClient:
+    """Provide a CoreServiceIntersectClient that is properly disconnected after each test.
+
+    This fixture ensures sequential test execution with proper cleanup between tests,
+    preventing RabbitMQ queue contention where the broker round-robins messages.
+    """
+    client = create_intersect_client()
+    yield client
+    # Clean up after test — disconnect from broker
+    client.disconnect()
+
+
 # ============================================================================
 # Repository Fixtures
 # ============================================================================
