@@ -13,9 +13,9 @@ If the broker is not available, tests will be skipped gracefully.
 from __future__ import annotations
 
 import json
-import pathlib
 import time
 import uuid
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -26,18 +26,8 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
-TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / 'data'
-ITERATIVE_CAMPAIGN_FILE = (
-    TEST_DATA_DIR / 'campaign' / 'random-number-campaign-iterative.campaign.json'
-)
-EXPECTED_EVENTS_FILE = (
-    TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
-)
-
-
-def _load_iterative_campaign_json() -> dict:
-    with ITERATIVE_CAMPAIGN_FILE.open() as f:
-        return json.load(f)
+if TYPE_CHECKING:
+    import pathlib
 
 
 def _campaign_with_fresh_ids(campaign_data: dict) -> dict:
@@ -71,10 +61,13 @@ class TestIterativeCampaignE2E:
     """
 
     def test_submit_iterative_campaign_creates_state(
-        self, check_broker_available: None, intersect_client_with_cleanup
+        self,
+        check_broker_available: None,
+        intersect_client_with_cleanup,
+        iterative_campaign_json: dict,
     ) -> None:
         """Submitting the iterative campaign should create state, Petri net, and initial events."""
-        campaign_data = _campaign_with_fresh_ids(_load_iterative_campaign_json())
+        campaign_data = _campaign_with_fresh_ids(iterative_campaign_json)
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -105,6 +98,8 @@ class TestIterativeCampaignE2E:
         check_random_number_service_available: None,
         check_no_competing_orchestrator: None,
         intersect_client_with_cleanup,
+        iterative_campaign_json: dict,
+        expected_events_file: pathlib.Path,
     ) -> None:
         """Full loop: submit iterative campaign, random-number-service replies,
         orchestrator iterates 10 times over 2 parallel tasks, campaign completes.
@@ -116,7 +111,7 @@ class TestIterativeCampaignE2E:
         * ``RANDOM_NUMBER_SERVICE_AVAILABLE`` is not set (service not present), or
         * a competing orchestrator service is subscribed to the same queue.
         """
-        campaign_data = _campaign_with_fresh_ids(_load_iterative_campaign_json())
+        campaign_data = _campaign_with_fresh_ids(iterative_campaign_json)
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -157,7 +152,7 @@ class TestIterativeCampaignE2E:
 
         # Load the expected event sequence from the target file.
         # This file is the single source of truth for the frontend event contract.
-        with EXPECTED_EVENTS_FILE.open() as f:
+        with expected_events_file.open() as f:
             expected_event_types = json.load(f)['event_types']
 
         assert event_types == expected_event_types, (
