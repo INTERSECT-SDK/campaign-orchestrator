@@ -499,10 +499,10 @@ class CampaignOrchestrator:
             request_id=task.id,  # type: ignore  # noqa: PGH003
         )
 
-        # FIXME hardcoding content-type and payload for now
-        # some ideas on 'payload': this may be base-64 encoded for websocket purposes, but if so should be decoded before publishing message
+        # The request payload is built from task input defaults in campaign JSON.
+        # This allows static per-task configuration like stream IDs and seeds.
         content_type = 'application/json'
-        payload = b''
+        payload = self._build_task_request_payload(task)
 
         logger.debug('current campaigns: %s', list(self._campaigns.keys()))
         logger.debug('PUBLISHING MESSAGE %s %s', broker_channel, headers)
@@ -513,6 +513,30 @@ class CampaignOrchestrator:
             headers,
             persist=True,
         )
+
+    def _build_task_request_payload(self, task: Task) -> bytes:
+        """Build request payload for a task from input-schema defaults.
+
+        Campaign task inputs currently carry schema + value variable names, but no
+        explicit runtime value map. For deterministic integration runs, we use
+        ``schema.properties.<var>.default`` when present.
+        """
+        if task.input is None:
+            return b''
+
+        properties = task.input.json_schema.get('properties', {})
+        payload: dict[str, Any] = {}
+
+        for value in task.input.values:
+            var_name = value.var
+            property_schema = properties.get(var_name)
+            if isinstance(property_schema, dict) and 'default' in property_schema:
+                payload[var_name] = property_schema['default']
+
+        if not payload:
+            return b''
+
+        return json.dumps(payload).encode('utf-8')
 
     def _dispatch_event(self, state: CampaignState, task: Task) -> None:
         # TODO - will want to subscribe and unsubscribe from events as necessary, if no campaigns need to subscribe to a service then unsubscribe

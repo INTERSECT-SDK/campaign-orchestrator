@@ -101,6 +101,60 @@ def test_handle_broker_message_completes_step() -> None:
     ]
 
 
+def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign for request payload defaults',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'Random_Number_Generator',
+                        'operation_id': 'generate_random_number',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'seed': {'type': 'integer', 'default': 7},
+                                    'stream_id': {'type': 'string', 'default': 'x'},
+                                },
+                            },
+                            'values': [
+                                {'id': str(uuid.uuid4()), 'var': 'seed'},
+                                {'id': str(uuid.uuid4()), 'var': 'stream_id'},
+                            ],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    assert len(client.control_plane_manager.published) == 1
+    published_payload = client.control_plane_manager.published[0][1]
+    assert json.loads(published_payload.decode('utf-8')) == {
+        'seed': 7,
+        'stream_id': 'x',
+    }
+
+
 def test_handle_broker_message_emits_error() -> None:
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
