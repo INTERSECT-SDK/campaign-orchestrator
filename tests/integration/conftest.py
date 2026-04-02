@@ -59,6 +59,17 @@ def is_orchestrator_available() -> bool:
         return False
 
 
+def is_random_number_service_available() -> bool:
+    """Check if the random-number-service is available in the test environment.
+
+    The service does not expose a TCP port, so availability is declared
+    explicitly via the ``RANDOM_NUMBER_SERVICE_AVAILABLE`` environment variable.
+    Set it to ``true`` (or ``1`` / ``yes``) in environments where the service
+    is running (e.g. CI jobs that build and start the container).
+    """
+    return os.getenv('RANDOM_NUMBER_SERVICE_AVAILABLE', '').lower() in ('1', 'true', 'yes')
+
+
 def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
     """Wait for MongoDB to become available."""
     try:
@@ -119,6 +130,42 @@ def check_broker_available() -> None:
 
 
 @pytest.fixture(scope='session')
+def check_random_number_service_available() -> None:
+    """Skip tests that require the random-number-service if it is not present.
+
+    Use the ``RANDOM_NUMBER_SERVICE_AVAILABLE=true`` environment variable to
+    indicate the service is running.  The service has no TCP port we can probe,
+    so the env var is the only reliable signal.
+    """
+    if not is_random_number_service_available():
+        pytest.skip(
+            'Random-number-service not available. '
+            'Set RANDOM_NUMBER_SERVICE_AVAILABLE=true or run '
+            "'docker-compose up -d broker random-number-service' to enable."
+        )
+
+
+@pytest.fixture(scope='session')
+def check_no_competing_orchestrator() -> None:
+    """Skip embedded-orchestrator completion tests when an orchestrator service is running.
+
+    When a docker-compose orchestrator is consuming from the same
+    ``intersect-orchestrator`` RabbitMQ queue, replies from the
+    random-number-service are round-robined between the docker-compose
+    orchestrator and the test's embedded orchestrator.  The embedded
+    orchestrator will miss roughly half the replies and the campaign will
+    never complete.  Use the REST-API tests in ``test_full_loop_e2e.py``
+    for full-stack coverage instead.
+    """
+    if is_orchestrator_available():
+        pytest.skip(
+            'Campaign orchestrator service is running — embedded-orchestrator '
+            'completion tests skipped to avoid AMQP queue contention. '
+            'See test_full_loop_e2e.py for full-stack REST API coverage.'
+        )
+
+
+@pytest.fixture(scope='session')
 def check_orchestrator_available() -> None:
     """Check orchestrator availability and skip tests if unavailable.
 
@@ -141,6 +188,25 @@ def check_orchestrator_available() -> None:
 def load_campaign_json() -> dict[str, Any]:
     """Load campaign JSON from test data."""
     with CAMPAIGN_FILE.open() as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope='module')
+def iterative_campaign_file() -> pathlib.Path:
+    """Path to iterative campaign JSON used by integration tests."""
+    return TEST_DATA_DIR / 'campaign' / 'random-number-campaign-iterative.campaign.json'
+
+
+@pytest.fixture(scope='module')
+def expected_events_file() -> pathlib.Path:
+    """Path to expected iterative event sequence contract file."""
+    return TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
+
+
+@pytest.fixture
+def iterative_campaign_json(iterative_campaign_file: pathlib.Path) -> dict[str, Any]:
+    """Load iterative campaign payload from test data."""
+    with iterative_campaign_file.open() as f:
         return json.load(f)
 
 
@@ -194,6 +260,37 @@ def create_intersect_client() -> CoreServiceIntersectClient:
     # Create and return the client
     client = CoreServiceIntersectClient(settings)
     return client
+
+
+def _wait_for_client_subscription_setup(
+    client: CoreServiceIntersectClient, timeout: float = 2.0
+) -> None:
+    """Wait briefly for the AMQP subscription setup to settle.
+
+    ``connect()`` returns before the broker consumer is fully ready. Fast reply
+    messages can otherwise arrive before ``.../response`` has been bound and
+    consumed, which makes integration tests flaky.
+    """
+    start = time.time()
+    while time.time() - start < timeout and not client.is_connected():
+        time.sleep(0.05)
+
+    # Give the async consumer/bind callback a moment to finish once connected.
+    time.sleep(0.2)
+
+
+@pytest.fixture
+def intersect_client_with_cleanup() -> CoreServiceIntersectClient:
+    """Provide a CoreServiceIntersectClient that is properly disconnected after each test.
+
+    This fixture ensures sequential test execution with proper cleanup between tests,
+    preventing RabbitMQ queue contention where the broker round-robins messages.
+    """
+    client = create_intersect_client()
+    _wait_for_client_subscription_setup(client)
+    yield client
+    # Clean up after test — disconnect from broker
+    client.disconnect()
 
 
 # ============================================================================

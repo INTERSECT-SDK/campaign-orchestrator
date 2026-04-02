@@ -114,6 +114,10 @@ class CoreServiceIntersectClient:
         for connection in self.http_connections:
             connection.put_nowait(message)
 
+    def disconnect(self) -> None:
+        """Disconnect from the broker and clean up resources."""
+        self.control_plane_manager.disconnect()
+
     def add_http_connection(self) -> Queue:
         """Add a Websocket subscriber."""
         queue: Queue[bytes] = Queue()

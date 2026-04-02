@@ -7,6 +7,7 @@ import pytest
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
+from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
 
 class FakeControlPlaneManager:
@@ -98,6 +99,60 @@ def test_handle_broker_message_completes_step() -> None:
         'STEP_COMPLETE',
         'CAMPAIGN_COMPLETE',
     ]
+
+
+def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign for request payload defaults',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'Random_Number_Generator',
+                        'operation_id': 'generate_random_number',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'seed': {'type': 'integer', 'default': 7},
+                                    'stream_id': {'type': 'string', 'default': 'x'},
+                                },
+                            },
+                            'values': [
+                                {'id': str(uuid.uuid4()), 'var': 'seed'},
+                                {'id': str(uuid.uuid4()), 'var': 'stream_id'},
+                            ],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    assert len(client.control_plane_manager.published) == 1
+    published_payload = client.control_plane_manager.published[0][1]
+    assert json.loads(published_payload.decode('utf-8')) == {
+        'seed': 7,
+        'stream_id': 'x',
+    }
 
 
 def test_handle_broker_message_emits_error() -> None:
@@ -399,10 +454,12 @@ def test_handle_broker_message_no_node_id() -> None:
 def test_handle_broker_message_wrong_node_id() -> None:
     """Test handling a broker message with wrong node ID."""
     client = FakeClient()
-    orchestrator = CampaignOrchestrator(client)
+    repository = InMemoryCampaignRepository()
+    orchestrator = CampaignOrchestrator(client, repository=repository)
 
     campaign_id = uuid.uuid4()
     step_id = uuid.uuid4()
+    wrong_step_id = uuid.uuid4()
     campaign = _make_campaign(campaign_id, step_id)
 
     orchestrator.submit_campaign(campaign)
@@ -413,7 +470,7 @@ def test_handle_broker_message_wrong_node_id() -> None:
         'application/json',
         {
             'campaign_id': str(campaign_id),
-            'request_id': str(uuid.uuid4()),  # Different from step_id
+            'request_id': str(wrong_step_id),  # Different from step_id
             'message_id': str(uuid.uuid4()),
             'has_error': 'false',
             'source': 'org.fac.system.subsystem.service',
@@ -423,6 +480,14 @@ def test_handle_broker_message_wrong_node_id() -> None:
             'operation_id': 'test-capability.test-operation',
         },
     )
+
+    broadcast = json.loads(client.broadcasts[-1].decode('utf-8'))
+    assert broadcast['event']['event_type'] == 'CAMPAIGN_ERROR_FROM_SERVICE'
+    assert broadcast['event']['step_id'] == str(wrong_step_id)
+
+    events = list(repository.load_events(campaign_id))
+    assert events[-1].event_type == 'CAMPAIGN_ERROR'
+    assert events[-1].payload['step_id'] == str(wrong_step_id)
 
 
 def test_handle_broker_message_with_error_message() -> None:
@@ -453,3 +518,143 @@ def test_handle_broker_message_with_error_message() -> None:
 
     events = _event_types(client.broadcasts)
     assert 'CAMPAIGN_ERROR_FROM_SERVICE' in events
+
+
+# ---------------------------------------------------------------------------
+# Objective checker and iterative execution tests
+# ---------------------------------------------------------------------------
+
+
+def _make_iterative_campaign(
+    campaign_id: uuid.UUID,
+    task_group_id: uuid.UUID,
+    step_ids: list[uuid.UUID],
+    iterations: int,
+) -> Campaign:
+    """Create a campaign with parallel tasks and an ObjectiveIterate objective."""
+    return Campaign(
+        id=campaign_id,
+        name='iterative-campaign',
+        user='test-user',
+        description='Iterative campaign for orchestrator tests',
+        task_groups=[
+            {
+                'id': str(task_group_id),
+                'tasks': [
+                    {
+                        'id': str(sid),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'test-capability',
+                        'operation_id': 'test-operation',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                    for sid in step_ids
+                ],
+                'group_dependencies': [],
+                'objectives': [
+                    {
+                        'id': str(uuid.uuid4()),
+                        'type': 'iterate',
+                        'iterations': iterations,
+                    }
+                ],
+            }
+        ],
+    )
+
+
+def _reply_headers(campaign_id: uuid.UUID, step_id: uuid.UUID) -> dict[str, str]:
+    return {
+        'has_error': 'false',
+        'source': 'org.fac.system.subsystem.service',
+        'campaign_id': str(campaign_id),
+        'request_id': str(step_id),
+        'message_id': str(uuid.uuid4()),
+        'destination': 'test.orchestrator',
+        'sdk_version': '0.0.1',
+        'created_at': '2024-01-01T00:00:00Z',
+        'operation_id': 'test-capability.test-operation',
+    }
+
+
+def test_build_task_group_executions_with_iterate() -> None:
+    """_build_task_group_executions should create IterateChecker from ObjectiveIterate."""
+    from intersect_orchestrator.app.core.objective_checkers import IterateChecker
+
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    tg_id = uuid.uuid4()
+    step_ids = [uuid.uuid4(), uuid.uuid4()]
+    campaign = _make_iterative_campaign(campaign_id, tg_id, step_ids, iterations=5)
+
+    executions = orchestrator._build_task_group_executions(campaign)
+
+    assert len(executions) == 1
+    ex = executions[0]
+    assert ex.task_group_id == tg_id
+    assert len(ex.task_ids) == 2
+    assert len(ex.objective_checkers) == 1
+    assert isinstance(ex.objective_checkers[0], IterateChecker)
+    assert not ex.objectives_met()
+
+
+def test_no_objectives_runs_once() -> None:
+    """A task group with no objectives should execute exactly once."""
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_campaign(campaign_id, step_id)
+
+    orchestrator.submit_campaign(campaign)
+
+    # Reply for the single task
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        _reply_headers(campaign_id, step_id),
+    )
+
+    events = _event_types(client.broadcasts)
+    assert events == ['STEP_START', 'STEP_COMPLETE', 'CAMPAIGN_COMPLETE']
+
+
+def test_iterative_campaign_two_iterations() -> None:
+    """Two parallel tasks with 2 iterations should produce 4 STEP_COMPLETE events."""
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    tg_id = uuid.uuid4()
+    step_a = uuid.uuid4()
+    step_b = uuid.uuid4()
+    campaign = _make_iterative_campaign(campaign_id, tg_id, [step_a, step_b], iterations=2)
+
+    orchestrator.submit_campaign(campaign)
+
+    for _ in range(2):  # noqa: B007
+        # Both tasks dispatch in parallel; complete them in order
+        orchestrator.handle_request_reply_broker_message(
+            b'{}',
+            'application/json',
+            _reply_headers(campaign_id, step_a),
+        )
+        orchestrator.handle_request_reply_broker_message(
+            b'{}',
+            'application/json',
+            _reply_headers(campaign_id, step_b),
+        )
+
+    events = _event_types(client.broadcasts)
+
+    step_starts = [e for e in events if e == 'STEP_START']
+    step_completes = [e for e in events if e == 'STEP_COMPLETE']
+    assert len(step_starts) == 4  # 2 tasks x 2 iterations
+    assert len(step_completes) == 4
+    assert events[-1] == 'CAMPAIGN_COMPLETE'

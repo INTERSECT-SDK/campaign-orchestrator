@@ -4,8 +4,6 @@ import logging
 import os
 import random
 from dataclasses import dataclass
-
-# from typing import Optional
 from typing import Annotated
 
 from intersect_sdk import (
@@ -22,18 +20,49 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_RANDOM_SEED = 0
+
+
 class RandomServiceRandomNumGenCapabilityImplState(BaseModel):
     """Model of the capability's state."""
 
-    numbers: Annotated[list[int], Field(description='All generated numbers.')] = []
+    streams: Annotated[
+        dict[str, list[int]],
+        Field(description='Generated numbers keyed by logical stream id.'),
+    ] = Field(default_factory=dict)
 
 
 @dataclass
 class RandomServiceRandomNumGenCapabilityImplResponse:
     """Model of capability response."""
 
+    stream_id: str
+    value: int
     state: RandomServiceRandomNumGenCapabilityImplState
     success: bool
+
+
+class GenerateRandomNumberRequest(BaseModel):
+    """Input payload for random number generation."""
+
+    seed: Annotated[
+        int | None,
+        Field(
+            title='seed',
+            description='Optional random number generator seed. If omitted, the stream continues its current random sequence.',
+            default=None,
+            ge=0,
+        ),
+    ] = None
+    stream_id: Annotated[
+        str,
+        Field(
+            title='stream_id',
+            description='Logical stream identifier (e.g. x/y) to keep RNG streams independent.',
+            default='default',
+            min_length=1,
+        ),
+    ] = 'default'
 
 
 class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementation):
@@ -45,6 +74,8 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Constructors are never exposed to INTERSECT."""
         super().__init__()
         self.state = RandomServiceRandomNumGenCapabilityImplState()
+        self._rng_by_stream: dict[str, random.Random] = {}
+        self._stream_seed_initialized: set[str] = set()
 
     @intersect_status()
     def status(self) -> RandomServiceRandomNumGenCapabilityImplState:
@@ -55,29 +86,38 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     @intersect_message()
     def generate_random_number(
         self,
-        seed: Annotated[
-            int,
-            Field(
-                title='seed',
-                description='Random number generator seed.',
-                default=0,
-                ge=0,
-            ),
+        request: Annotated[
+            GenerateRandomNumberRequest,
+            Field(default_factory=GenerateRandomNumberRequest),
         ],
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Generate random number."""
-        logger.warning('generate_random_number called with seed %s', seed)
-        random.seed(seed)
-        random_int = random.randint(1, 100)  # noqa: S311
+        seed = request.seed
+        stream_id = request.stream_id
+        logger.warning('generate_random_number called with stream_id=%s seed=%s', stream_id, seed)
+
+        if stream_id not in self._rng_by_stream:
+            self._rng_by_stream[stream_id] = random.Random(DEFAULT_RANDOM_SEED)  # noqa: S311
+            self.state.streams.setdefault(stream_id, [])
+
+        rng = self._rng_by_stream[stream_id]
+
+        # Seed is applied only once per stream unless reset(), so each stream
+        # remains deterministic while still advancing across iterations.
+        if seed is not None and stream_id not in self._stream_seed_initialized:
+            rng.seed(seed)
+            self._stream_seed_initialized.add(stream_id)
+
+        random_int = rng.randint(1, 100)
 
         # Update state
-        numbers = self.state.numbers
-        numbers.append(random_int)
-        self.state.numbers = numbers
+        self.state.streams.setdefault(stream_id, []).append(random_int)
 
-        logger.info('Generated random number: %s', random_int)
+        logger.info('Generated random number: %s for stream %s', random_int, stream_id)
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
+            stream_id=stream_id,
+            value=random_int,
             state=self.state,
             success=True,
         )
@@ -87,9 +127,13 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Reset state."""
         logger.warning('reset called')
 
-        self.state.numbers = []
+        self.state.streams = {}
+        self._rng_by_stream = {}
+        self._stream_seed_initialized = set()
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
+            stream_id='default',
+            value=0,
             state=self.state,
             success=True,
         )

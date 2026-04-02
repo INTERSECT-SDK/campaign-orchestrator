@@ -2,7 +2,7 @@
   "id": "0494476f-21e2-4e3a-be84-fee321168d1c",
   "name": "Campaign-b86608",
   "user": "system",
-  "description": "Campaign converted from ICMP: Campaign-b86608",
+  "description": "Iterative campaign: two parallel random-number tasks repeated 10 times",
   "task_groups": [
     {
       "id": "6726b2ca-8d25-4be9-bb34-6ec95a090d56",
@@ -40,6 +40,11 @@
                   "minimum": 0,
                   "default": 0,
                   "description": "Random number generator seed."
+                },
+                "stream_id": {
+                  "type": "string",
+                  "default": "x",
+                  "description": "Logical stream identifier for vector generation."
                 }
               }
             },
@@ -47,6 +52,10 @@
               {
                 "id": "28721a7e-19dc-4a63-8f06-2900cd52205d",
                 "var": "seed"
+              },
+              {
+                "id": "f8096ab2-a3fc-4fbb-a1f0-342639ce9e9f",
+                "var": "stream_id"
               }
             ]
           },
@@ -83,8 +92,13 @@
                 "seed": {
                   "type": "integer",
                   "minimum": 0,
-                  "default": 0,
+                  "default": 1,
                   "description": "Random number generator seed."
+                },
+                "stream_id": {
+                  "type": "string",
+                  "default": "y",
+                  "description": "Logical stream identifier for vector generation."
                 }
               }
             },
@@ -92,6 +106,10 @@
               {
                 "id": "28721a7e-19dc-4a63-8f06-2900cd52205d",
                 "var": "seed"
+              },
+              {
+                "id": "0673f13b-2f8d-4cd6-9842-5fc746f91520",
+                "var": "stream_id"
               }
             ]
           },
@@ -101,12 +119,7 @@
       ],
       "objectives": [
         {
-          "id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
-          "type": "iterate",
-          "iterations": 10
-        },
-        {
-          "id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+          "id": "a1b2c3d4-0001-4000-8000-000000000001",
           "type": "iterate",
           "iterations": 10
         }
