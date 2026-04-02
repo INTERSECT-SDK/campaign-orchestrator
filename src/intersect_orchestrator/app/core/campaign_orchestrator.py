@@ -501,6 +501,9 @@ class CampaignOrchestrator:
 
         # The request payload is built from task input defaults in campaign JSON.
         # This allows static per-task configuration like stream IDs and seeds.
+        #
+        # FIXME hardcoding content-type and payload for now
+        # some ideas on 'payload': this may be base-64 encoded for websocket purposes, but if so should be decoded before publishing message
         content_type = 'application/json'
         payload = self._build_task_request_payload(task)
 
@@ -521,8 +524,10 @@ class CampaignOrchestrator:
         explicit runtime value map. For deterministic integration runs, we use
         ``schema.properties.<var>.default`` when present.
         """
+        # TODO: Need to return b'null' for content type application/json
+        #       and empty byte string for non-json content types
         if task.input is None:
-            return b''
+            return b'null'
 
         properties = task.input.json_schema.get('properties', {})
         payload: dict[str, Any] = {}

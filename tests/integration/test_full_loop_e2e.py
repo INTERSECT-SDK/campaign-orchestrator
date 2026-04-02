@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from typing import Any
 
 import httpx
@@ -24,6 +25,49 @@ from tests.integration.conftest import (
     get_orchestrator_ws_url,
     load_campaign_json,
 )
+
+
+def _campaign_with_fresh_ids(campaign_data: dict[str, Any]) -> dict[str, Any]:
+    """Return a deep-copied campaign payload with fresh IDs.
+
+    This avoids 409 conflicts when tests run against a long-lived orchestrator
+    process that may already have seen the fixed IDs from static test data.
+    """
+    data = json.loads(json.dumps(campaign_data))
+    data['id'] = str(uuid.uuid4())
+
+    task_group_id_map: dict[str, str] = {}
+    task_id_map: dict[str, str] = {}
+
+    for task_group in data.get('task_groups', []):
+        old_group_id = task_group['id']
+        task_group_id_map[old_group_id] = str(uuid.uuid4())
+
+    for task_group in data.get('task_groups', []):
+        for task in task_group.get('tasks', []):
+            old_task_id = task['id']
+            task_id_map[old_task_id] = str(uuid.uuid4())
+
+    for task_group in data.get('task_groups', []):
+        task_group['id'] = task_group_id_map[task_group['id']]
+        task_group['group_dependencies'] = [
+            task_group_id_map.get(dep_id, dep_id)
+            for dep_id in task_group.get('group_dependencies', [])
+        ]
+
+        for task in task_group.get('tasks', []):
+            task['id'] = task_id_map[task['id']]
+            task['task_dependencies'] = [
+                task_id_map.get(dep_id, dep_id) for dep_id in task.get('task_dependencies', [])
+            ]
+
+        for objective in task_group.get('objectives') or []:
+            objective['id'] = str(uuid.uuid4())
+
+    for objective in data.get('objectives') or []:
+        objective['id'] = str(uuid.uuid4())
+
+    return data
 
 
 @pytest.mark.integration
@@ -42,7 +86,7 @@ async def test_full_campaign_loop_with_websocket(
     base_url = get_orchestrator_url()
     ws_url = get_orchestrator_ws_url()
     api_key = get_api_key()
-    campaign_data = load_campaign_json()
+    campaign_data = _campaign_with_fresh_ids(load_campaign_json())
 
     # Track received events
     received_events: list[dict[str, Any]] = []
