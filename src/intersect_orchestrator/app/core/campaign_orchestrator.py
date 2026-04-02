@@ -217,10 +217,18 @@ class CampaignOrchestrator:
             if campaign_id:
                 state = self._get_state_for_campaign_alias(uuid.UUID(campaign_id))
                 if state:
+                    failed_step_id = None
+                    request_id = raw_headers.get('request_id')
+                    if request_id:
+                        try:
+                            failed_step_id = uuid.UUID(request_id)
+                        except ValueError:
+                            failed_step_id = None
                     self._handle_request_reply_service_error(
                         state=state,
                         source=raw_headers.get('source', '???'),
                         error_message=f'Invalid message headers: {e}',
+                        failed_step_id=failed_step_id,
                     )
             return
 
@@ -239,7 +247,12 @@ class CampaignOrchestrator:
         # Check that the reply matches one of the currently active tasks
         if state.current_group_index >= len(state.task_group_executions):
             logger.error('Campaign has no active task group for ID: %s', campaign_id)
-            self._handle_request_reply_service_error(state, headers.source, 'No active task group')
+            self._handle_request_reply_service_error(
+                state,
+                headers.source,
+                'No active task group',
+                failed_step_id=node_id,
+            )
             return
 
         execution = state.task_group_executions[state.current_group_index]
@@ -250,7 +263,10 @@ class CampaignOrchestrator:
                 campaign_id,
             )
             self._handle_request_reply_service_error(
-                state, headers.source, 'Node ID from message does not match any active task'
+                state,
+                headers.source,
+                'Node ID from message does not match any active task',
+                failed_step_id=node_id,
             )
             return
 
@@ -260,20 +276,32 @@ class CampaignOrchestrator:
             except json.JSONDecodeError:
                 logger.exception('Message claimed to be JSON but was not')
                 self._handle_request_reply_service_error(
-                    state, headers.source, 'Message claimed to be JSON but was not'
+                    state,
+                    headers.source,
+                    'Message claimed to be JSON but was not',
+                    failed_step_id=node_id,
                 )
                 return
         else:
             payload = message
 
         if headers.has_error:
-            self._handle_request_reply_service_error(state, headers.source, str(payload))
+            self._handle_request_reply_service_error(
+                state,
+                headers.source,
+                str(payload),
+                failed_step_id=node_id,
+            )
             return
 
         self._complete_step(state, node_id, message)
 
     def _handle_request_reply_service_error(
-        self, state: CampaignState, source: str, error_message: str
+        self,
+        state: CampaignState,
+        source: str,
+        error_message: str,
+        failed_step_id: uuid.UUID | None = None,
     ) -> None:
         """Handle error responses from services.
 
@@ -286,11 +314,13 @@ class CampaignOrchestrator:
             if state.current_group_index < len(state.task_group_executions)
             else None
         )
-        failed_step = (
-            next(iter(execution.active_tasks))
-            if execution and execution.active_tasks
-            else uuid.UUID(int=0)
-        )
+        failed_step = failed_step_id
+        if failed_step is None:
+            failed_step = (
+                next(iter(execution.active_tasks))
+                if execution and execution.active_tasks
+                else uuid.UUID(int=0)
+            )
 
         self._emit_event(
             campaign_id=state.campaign_id,

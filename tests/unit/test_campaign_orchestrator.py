@@ -7,6 +7,7 @@ import pytest
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
+from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
 
 class FakeControlPlaneManager:
@@ -399,10 +400,12 @@ def test_handle_broker_message_no_node_id() -> None:
 def test_handle_broker_message_wrong_node_id() -> None:
     """Test handling a broker message with wrong node ID."""
     client = FakeClient()
-    orchestrator = CampaignOrchestrator(client)
+    repository = InMemoryCampaignRepository()
+    orchestrator = CampaignOrchestrator(client, repository=repository)
 
     campaign_id = uuid.uuid4()
     step_id = uuid.uuid4()
+    wrong_step_id = uuid.uuid4()
     campaign = _make_campaign(campaign_id, step_id)
 
     orchestrator.submit_campaign(campaign)
@@ -413,7 +416,7 @@ def test_handle_broker_message_wrong_node_id() -> None:
         'application/json',
         {
             'campaign_id': str(campaign_id),
-            'request_id': str(uuid.uuid4()),  # Different from step_id
+            'request_id': str(wrong_step_id),  # Different from step_id
             'message_id': str(uuid.uuid4()),
             'has_error': 'false',
             'source': 'org.fac.system.subsystem.service',
@@ -423,6 +426,14 @@ def test_handle_broker_message_wrong_node_id() -> None:
             'operation_id': 'test-capability.test-operation',
         },
     )
+
+    broadcast = json.loads(client.broadcasts[-1].decode('utf-8'))
+    assert broadcast['event']['event_type'] == 'CAMPAIGN_ERROR_FROM_SERVICE'
+    assert broadcast['event']['step_id'] == str(wrong_step_id)
+
+    events = list(repository.load_events(campaign_id))
+    assert events[-1].event_type == 'CAMPAIGN_ERROR'
+    assert events[-1].payload['step_id'] == str(wrong_step_id)
 
 
 def test_handle_broker_message_with_error_message() -> None:
