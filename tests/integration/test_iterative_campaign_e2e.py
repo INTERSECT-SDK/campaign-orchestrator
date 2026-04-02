@@ -100,13 +100,21 @@ class TestIterativeCampaignE2E:
         assert 'TASK_GROUP_STARTED' in event_types
 
     def test_iterative_campaign_completes_all_iterations(
-        self, check_broker_available: None, intersect_client_with_cleanup
+        self,
+        check_broker_available: None,
+        check_random_number_service_available: None,
+        check_no_competing_orchestrator: None,
+        intersect_client_with_cleanup,
     ) -> None:
         """Full loop: submit iterative campaign, random-number-service replies,
         orchestrator iterates 10 times over 2 parallel tasks, campaign completes.
 
         Requires the random-number-service to be running and connected to the
         same broker (``docker-compose up -d broker random-number-service``).
+
+        Skipped automatically when:
+        * ``RANDOM_NUMBER_SERVICE_AVAILABLE`` is not set (service not present), or
+        * a competing orchestrator service is subscribed to the same queue.
         """
         campaign_data = _campaign_with_fresh_ids(_load_iterative_campaign_json())
         campaign = Campaign(**campaign_data)

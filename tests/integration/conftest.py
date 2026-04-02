@@ -59,6 +59,17 @@ def is_orchestrator_available() -> bool:
         return False
 
 
+def is_random_number_service_available() -> bool:
+    """Check if the random-number-service is available in the test environment.
+
+    The service does not expose a TCP port, so availability is declared
+    explicitly via the ``RANDOM_NUMBER_SERVICE_AVAILABLE`` environment variable.
+    Set it to ``true`` (or ``1`` / ``yes``) in environments where the service
+    is running (e.g. CI jobs that build and start the container).
+    """
+    return os.getenv('RANDOM_NUMBER_SERVICE_AVAILABLE', '').lower() in ('1', 'true', 'yes')
+
+
 def _wait_for_mongo(uri: str, timeout: float = 10.0) -> None:
     """Wait for MongoDB to become available."""
     try:
@@ -115,6 +126,42 @@ def check_broker_available() -> None:
             f'RabbitMQ broker not available at '
             f'{os.getenv("BROKER_HOST", "localhost")}:{os.getenv("BROKER_PORT", "5672")}. '
             f"Run 'docker-compose up -d' to start the broker."
+        )
+
+
+@pytest.fixture(scope='session')
+def check_random_number_service_available() -> None:
+    """Skip tests that require the random-number-service if it is not present.
+
+    Use the ``RANDOM_NUMBER_SERVICE_AVAILABLE=true`` environment variable to
+    indicate the service is running.  The service has no TCP port we can probe,
+    so the env var is the only reliable signal.
+    """
+    if not is_random_number_service_available():
+        pytest.skip(
+            'Random-number-service not available. '
+            "Set RANDOM_NUMBER_SERVICE_AVAILABLE=true or run "
+            "'docker-compose up -d broker random-number-service' to enable."
+        )
+
+
+@pytest.fixture(scope='session')
+def check_no_competing_orchestrator() -> None:
+    """Skip embedded-orchestrator completion tests when an orchestrator service is running.
+
+    When a docker-compose orchestrator is consuming from the same
+    ``intersect-orchestrator`` RabbitMQ queue, replies from the
+    random-number-service are round-robined between the docker-compose
+    orchestrator and the test's embedded orchestrator.  The embedded
+    orchestrator will miss roughly half the replies and the campaign will
+    never complete.  Use the REST-API tests in ``test_full_loop_e2e.py``
+    for full-stack coverage instead.
+    """
+    if is_orchestrator_available():
+        pytest.skip(
+            'Campaign orchestrator service is running — embedded-orchestrator '
+            'completion tests skipped to avoid AMQP queue contention. '
+            'See test_full_loop_e2e.py for full-stack REST API coverage.'
         )
 
 
