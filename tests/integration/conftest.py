@@ -196,6 +196,23 @@ def create_intersect_client() -> CoreServiceIntersectClient:
     return client
 
 
+def _wait_for_client_subscription_setup(
+    client: CoreServiceIntersectClient, timeout: float = 2.0
+) -> None:
+    """Wait briefly for the AMQP subscription setup to settle.
+
+    ``connect()`` returns before the broker consumer is fully ready. Fast reply
+    messages can otherwise arrive before ``.../response`` has been bound and
+    consumed, which makes integration tests flaky.
+    """
+    start = time.time()
+    while time.time() - start < timeout and not client.is_connected():
+        time.sleep(0.05)
+
+    # Give the async consumer/bind callback a moment to finish once connected.
+    time.sleep(0.2)
+
+
 @pytest.fixture
 def intersect_client_with_cleanup() -> CoreServiceIntersectClient:
     """Provide a CoreServiceIntersectClient that is properly disconnected after each test.
@@ -204,6 +221,7 @@ def intersect_client_with_cleanup() -> CoreServiceIntersectClient:
     preventing RabbitMQ queue contention where the broker round-robins messages.
     """
     client = create_intersect_client()
+    _wait_for_client_subscription_setup(client)
     yield client
     # Clean up after test — disconnect from broker
     client.disconnect()
