@@ -13,7 +13,9 @@ def test_generate_random_number_returns_stream_without_reseeding() -> None:
     service = RandomServiceRandomNumGenCapabilityImpl()
 
     first = service.generate_random_number(GenerateRandomNumberRequest(seed=0, stream_id='x')).value
-    second = service.generate_random_number(GenerateRandomNumberRequest(seed=0, stream_id='x')).value
+    second = service.generate_random_number(
+        GenerateRandomNumberRequest(seed=0, stream_id='x')
+    ).value
     third = service.generate_random_number(GenerateRandomNumberRequest(seed=0, stream_id='x')).value
 
     assert [first, second, third] == [50, 98, 54]
@@ -22,10 +24,18 @@ def test_generate_random_number_returns_stream_without_reseeding() -> None:
 def test_generate_random_number_keeps_streams_independent() -> None:
     service = RandomServiceRandomNumGenCapabilityImpl()
 
-    x_first = service.generate_random_number(GenerateRandomNumberRequest(seed=0, stream_id='x')).value
-    y_first = service.generate_random_number(GenerateRandomNumberRequest(seed=1, stream_id='y')).value
-    x_second = service.generate_random_number(GenerateRandomNumberRequest(seed=0, stream_id='x')).value
-    y_second = service.generate_random_number(GenerateRandomNumberRequest(seed=1, stream_id='y')).value
+    x_first = service.generate_random_number(
+        GenerateRandomNumberRequest(seed=0, stream_id='x')
+    ).value
+    y_first = service.generate_random_number(
+        GenerateRandomNumberRequest(seed=1, stream_id='y')
+    ).value
+    x_second = service.generate_random_number(
+        GenerateRandomNumberRequest(seed=0, stream_id='x')
+    ).value
+    y_second = service.generate_random_number(
+        GenerateRandomNumberRequest(seed=1, stream_id='y')
+    ).value
 
     assert [x_first, x_second] == [50, 98]
     assert [y_first, y_second] == [18, 73]
