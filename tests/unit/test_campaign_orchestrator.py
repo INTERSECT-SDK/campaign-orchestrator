@@ -571,7 +571,7 @@ def test_iterative_campaign_two_iterations() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    for _iteration in range(2):
+    for _ in range(2):  # noqa: B007
         # Both tasks dispatch in parallel; complete them in order
         orchestrator.handle_request_reply_broker_message(
             b'{}', 'application/json', _reply_headers(campaign_id, step_a),
@@ -584,6 +584,6 @@ def test_iterative_campaign_two_iterations() -> None:
 
     step_starts = [e for e in events if e == 'STEP_START']
     step_completes = [e for e in events if e == 'STEP_COMPLETE']
-    assert len(step_starts) == 4   # 2 tasks × 2 iterations
+    assert len(step_starts) == 4   # 2 tasks x 2 iterations
     assert len(step_completes) == 4
     assert events[-1] == 'CAMPAIGN_COMPLETE'

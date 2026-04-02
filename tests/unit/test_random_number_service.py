@@ -1,6 +1,5 @@
 import pytest
 
-
 pytest.importorskip('intersect_sdk')
 
 

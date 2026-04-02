@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
-import uuid
+from typing import TYPE_CHECKING
 
-from ...api.v1.endpoints.orchestrator.models.campaign import ObjectiveAssert
 from .base import ObjectiveChecker
+
+if TYPE_CHECKING:
+    import uuid
+
+    from ...api.v1.endpoints.orchestrator.models.campaign import ObjectiveAssert
 
 
 class AssertChecker(ObjectiveChecker):
@@ -31,10 +35,13 @@ class AssertChecker(ObjectiveChecker):
                 data = json.loads(payload_bytes)
             except (json.JSONDecodeError, TypeError):
                 continue
-            if isinstance(data, dict) and self._objective.var in data:
-                if bool(data[self._objective.var]) == self._objective.target:
-                    self._met = True
-                    return
+            if (
+                isinstance(data, dict)
+                and self._objective.var in data
+                and bool(data[self._objective.var]) == self._objective.target
+            ):
+                self._met = True
+                return
 
     def is_met(self) -> bool:
         return self._met

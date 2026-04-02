@@ -9,7 +9,7 @@ from .base import ObjectiveChecker
 from .iterate_checker import IterateChecker
 
 __all__ = [
-    "AssertChecker",
-    "IterateChecker",
-    "ObjectiveChecker",
+    'AssertChecker',
+    'IterateChecker',
+    'ObjectiveChecker',
 ]

@@ -25,7 +25,6 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
 )
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
-from tests.integration.conftest import create_intersect_client
 
 TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / 'data'
 ITERATIVE_CAMPAIGN_FILE = TEST_DATA_DIR / 'campaign' / 'random-number-campaign-iterative.campaign.json'
@@ -35,6 +34,28 @@ EXPECTED_EVENTS_FILE = TEST_DATA_DIR / 'target' / 'random-number-campaign-iterat
 def _load_iterative_campaign_json() -> dict:
     with ITERATIVE_CAMPAIGN_FILE.open() as f:
         return json.load(f)
+
+
+def _campaign_with_fresh_ids(campaign_data: dict) -> dict:
+    """Return a deep-copied campaign payload with fresh IDs.
+
+    This prevents stale broker replies from prior tests (with old request/campaign IDs)
+    from colliding with the current test run when using the shared fixed queue.
+    """
+    data = json.loads(json.dumps(campaign_data))
+    data['id'] = str(uuid.uuid4())
+
+    for task_group in data.get('task_groups', []):
+        task_group['id'] = str(uuid.uuid4())
+        for task in task_group.get('tasks', []):
+            task['id'] = str(uuid.uuid4())
+        for objective in task_group.get('objectives') or []:
+            objective['id'] = str(uuid.uuid4())
+
+    for objective in data.get('objectives') or []:
+        objective['id'] = str(uuid.uuid4())
+
+    return data
 
 
 @pytest.mark.integration
@@ -49,7 +70,7 @@ class TestIterativeCampaignE2E:
         self, check_broker_available: None, intersect_client_with_cleanup
     ) -> None:
         """Submitting the iterative campaign should create state, Petri net, and initial events."""
-        campaign_data = _load_iterative_campaign_json()
+        campaign_data = _campaign_with_fresh_ids(_load_iterative_campaign_json())
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -81,7 +102,7 @@ class TestIterativeCampaignE2E:
         Requires the random-number-service to be running and connected to the
         same broker (``docker-compose up -d broker random-number-service``).
         """
-        campaign_data = _load_iterative_campaign_json()
+        campaign_data = _campaign_with_fresh_ids(_load_iterative_campaign_json())
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -91,7 +112,7 @@ class TestIterativeCampaignE2E:
         campaign_id = orchestrator.submit_campaign(campaign)
 
         # Wait for campaign to complete (the random-number-service must reply).
-        # 2 tasks × 10 iterations = 20 round-trips; generous timeout.
+        # 2 tasks x 10 iterations = 20 round-trips; generous timeout.
         timeout_seconds = 120
         poll_interval = 0.5
         elapsed = 0.0

@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from tests.integration.conftest import create_intersect_client, load_campaign_json
+from tests.integration.conftest import load_campaign_json
 
 
 @pytest.mark.integration
@@ -20,7 +20,7 @@ class TestCampaignE2E:
     """End-to-end tests for campaign execution."""
 
     def test_submit_campaign_creates_state_and_petri_net(
-        self, check_broker_available: None
+        self, check_broker_available: None, intersect_client_with_cleanup
     ) -> None:
         """Test that submitting a campaign creates state and Petri Net using real broker."""
         from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
@@ -39,8 +39,10 @@ class TestCampaignE2E:
 
         # Create orchestrator with real client and in-memory repository
         repository = InMemoryCampaignRepository()
-        real_client = create_intersect_client()
-        orchestrator = CampaignOrchestrator(intersect_client=real_client, repository=repository)
+        orchestrator = CampaignOrchestrator(
+            intersect_client=intersect_client_with_cleanup,
+            repository=repository,
+        )
 
         # Submit campaign
         campaign_id = orchestrator.submit_campaign(campaign)
@@ -57,7 +59,9 @@ class TestCampaignE2E:
         events = list(repository.load_events(campaign_id))
         assert len(events) > 0
 
-    def test_campaign_state_progression(self, check_broker_available: None) -> None:
+    def test_campaign_state_progression(
+        self, check_broker_available: None, intersect_client_with_cleanup
+    ) -> None:
         """Test that campaign state progresses through execution using real broker."""
         from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
             Campaign,
@@ -78,8 +82,10 @@ class TestCampaignE2E:
 
         # Create orchestrator with real client
         repository = InMemoryCampaignRepository()
-        real_client = create_intersect_client()
-        orchestrator = CampaignOrchestrator(intersect_client=real_client, repository=repository)
+        orchestrator = CampaignOrchestrator(
+            intersect_client=intersect_client_with_cleanup,
+            repository=repository,
+        )
 
         # Submit campaign
         campaign_id = orchestrator.submit_campaign(campaign)
@@ -99,7 +105,9 @@ class TestCampaignE2E:
             assert task_group.id is not None
             assert len(task_group.tasks) > 0
 
-    def test_campaign_events_recorded(self, check_broker_available: None) -> None:
+    def test_campaign_events_recorded(
+        self, check_broker_available: None, intersect_client_with_cleanup
+    ) -> None:
         """Test that campaign events are properly recorded in repository using real broker."""
         from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
             Campaign,
@@ -117,8 +125,10 @@ class TestCampaignE2E:
 
         # Create orchestrator with real client
         repository = InMemoryCampaignRepository()
-        real_client = create_intersect_client()
-        orchestrator = CampaignOrchestrator(intersect_client=real_client, repository=repository)
+        orchestrator = CampaignOrchestrator(
+            intersect_client=intersect_client_with_cleanup,
+            repository=repository,
+        )
 
         # Submit campaign
         campaign_id = orchestrator.submit_campaign(campaign)

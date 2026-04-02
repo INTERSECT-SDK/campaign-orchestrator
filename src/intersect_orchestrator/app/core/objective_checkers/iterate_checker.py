@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import uuid
+from typing import TYPE_CHECKING
 
-from ...api.v1.endpoints.orchestrator.models.campaign import ObjectiveIterate
 from .base import ObjectiveChecker
+
+if TYPE_CHECKING:
+    import uuid
+
+    from ...api.v1.endpoints.orchestrator.models.campaign import ObjectiveIterate
 
 
 class IterateChecker(ObjectiveChecker):
@@ -18,6 +22,7 @@ class IterateChecker(ObjectiveChecker):
         return self._objective.id
 
     def record_iteration(self, iteration_results: dict[uuid.UUID, bytes]) -> None:
+        del iteration_results
         self._iterations_completed += 1
 
     def is_met(self) -> bool:
