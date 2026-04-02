@@ -1,0 +1,30 @@
+{
+  "_description": "Expected repository event sequence for random-number-campaign-iterative.campaign.json — 1 task group, 2 parallel tasks, ObjectiveIterate(iterations=10). This is the exact lifecycle the frontend will observe.",
+  "event_types": [
+    "CAMPAIGN_STARTED",
+    "TASK_GROUP_STARTED",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "STEP_COMPLETE",
+    "TASK_GROUP_OBJECTIVE_MET",
+    "TASK_GROUP_COMPLETED",
+    "CAMPAIGN_COMPLETED"
+  ]
+}

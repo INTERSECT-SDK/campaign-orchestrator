@@ -1,0 +1,634 @@
+{
+  "_description": "Exact JSON messages currently delivered to /events for random-number-campaign-iterative.campaign.json. This includes both orchestrator broadcast events and raw service reply payloads because CoreServiceIntersectClient forwards both into http_connections.",
+  "messages": [
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65,
+          18
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18,37]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65,
+          18,
+          37
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18,37,18]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65,
+          18,
+          37,
+          18
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18,37,18,97]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_START",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65,
+          18,
+          37,
+          18,
+          97
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18,37,18,97,13]},\"success\":true}"
+      }
+    },
+    {
+      "state": {
+        "numbers": [
+          50,
+          98,
+          54,
+          6,
+          34,
+          66,
+          63,
+          52,
+          39,
+          62,
+          46,
+          75,
+          28,
+          65,
+          18,
+          37,
+          18,
+          97,
+          13
+        ]
+      },
+      "success": true
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "STEP_COMPLETE",
+        "step_id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
+        "payload": "{\"state\":{\"numbers\":[50,98,54,6,34,66,63,52,39,62,46,75,28,65,18,37,18,97,13,80]},\"success\":true}"
+      }
+    },
+    {
+      "campaign_id": "0494476f-21e2-4e3a-be84-fee321168d1c",
+      "event": {
+        "event_type": "CAMPAIGN_COMPLETE"
+      }
+    }
+  ]
+}
