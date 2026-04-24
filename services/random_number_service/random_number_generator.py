@@ -3,6 +3,7 @@
 import logging
 import os
 import random
+import time
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -63,6 +64,15 @@ class GenerateRandomNumberRequest(BaseModel):
             min_length=1,
         ),
     ] = 'default'
+    delay: Annotated[
+        float,
+        Field(
+            title='delay',
+            description='Seconds to wait before generating the number (simulates work).',
+            default=0.0,
+            ge=0.0,
+        ),
+    ] = 0.0
 
 
 class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementation):
@@ -94,7 +104,12 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Generate random number."""
         seed = request.seed
         stream_id = request.stream_id
-        logger.warning('generate_random_number called with stream_id=%s seed=%s', stream_id, seed)
+        delay = request.delay
+        logger.info('generate_random_number called with stream_id=%s seed=%s delay=%.1fs', stream_id, seed, delay)
+
+        if delay > 0:
+            logger.info('Simulating work for %.1f seconds...', delay)
+            time.sleep(delay)
 
         if stream_id not in self._rng_by_stream:
             self._rng_by_stream[stream_id] = random.Random(DEFAULT_RANDOM_SEED)  # noqa: S311
@@ -174,7 +189,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
     #logging.getLogger('intersect-sdk').setLevel(logging.DEBUG)
     #logging.getLogger('intersect-sdk-common').setLevel(logging.DEBUG)
     RandomServiceRandomNumGenCapabilityImpl.run()
