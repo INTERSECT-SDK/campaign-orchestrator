@@ -46,3 +46,22 @@ jobs:
         tags: |
           ghcr.io/intersect-sdk/campaign-orchestrator:${{ github.ref_name }}
         push: true
+
+    - name: Build and push Random Number Service (latest)
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: docker/build-push-action@v7
+      with:
+        context: ./services/random_number_service
+        platforms: linux/amd64,linux/arm64
+        tags: ghcr.io/intersect-sdk/campaign-orchestrator/random-number-service:latest
+        push: true
+
+    - name: Push tagged Random Number Service
+      if: startsWith(github.ref, 'refs/tags')
+      uses: docker/build-push-action@v7
+      with:
+        context: ./services/random_number_service
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ghcr.io/intersect-sdk/campaign-orchestrator/random-number-service:${{ github.ref_name }}
+        push: true
