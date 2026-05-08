@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import structlog
 import uvicorn
 
@@ -21,11 +23,13 @@ def main() -> None:
         logger.info('Running DEVELOPMENT server at %s%s', url, reload_str)
         logger.info('View docs at %s/docs', url)
 
+    should_reload = not settings.PRODUCTION and settings.SERVER_WORKERS == 1
     uvicorn.run(
         'intersect_orchestrator.app.main:app',
         host=host,
         port=settings.SERVER_PORT,
-        reload=(not settings.PRODUCTION and settings.SERVER_WORKERS == 1),
+        reload=should_reload,
+        reload_dirs=str(Path(__file__).parent.absolute()) if should_reload else None,
         workers=settings.SERVER_WORKERS,
         root_path=settings.BASE_URL,
         proxy_headers=settings.PRODUCTION,
