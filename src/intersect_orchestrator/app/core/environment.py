@@ -15,8 +15,7 @@ LogLevel = Literal['CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEB
 
 
 def strip_trailing_slash(value: str) -> str:
-    value.rstrip('/')
-    return value
+    return value.rstrip('/')
 
 
 StripTrailingSlash = Annotated[str, BeforeValidator(strip_trailing_slash)]
@@ -63,7 +62,9 @@ class Settings(BaseSettings):
     ### INTERSECT ###
 
     SYSTEM_NAME: str = Field(
-        default='campaign-orchestrator-system', min_length=3, pattern=HIERARCHY_REGEX
+        default='campaign-orchestrator-system',
+        min_length=3,
+        pattern=HIERARCHY_REGEX,
     )
     """
     The System name is used as part of how INTERSECT clients know who to connect to, and can be shared with anyone.
