@@ -34,7 +34,7 @@ async def lifespan(_app: FastAPI) -> typing.AsyncGenerator[None, None]:  # noqa:
     app.state.intersect_client.set_campaign_orchestrator(app.state.campaign_orchestrator)
     if not app.state.intersect_client.can_reconnect():
         logger.critical('Unable to connect to INTERSECT broker, exiting')
-        import sys
+        import sys  # noqa: PLC0415
 
         sys.exit(1)
 

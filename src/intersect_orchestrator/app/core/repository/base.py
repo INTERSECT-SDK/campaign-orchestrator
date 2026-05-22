@@ -17,7 +17,7 @@ from ...api.v1.endpoints.orchestrator.models.campaign_state import (  # noqa: TC
 
 def require_pymongo() -> tuple[object, object]:
     try:
-        from pymongo import ASCENDING, MongoClient
+        from pymongo import ASCENDING, MongoClient  # noqa: PLC0415
     except ImportError as exc:
         msg = 'pymongo is required to use MongoCampaignRepository'
         raise ImportError(msg) from exc
@@ -26,7 +26,7 @@ def require_pymongo() -> tuple[object, object]:
 
 def require_psycopg() -> object:
     try:
-        from psycopg.types.json import Json
+        from psycopg.types.json import Json  # noqa: PLC0415
     except ImportError as exc:
         msg = 'psycopg is required to use PostgresCampaignRepository'
         raise ImportError(msg) from exc

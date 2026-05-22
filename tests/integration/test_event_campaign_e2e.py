@@ -10,12 +10,12 @@ import httpx
 import pytest
 import websockets
 
+from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 from tests.integration.conftest import (
     get_api_key,
     get_orchestrator_url,
     get_orchestrator_ws_url,
 )
-from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 
 
 @pytest.mark.integration

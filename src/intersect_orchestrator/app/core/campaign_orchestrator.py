@@ -356,7 +356,7 @@ class CampaignOrchestrator:
             return
 
         for state, task_id in matching_steps:
-            current_state = self._get_state_for_campaign_alias(state.campaign_id)
+            current_state = self._get_state_for_campaign_alias(state.campaign_run_id)
             if current_state is None:
                 continue
 
@@ -368,7 +368,7 @@ class CampaignOrchestrator:
                 continue
 
             self._record_task_event(
-                campaign_id=current_state.campaign_id,
+                campaign_id=current_state.campaign_run_id,
                 task_group_id=execution.task_group_id,
                 task_id=task_id,
                 event_type='TASK_EVENT_RECEIVED',
@@ -660,7 +660,7 @@ class CampaignOrchestrator:
                 task.capability,
                 task.event_name,
             )
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             msg = (
                 f'Failed to subscribe to events for task {task.id} '
                 f'({task.hierarchy}/{task.capability}/{task.event_name}): {err}'

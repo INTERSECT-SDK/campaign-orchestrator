@@ -1,5 +1,6 @@
 {
   "id": "8f71d3a9-fcac-4ce2-aad8-98a98295d229",
+  "run_id": "d4f91b7d-9c63-4d8d-8f0b-0f6f0f39fd82",
   "name": "random-number-event-campaign",
   "user": "system",
   "description": "Request + event campaign for testing event task handling.",

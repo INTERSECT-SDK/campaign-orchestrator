@@ -61,7 +61,7 @@ def test_create_repository_mongo(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Patch both in factory and mongo module
     monkeypatch.setattr(repository_factory, 'require_pymongo', lambda: (FakeMongoClient, 1))
-    from intersect_orchestrator.app.core.repository import mongo as mongo_module
+    from intersect_orchestrator.app.core.repository import mongo as mongo_module  # noqa: PLC0415
 
     monkeypatch.setattr(mongo_module, 'require_pymongo', lambda: (FakeMongoClient, 1))
 
@@ -86,10 +86,10 @@ def test_create_repository_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_psycopg.connect = fake_connect
 
     # Patch both in factory and postgres module
-    monkeypatch.setattr(repository_factory, 'require_psycopg', lambda: object())
-    from intersect_orchestrator.app.core.repository import postgres as postgres_module
+    monkeypatch.setattr(repository_factory, 'require_psycopg', object)
+    from intersect_orchestrator.app.core.repository import postgres as postgres_module  # noqa: I001, PLC0415
 
-    monkeypatch.setattr(postgres_module, 'require_psycopg', lambda: object())
+    monkeypatch.setattr(postgres_module, 'require_psycopg', object)
     monkeypatch.setitem(repository_factory.sys.modules, 'psycopg', fake_psycopg)
 
     class FakePostgresRepository:

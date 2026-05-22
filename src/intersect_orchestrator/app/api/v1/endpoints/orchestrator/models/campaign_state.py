@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Self
 
 from pydantic import Field
@@ -17,7 +17,7 @@ from .campaign import (
 )
 
 
-class ExecutionStatus(str, Enum):
+class ExecutionStatus(StrEnum):
     """Execution status for campaign elements."""
 
     QUEUED = 'queued'

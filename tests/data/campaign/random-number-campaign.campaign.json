@@ -57,8 +57,8 @@
         {
           "id": "bf0c4877-14f3-4c88-9019-503f4c10dd90",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
-          "capability": "Random_Number_Validator",
-          "operation_id": "validate_random_number",
+          "capability": "RandomNumberGenerator",
+          "operation_id": "generate_random_number",
           "event_name": null,
           "output": null,
           "input": null,
