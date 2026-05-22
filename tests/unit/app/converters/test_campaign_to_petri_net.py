@@ -25,6 +25,7 @@ def simple_campaign() -> Campaign:
     """Create a simple campaign with two independent task groups."""
     return Campaign(
         id=uuid4(),
+        run_id=uuid4(),
         name='Simple Campaign',
         user='test_user',
         description='A simple test campaign',
@@ -94,6 +95,7 @@ def dependent_campaign() -> Campaign:
     """Create a campaign with dependent task groups."""
     return Campaign(
         id=uuid4(),
+        run_id=uuid4(),
         name='Dependent Campaign',
         user='test_user',
         description='A campaign with task group dependencies',
@@ -191,6 +193,7 @@ def circular_dependency_campaign() -> Campaign:
     """Create a campaign with circular dependencies (invalid)."""
     return Campaign(
         id=uuid4(),
+        run_id=uuid4(),
         name='Circular Campaign',
         user='test_user',
         description='A campaign with circular dependencies',
@@ -252,7 +255,7 @@ class TestCampaignPetriNetConverter:
         converter = CampaignPetriNetConverter()
         net = converter.convert(simple_campaign)
 
-        campaign_str = str(simple_campaign.id)
+        campaign_str = str(simple_campaign.run_id)
         tg_1 = str(simple_campaign.task_groups[0].id)
         tg_2 = str(simple_campaign.task_groups[1].id)
         task_1 = str(simple_campaign.task_groups[0].tasks[0].id)
@@ -401,7 +404,7 @@ class TestCampaignPetriNetConverter:
 
     def test_messaging_config_generation(self, simple_campaign: Campaign):
         """Test generating messaging configuration from the converter."""
-        campaign_id = str(simple_campaign.id)
+        campaign_id = str(simple_campaign.run_id)
         tg_1 = str(simple_campaign.task_groups[0].id)
         tg_2 = str(simple_campaign.task_groups[1].id)
 
@@ -577,6 +580,7 @@ class TestCampaignPetriNetConverter:
 
         campaign = Campaign(
             id=UUID('8a335f6d-3d29-4ef0-a1f8-e284ba2864ac'),
+            run_id=UUID('8a335f6d-3d29-4ef0-a1f8-e284ba2864ac'),
             name='Test Campaign',
             user='test',
             description='Test',
@@ -619,6 +623,7 @@ class TestCampaignPetriNetConverter:
 
         campaign = Campaign(
             id=UUID('bd61e9df-5077-4a17-8dad-8c4b5ab1e43f'),
+            run_id=UUID('bd61e9df-5077-4a17-8dad-8c4b5ab1e430'),
             name='Test Campaign',
             user='test',
             description='Test',

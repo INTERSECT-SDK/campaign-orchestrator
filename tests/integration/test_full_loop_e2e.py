@@ -27,49 +27,6 @@ from tests.integration.conftest import (
 )
 
 
-def _campaign_with_fresh_ids(campaign_data: dict[str, Any]) -> dict[str, Any]:
-    """Return a deep-copied campaign payload with fresh IDs.
-
-    This avoids 409 conflicts when tests run against a long-lived orchestrator
-    process that may already have seen the fixed IDs from static test data.
-    """
-    data = json.loads(json.dumps(campaign_data))
-    data['id'] = str(uuid.uuid4())
-
-    task_group_id_map: dict[str, str] = {}
-    task_id_map: dict[str, str] = {}
-
-    for task_group in data.get('task_groups', []):
-        old_group_id = task_group['id']
-        task_group_id_map[old_group_id] = str(uuid.uuid4())
-
-    for task_group in data.get('task_groups', []):
-        for task in task_group.get('tasks', []):
-            old_task_id = task['id']
-            task_id_map[old_task_id] = str(uuid.uuid4())
-
-    for task_group in data.get('task_groups', []):
-        task_group['id'] = task_group_id_map[task_group['id']]
-        task_group['group_dependencies'] = [
-            task_group_id_map.get(dep_id, dep_id)
-            for dep_id in task_group.get('group_dependencies', [])
-        ]
-
-        for task in task_group.get('tasks', []):
-            task['id'] = task_id_map[task['id']]
-            task['task_dependencies'] = [
-                task_id_map.get(dep_id, dep_id) for dep_id in task.get('task_dependencies', [])
-            ]
-
-        for objective in task_group.get('objectives') or []:
-            objective['id'] = str(uuid.uuid4())
-
-    for objective in data.get('objectives') or []:
-        objective['id'] = str(uuid.uuid4())
-
-    return data
-
-
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_full_campaign_loop_with_websocket(
@@ -86,7 +43,9 @@ async def test_full_campaign_loop_with_websocket(
     base_url = get_orchestrator_url()
     ws_url = get_orchestrator_ws_url()
     api_key = get_api_key()
-    campaign_data = _campaign_with_fresh_ids(load_campaign_json())
+    campaign_data = load_campaign_json()
+    # avoid 409 conflicts by changing the run ID out
+    campaign_data['run_id'] = str(uuid.uuid4())
 
     # Track received events
     received_events: list[dict[str, Any]] = []
@@ -140,7 +99,9 @@ async def test_full_campaign_loop_with_websocket(
         try:
             await asyncio.wait_for(listen_task, timeout=60.0)
         except TimeoutError:
-            pytest.fail('Campaign did not complete within 60 seconds')
+            pytest.fail(
+                f'Campaign did not complete within 60 seconds, got {len(received_events)} events back'
+            )
 
     # Verify we received events
     assert len(received_events) > 0, 'No events received from WebSocket'
@@ -148,12 +109,13 @@ async def test_full_campaign_loop_with_websocket(
     event_types = {event.get('event', {}).get('event_type') for event in received_events}
 
     """NOTE: remove below until next NOTE once the test campaign is submitted succesfully."""
+    """
     assert 'CAMPAIGN_ERROR_FROM_SERVICE' in event_types, (
         f'Expected CAMPAIGN_ERROR_FROM_SERVICE event due to test campaign config. Got: {event_types}'
     )
+    """
 
     """NOTE: replace with BELOW once the test campaign is submitted succesfully."""
-    """
     # Verify campaign completed successfully
     assert campaign_complete, f'Campaign did not complete. Last events: {received_events[-3:]}'
 
@@ -161,4 +123,3 @@ async def test_full_campaign_loop_with_websocket(
     assert 'CAMPAIGN_COMPLETE' in event_types, (
         f'Missing CAMPAIGN_COMPLETE event. Got: {event_types}'
     )
-    """

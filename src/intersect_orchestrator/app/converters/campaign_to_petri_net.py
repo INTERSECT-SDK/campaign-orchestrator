@@ -71,7 +71,7 @@ class CampaignPetriNetConverter:
         self.task_group_map = {tg.id: tg for tg in campaign.task_groups}
 
         # Create the net
-        self.net = PetriNet(f'Campaign_{campaign.id}')
+        self.net = PetriNet(f'Campaign_{campaign.run_id}')
 
         # Validate and build the net
         self._validate_campaign()
@@ -366,11 +366,10 @@ class CampaignPetriNetConverter:
             msg = 'Campaign not set. Call convert() first.'
             raise ValueError(msg) from None
 
+        campaign_id = self.campaign.run_id
         messaging_config: dict[str, dict[str, str]] = {}
 
         for tg_id in self.task_group_map:
-            campaign_id = self.campaign.id
-
             # Config for activation transition
             activate_trans = f'activate_{tg_id}'
             messaging_config[activate_trans] = {
@@ -388,8 +387,8 @@ class CampaignPetriNetConverter:
         # Config for finalize transition
         finalize_trans = self.transition_map['finalize']
         messaging_config[finalize_trans] = {
-            'publish_topic': f'campaign/{self.campaign.id}/finalize',
-            'subscribe_topic': f'campaign/{self.campaign.id}/finalized',
+            'publish_topic': f'campaign/{campaign_id}/finalize',
+            'subscribe_topic': f'campaign/{campaign_id}/finalized',
         }
 
         return messaging_config

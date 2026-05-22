@@ -79,7 +79,12 @@ class Objective(BaseModel):
 
     max_runtime: Annotated[list[MaxRuntime], Field(default_factory=list)]
     threshold: Annotated[
-        list[Annotated[ThresholdUpperLimit | ThresholdRange, Field(discriminator='type')]],
+        list[
+            Annotated[
+                ThresholdUpperLimit | ThresholdRange,
+                Field(discriminator='type'),
+            ]
+        ],
         Field(default_factory=list),
     ]
 
@@ -255,7 +260,8 @@ class Campaign(BaseModel):
     """Main campaign model.
 
     Attributes:
-        id: The ID of the campaign.
+        id: The ID of the campaign, relevant to the client
+        run_id: The ID of the campaign's RUN, relevant to the orchestrator itself.
         name: The name of the campaign.
         user: The user of the campaign.
         description: The description of the campaign.
@@ -266,7 +272,12 @@ class Campaign(BaseModel):
     """
 
     id: uuid.UUID
-    """The ID of the campaign. This is the primary identifier used to obtain both the campaign and any supplemental data.
+    """The ID of the campaign, used by iHub. This should NEVER be modified by us.
+
+    This ID can potentially be used to determine event (un)subscription.
+    """
+    run_id: uuid.UUID
+    """The ID of the campaign RUN. This is the primary identifier used to obtain both the campaign and any supplemental data.
 
     This ID should be sent across Request/Reply messages. Services should NEVER modify this ID.
     """

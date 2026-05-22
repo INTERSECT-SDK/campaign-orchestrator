@@ -21,6 +21,7 @@ from intersect_orchestrator.app.core.repository import CampaignEvent, InMemoryCa
 def simple_campaign() -> Campaign:
     return Campaign(
         id=uuid4(),
+        run_id=uuid4(),
         name='Repo Campaign',
         user='tester',
         description='Repo campaign description',

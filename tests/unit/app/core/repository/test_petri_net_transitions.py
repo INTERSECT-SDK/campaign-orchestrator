@@ -52,6 +52,7 @@ def simple_campaign() -> Campaign:
     )
     return Campaign(
         id=uuid.uuid4(),
+        run_id=uuid.uuid4(),
         name='test-campaign',
         user='test-user',
         description='Test campaign for petri transitions',
