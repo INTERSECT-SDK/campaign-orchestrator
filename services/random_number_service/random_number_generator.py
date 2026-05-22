@@ -5,11 +5,12 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from intersect_sdk import (
     HierarchyConfig,
     IntersectBaseCapabilityImplementation,
+    IntersectEventDefinition,
     IntersectService,
     IntersectServiceConfig,
     default_intersect_lifecycle_loop,
@@ -79,6 +80,9 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     """Capability class implementation."""
 
     intersect_sdk_capability_name = 'Random_Number_Generator'
+    intersect_sdk_events: ClassVar[dict[str, IntersectEventDefinition]] = {
+        'new_measurement': IntersectEventDefinition(event_type=int),
+    }
 
     def __init__(self) -> None:
         """Constructors are never exposed to INTERSECT."""
@@ -152,6 +156,19 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
             state=self.state,
             success=True,
         )
+
+    @intersect_message()
+    def emit_new_measurement(
+        self,
+        request: Annotated[
+            GenerateRandomNumberRequest,
+            Field(default_factory=GenerateRandomNumberRequest),
+        ],
+    ) -> RandomServiceRandomNumGenCapabilityImplResponse:
+        """Generate and emit a random value as the ``new_measurement`` event."""
+        response = self.generate_random_number(request)
+        self.intersect_sdk_emit_event('new_measurement', response.value)
+        return response
 
     @staticmethod
     def run() -> None:
