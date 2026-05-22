@@ -1,0 +1,71 @@
+{
+  "id": "8f71d3a9-fcac-4ce2-aad8-98a98295d229",
+  "name": "random-number-event-campaign",
+  "user": "system",
+  "description": "Request + event campaign for testing event task handling.",
+  "task_groups": [
+    {
+      "id": "7123c598-6d55-4263-af2e-b685ff49f006",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "e8dca8a9-e249-4bd9-9fdb-7f987f68f95d",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
+          "capability": "Random_Number_Generator",
+          "operation_id": "emit_new_measurement",
+          "event_name": null,
+          "output": null,
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "seed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0
+                },
+                "stream_id": {
+                  "type": "string",
+                  "default": "event-stream"
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "f92abfca-d7b5-4992-8d97-f47ab4cb28ff",
+                "var": "seed"
+              },
+              {
+                "id": "de80fdeb-a02b-45f0-9be6-e653f4f8ecf2",
+                "var": "stream_id"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        },
+        {
+          "id": "f5bbf89a-5738-4d95-b278-e905ecaabd52",
+          "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
+          "capability": "Random_Number_Generator",
+          "operation_id": null,
+          "event_name": "new_measurement",
+          "output": null,
+          "input": null,
+          "task_dependencies": [],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "de83a1f1-40be-4f76-af31-69f3cf572531",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    }
+  ],
+  "objectives": null,
+  "inputs": [],
+  "outputs": []
+}
