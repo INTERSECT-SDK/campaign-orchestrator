@@ -103,7 +103,9 @@ class CoreServiceIntersectClient:
             # Some broker/control-plane configurations can route event traffic
             # through this callback. Detect event headers and forward them.
             if 'event_name' in headers and 'capability_name' in headers:
-                self.campaign_orchestrator.handle_event_broker_message(message, content_type, headers)
+                self.campaign_orchestrator.handle_event_broker_message(
+                    message, content_type, headers
+                )
             else:
                 self.campaign_orchestrator.handle_request_reply_broker_message(
                     message, content_type, headers
@@ -126,9 +128,7 @@ class CoreServiceIntersectClient:
         event_name: str,
     ) -> None:
         """Subscribe orchestrator to a specific service event channel."""
-        channel = (
-            f'{service_hierarchy.replace(".", "/")}/events/{capability_name}/{event_name}'
-        )
+        channel = f'{service_hierarchy.replace(".", "/")}/events/{capability_name}/{event_name}'
         if channel in self._event_subscription_channels:
             return
 

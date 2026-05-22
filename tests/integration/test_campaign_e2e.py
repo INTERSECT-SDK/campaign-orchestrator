@@ -23,13 +23,13 @@ class TestCampaignE2E:
         self, check_broker_available: None, intersect_client_with_cleanup
     ) -> None:
         """Test that submitting a campaign creates state and Petri Net using real broker."""
-        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (  # noqa: PLC0415
             Campaign,
         )
-        from intersect_orchestrator.app.core.campaign_orchestrator import (
+        from intersect_orchestrator.app.core.campaign_orchestrator import (  # noqa: PLC0415
             CampaignOrchestrator,
         )
-        from intersect_orchestrator.app.core.repository import (
+        from intersect_orchestrator.app.core.repository import (  # noqa: PLC0415
             InMemoryCampaignRepository,
         )
 
@@ -63,16 +63,16 @@ class TestCampaignE2E:
         self, check_broker_available: None, intersect_client_with_cleanup
     ) -> None:
         """Test that campaign state progresses through execution using real broker."""
-        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (  # noqa: PLC0415
             Campaign,
         )
-        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
+        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (  # noqa: PLC0415
             ExecutionStatus,
         )
-        from intersect_orchestrator.app.core.campaign_orchestrator import (
+        from intersect_orchestrator.app.core.campaign_orchestrator import (  # noqa: PLC0415
             CampaignOrchestrator,
         )
-        from intersect_orchestrator.app.core.repository import (
+        from intersect_orchestrator.app.core.repository import (  # noqa: PLC0415
             InMemoryCampaignRepository,
         )
 
@@ -109,13 +109,13 @@ class TestCampaignE2E:
         self, check_broker_available: None, intersect_client_with_cleanup
     ) -> None:
         """Test that campaign events are properly recorded in repository using real broker."""
-        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+        from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (  # noqa: PLC0415
             Campaign,
         )
-        from intersect_orchestrator.app.core.campaign_orchestrator import (
+        from intersect_orchestrator.app.core.campaign_orchestrator import (  # noqa: PLC0415
             CampaignOrchestrator,
         )
-        from intersect_orchestrator.app.core.repository import (
+        from intersect_orchestrator.app.core.repository import (  # noqa: PLC0415
             InMemoryCampaignRepository,
         )
 

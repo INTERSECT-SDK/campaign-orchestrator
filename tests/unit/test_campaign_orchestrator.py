@@ -39,9 +39,7 @@ class FakeClient:
     def subscribe_to_events(
         self, service_hierarchy: str, capability_name: str, event_name: str
     ) -> None:
-        self.event_subscriptions.append(
-            f'{service_hierarchy}/{capability_name}/{event_name}'
-        )
+        self.event_subscriptions.append(f'{service_hierarchy}/{capability_name}/{event_name}')
 
 
 def _event_types(broadcasts: list[bytes]) -> list[str]:
@@ -82,6 +80,7 @@ def _make_event_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign
     """Create a campaign with a single event-listener task."""
     return Campaign(
         id=campaign_id,
+        run_id=campaign_id,
         name='test-event-campaign',
         user='test-user',
         description='Test campaign for event handling',

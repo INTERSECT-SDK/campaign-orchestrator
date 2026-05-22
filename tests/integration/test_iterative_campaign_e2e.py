@@ -30,6 +30,7 @@ from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 if TYPE_CHECKING:
     import pathlib
 
+
 @pytest.mark.integration
 class TestIterativeCampaignE2E:
     """End-to-end tests for iterative (looping) campaign execution.

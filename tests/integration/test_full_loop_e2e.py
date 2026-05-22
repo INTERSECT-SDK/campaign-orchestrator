@@ -12,19 +12,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from typing import Any
 
 import httpx
 import pytest
 import websockets
 
+from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 from tests.integration.conftest import (
     get_api_key,
     get_orchestrator_url,
     get_orchestrator_ws_url,
     load_campaign_json,
 )
-from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 
 
 @pytest.mark.integration
@@ -43,7 +44,7 @@ async def test_full_campaign_loop_with_websocket(
     base_url = get_orchestrator_url()
     ws_url = get_orchestrator_ws_url()
     api_key = get_api_key()
-    campaign_data = load_campaign_json()
+    campaign_data = campaign_with_fresh_ids(load_campaign_json())
     # avoid 409 conflicts by changing the run ID out
     campaign_data['run_id'] = str(uuid.uuid4())
 

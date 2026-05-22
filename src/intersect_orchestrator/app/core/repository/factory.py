@@ -29,7 +29,7 @@ def create_campaign_repository(settings: Any) -> CampaignRepository:
         return InMemoryCampaignRepository()
 
     if backend == 'mongo':
-        mongo_client, _ = require_pymongo()
+        mongo_client = require_pymongo()[0]
         uri = getattr(settings, 'CAMPAIGN_REPOSITORY_MONGO_URI', 'mongodb://localhost:27017')
         db_name = getattr(settings, 'CAMPAIGN_REPOSITORY_MONGO_DB', 'intersect_orchestrator')
         client = mongo_client(uri)
@@ -44,7 +44,7 @@ def create_campaign_repository(settings: Any) -> CampaignRepository:
         )
         psycopg = sys.modules.get('psycopg')
         if psycopg is None:
-            import psycopg
+            import psycopg  # noqa: PLC0415
 
             psycopg = sys.modules.get('psycopg')
         connection = psycopg.connect(dsn)
