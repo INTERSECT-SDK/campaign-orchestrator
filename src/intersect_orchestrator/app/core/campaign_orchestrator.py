@@ -9,6 +9,9 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from intersect_sdk_common import IntersectDataHandler
+from intersect_sdk_common.control_plane.messages.event import (
+    validate_event_message_headers,
+)
 from intersect_sdk_common.control_plane.messages.userspace import (
     create_userspace_message_headers,
     validate_userspace_message_headers,
@@ -298,6 +301,77 @@ class CampaignOrchestrator:
 
         self._complete_step(state, node_id, message)
 
+    def handle_event_broker_message(
+        self, message: bytes, content_type: str, raw_headers: dict[str, str]
+    ) -> None:
+        """Process broker callbacks from Event messages to advance event tasks."""
+        del content_type
+
+        try:
+            headers = validate_event_message_headers(raw_headers)
+        except ValidationError as err:
+            logger.warning('Invalid event headers, ignoring event: %s', str(err))
+            return
+
+        matching_steps: list[tuple[CampaignState, uuid.UUID]] = []
+
+        with self._lock:
+            active_states = list(self._campaigns.values())
+
+        for state in active_states:
+            if state.current_group_index >= len(state.task_group_executions):
+                continue
+
+            execution = state.task_group_executions[state.current_group_index]
+            if not execution.active_tasks:
+                continue
+
+            for task_id in list(execution.active_tasks):
+                task = self._get_task_from_campaign(state.campaign, task_id)
+                if task is None or task.event_name is None:
+                    continue
+
+                if (
+                    task.hierarchy == headers.source
+                    and task.capability == headers.capability_name
+                    and task.event_name == headers.event_name
+                ):
+                    matching_steps.append((state, task_id))
+
+        if not matching_steps:
+            logger.debug(
+                'No active event task matched source=%s capability=%s event_name=%s',
+                headers.source,
+                headers.capability_name,
+                headers.event_name,
+            )
+            return
+
+        for state, task_id in matching_steps:
+            current_state = self._get_state_for_campaign_alias(state.campaign_id)
+            if current_state is None:
+                continue
+
+            if current_state.current_group_index >= len(current_state.task_group_executions):
+                continue
+
+            execution = current_state.task_group_executions[current_state.current_group_index]
+            if task_id not in execution.active_tasks:
+                continue
+
+            self._record_task_event(
+                campaign_id=current_state.campaign_id,
+                task_group_id=execution.task_group_id,
+                task_id=task_id,
+                event_type='TASK_EVENT_RECEIVED',
+                payload={
+                    'source': headers.source,
+                    'capability_name': headers.capability_name,
+                    'event_name': headers.event_name,
+                },
+            )
+            self._complete_step(current_state, task_id, message)
+
     def _handle_request_reply_service_error(
         self,
         state: CampaignState,
@@ -557,8 +631,16 @@ class CampaignOrchestrator:
         return json.dumps(payload).encode('utf-8')
 
     def _dispatch_event(self, state: CampaignState, task: Task) -> None:
-        # TODO - will want to subscribe and unsubscribe from events as necessary, if no campaigns need to subscribe to a service then unsubscribe
-        pass
+        # TODO - unsubscribe when no active campaigns depend on this service.
+        try:
+            self._client.subscribe_to_events(task.hierarchy)
+        except Exception as err:  # noqa: BLE001
+            msg = (
+                f'Failed to subscribe to events for task {task.id} '
+                f'({task.hierarchy}): {err}'
+            )
+            logger.exception(msg)
+            self._handle_dispatch_error(state, msg)
 
     def _handle_dispatch_error(self, state: CampaignState, error_message: str) -> None:
         self._emit_event(

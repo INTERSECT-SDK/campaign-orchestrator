@@ -43,6 +43,7 @@ class CoreServiceIntersectClient:
     def __init__(self, settings: Settings) -> None:
         self.http_connections: set[Queue[bytes]] = set()
         self.campaign_orchestrator: CampaignOrchestrator | None = None
+        self._event_subscription_channels: set[str] = set()
         """
         self.message_validator: TypeAdapter[EventMessage | LifecycleMessage | UserspaceMessage] = (
             TypeAdapter(EventMessage | LifecycleMessage | UserspaceMessage)
@@ -104,6 +105,27 @@ class CoreServiceIntersectClient:
 
         for connection in self.http_connections:
             connection.put_nowait(message)
+
+    def _handle_event_message(
+        self, message: bytes, content_type: str, headers: dict[str, str]
+    ) -> None:
+        """Broker callback for service event messages."""
+        if self.campaign_orchestrator is not None:
+            self.campaign_orchestrator.handle_event_broker_message(message, content_type, headers)
+
+    def subscribe_to_events(self, service_hierarchy: str) -> None:
+        """Subscribe orchestrator to event channel for a service hierarchy."""
+        channel = f'{service_hierarchy.replace(".", "/")}/events'
+        if channel in self._event_subscription_channels:
+            return
+
+        self.control_plane_manager.add_subscription_channel(
+            channel,
+            {self._handle_event_message},
+            True,
+            RESERVED_QUEUE_NAME,
+        )
+        self._event_subscription_channels.add(channel)
 
     def set_campaign_orchestrator(self, orchestrator: CampaignOrchestrator) -> None:
         """Assign the campaign orchestrator for broker callbacks."""

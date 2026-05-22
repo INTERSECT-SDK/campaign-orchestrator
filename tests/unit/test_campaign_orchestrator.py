@@ -31,9 +31,13 @@ class FakeClient:
         self.control_plane_manager = FakeControlPlaneManager()
         self.broadcasts: list[bytes] = []
         self.orchestrator_base_topic = 'test/orchestrator'
+        self.event_subscriptions: list[str] = []
 
     def broadcast_message(self, message: bytes) -> None:
         self.broadcasts.append(message)
+
+    def subscribe_to_events(self, service_hierarchy: str) -> None:
+        self.event_subscriptions.append(service_hierarchy)
 
 
 def _event_types(broadcasts: list[bytes]) -> list[str]:
@@ -57,6 +61,35 @@ def _make_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
                         'hierarchy': 'org.fac.system.subsystem.service',
                         'capability': 'test-capability',
                         'operation_id': 'test-operation',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+
+def _make_event_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
+    """Create a campaign with a single event-listener task."""
+    return Campaign(
+        id=campaign_id,
+        name='test-event-campaign',
+        user='test-user',
+        description='Test campaign for event handling',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'Random_Number_Generator',
+                        'event_name': 'new_measurement',
                         'output': None,
                         'input': None,
                         'task_dependencies': [],
@@ -156,6 +189,50 @@ def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
         'seed': 7,
         'stream_id': 'x',
     }
+
+
+def test_dispatch_event_subscribes_to_service_events() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_event_campaign(campaign_id, step_id)
+
+    orchestrator.submit_campaign(campaign)
+
+    assert client.event_subscriptions == ['org.fac.system.subsystem.service']
+
+
+def test_handle_event_broker_message_completes_event_task() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_event_campaign(campaign_id, step_id)
+
+    orchestrator.submit_campaign(campaign)
+
+    orchestrator.handle_event_broker_message(
+        b'{"value": 42}',
+        'application/json',
+        {
+            'message_id': str(uuid.uuid4()),
+            'source': 'org.fac.system.subsystem.service',
+            'created_at': '2024-01-01T00:00:00Z',
+            'sdk_version': '0.0.1',
+            'data_handler': 'MESSAGE',
+            'capability_name': 'Random_Number_Generator',
+            'event_name': 'new_measurement',
+        },
+    )
+
+    assert _event_types(client.broadcasts) == [
+        'STEP_START',
+        'STEP_COMPLETE',
+        'CAMPAIGN_COMPLETE',
+    ]
 
 
 def test_handle_broker_message_emits_error() -> None:
