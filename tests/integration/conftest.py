@@ -198,6 +198,12 @@ def iterative_campaign_file() -> pathlib.Path:
 
 
 @pytest.fixture(scope='module')
+def event_campaign_file() -> pathlib.Path:
+    """Path to request+event campaign JSON used by integration tests."""
+    return TEST_DATA_DIR / 'campaign' / 'random-number-event-campaign.campaign.json'
+
+
+@pytest.fixture(scope='module')
 def expected_events_file() -> pathlib.Path:
     """Path to expected iterative event sequence contract file."""
     return TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
@@ -207,6 +213,13 @@ def expected_events_file() -> pathlib.Path:
 def iterative_campaign_json(iterative_campaign_file: pathlib.Path) -> dict[str, Any]:
     """Load iterative campaign payload from test data."""
     with iterative_campaign_file.open() as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def event_campaign_json(event_campaign_file: pathlib.Path) -> dict[str, Any]:
+    """Load request+event campaign payload from test data."""
+    with event_campaign_file.open() as f:
         return json.load(f)
 
 

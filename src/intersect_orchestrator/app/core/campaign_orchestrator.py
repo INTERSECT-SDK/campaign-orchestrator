@@ -313,6 +313,14 @@ class CampaignOrchestrator:
             logger.warning('Invalid event headers, ignoring event: %s', str(err))
             return
 
+        normalized_source = headers.source.replace('/', '.')
+        logger.info(
+            'received event message source=%s capability=%s event_name=%s',
+            headers.source,
+            headers.capability_name,
+            headers.event_name,
+        )
+
         matching_steps: list[tuple[CampaignState, uuid.UUID]] = []
 
         with self._lock:
@@ -332,14 +340,14 @@ class CampaignOrchestrator:
                     continue
 
                 if (
-                    task.hierarchy == headers.source
+                    task.hierarchy == normalized_source
                     and task.capability == headers.capability_name
                     and task.event_name == headers.event_name
                 ):
                     matching_steps.append((state, task_id))
 
         if not matching_steps:
-            logger.debug(
+            logger.info(
                 'No active event task matched source=%s capability=%s event_name=%s',
                 headers.source,
                 headers.capability_name,
@@ -556,6 +564,8 @@ class CampaignOrchestrator:
         """Dispatch all currently active tasks in the task group."""
         execution = state.task_group_executions[state.current_group_index]
 
+        tasks: list[Task] = []
+
         for task_id in list(execution.active_tasks):
             task = self._get_task_from_campaign(state.campaign, task_id)
             if task is None:
@@ -566,11 +576,18 @@ class CampaignOrchestrator:
                 self._handle_dispatch_error(state, msg)
                 return
 
+            tasks.append(task)
+
+        # Ensure event listeners are subscribed before request tasks publish messages.
+        # This avoids dropping fast events emitted by request tasks in the same group.
+        for task in tasks:
+            if task.event_name is not None:
+                self._dispatch_event(state, task)
+
+        for task in tasks:
             # exactly one of operation_id or event_name should be defined, validation should occur on the model
             if task.operation_id is not None:
                 self._dispatch_request(state, task)
-            else:
-                self._dispatch_event(state, task)
 
     def _dispatch_request(self, state: CampaignState, task: Task) -> None:
         hierarchy = task.hierarchy
@@ -632,12 +649,21 @@ class CampaignOrchestrator:
 
     def _dispatch_event(self, state: CampaignState, task: Task) -> None:
         # TODO - unsubscribe when no active campaigns depend on this service.
+        if task.event_name is None:
+            msg = f'Event task {task.id} missing event_name'
+            self._handle_dispatch_error(state, msg)
+            return
+
         try:
-            self._client.subscribe_to_events(task.hierarchy)
+            self._client.subscribe_to_events(
+                task.hierarchy,
+                task.capability,
+                task.event_name,
+            )
         except Exception as err:  # noqa: BLE001
             msg = (
                 f'Failed to subscribe to events for task {task.id} '
-                f'({task.hierarchy}): {err}'
+                f'({task.hierarchy}/{task.capability}/{task.event_name}): {err}'
             )
             logger.exception(msg)
             self._handle_dispatch_error(state, msg)

@@ -60,7 +60,23 @@ def test_reset_restores_deterministic_stream() -> None:
     assert [first_after_reset, second_after_reset] == [50, 98]
 
 
-def test_emit_new_measurement_emits_intersect_event() -> None:
+def test_start_measurement_emits_intersect_event() -> None:
+    service = RandomServiceRandomNumGenCapabilityImpl()
+    emitted: list[tuple[str, int]] = []
+
+    def _capture(event_name: str, event_value: int) -> None:
+        emitted.append((event_name, event_value))
+
+    service.intersect_sdk_emit_event = _capture  # type: ignore[method-assign]
+
+    response = service.start_measurement(
+        GenerateRandomNumberRequest(seed=0, stream_id='event-stream')
+    )
+
+    assert emitted == [('newMeasurement', response.value)]
+
+
+def test_emit_new_measurement_requires_start_measurement() -> None:
     service = RandomServiceRandomNumGenCapabilityImpl()
     emitted: list[tuple[str, int]] = []
 
@@ -73,4 +89,5 @@ def test_emit_new_measurement_emits_intersect_event() -> None:
         GenerateRandomNumberRequest(seed=0, stream_id='event-stream')
     )
 
-    assert emitted == [('new_measurement', response.value)]
+    assert response.success is False
+    assert emitted == []

@@ -7,7 +7,7 @@ places:
   - Complete
 
 transitions:
-  - name: Random_Number_Generator
+  - name: RandomNumberGenerator
     inputs: [Ready]
     outputs: [Generated]
     publish_topic: "random/generate/start"

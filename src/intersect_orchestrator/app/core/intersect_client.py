@@ -30,6 +30,7 @@ _log = logging.getLogger(__name__)
 
 
 RESERVED_QUEUE_NAME = 'intersect-orchestrator'
+EVENT_QUEUE_NAME = 'intersect-orchestrator-events'
 
 
 class CoreServiceIntersectClient:
@@ -99,9 +100,14 @@ class CoreServiceIntersectClient:
         # (this will eventually be managed by checking the message's Content-Type)
 
         if self.campaign_orchestrator is not None:
-            self.campaign_orchestrator.handle_request_reply_broker_message(
-                message, content_type, headers
-            )
+            # Some broker/control-plane configurations can route event traffic
+            # through this callback. Detect event headers and forward them.
+            if 'event_name' in headers and 'capability_name' in headers:
+                self.campaign_orchestrator.handle_event_broker_message(message, content_type, headers)
+            else:
+                self.campaign_orchestrator.handle_request_reply_broker_message(
+                    message, content_type, headers
+                )
 
         for connection in self.http_connections:
             connection.put_nowait(message)
@@ -113,9 +119,16 @@ class CoreServiceIntersectClient:
         if self.campaign_orchestrator is not None:
             self.campaign_orchestrator.handle_event_broker_message(message, content_type, headers)
 
-    def subscribe_to_events(self, service_hierarchy: str) -> None:
-        """Subscribe orchestrator to event channel for a service hierarchy."""
-        channel = f'{service_hierarchy.replace(".", "/")}/events'
+    def subscribe_to_events(
+        self,
+        service_hierarchy: str,
+        capability_name: str,
+        event_name: str,
+    ) -> None:
+        """Subscribe orchestrator to a specific service event channel."""
+        channel = (
+            f'{service_hierarchy.replace(".", "/")}/events/{capability_name}/{event_name}'
+        )
         if channel in self._event_subscription_channels:
             return
 
@@ -123,7 +136,7 @@ class CoreServiceIntersectClient:
             channel,
             {self._handle_event_message},
             True,
-            RESERVED_QUEUE_NAME,
+            EVENT_QUEUE_NAME,
         )
         self._event_subscription_channels.add(channel)
 

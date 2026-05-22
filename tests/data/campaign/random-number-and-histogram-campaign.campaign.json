@@ -12,7 +12,7 @@
         {
           "id": "754bfbb8-2b81-422b-9906-2b291ac77a33",
           "hierarchy": "capability",
-          "capability": "Random_Number_Generator",
+          "capability": "RandomNumberGenerator",
           "operation_id": "generate_random_number",
           "event_name": null,
           "output": {

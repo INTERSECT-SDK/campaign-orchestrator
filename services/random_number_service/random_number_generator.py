@@ -3,6 +3,7 @@
 import logging
 import os
 import random
+import threading
 import time
 from dataclasses import dataclass
 from typing import Annotated, ClassVar
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_RANDOM_SEED = 0
+MEASUREMENT_INTERVAL_SECONDS = 0.2
 
 
 class RandomServiceRandomNumGenCapabilityImplState(BaseModel):
@@ -32,6 +34,10 @@ class RandomServiceRandomNumGenCapabilityImplState(BaseModel):
         dict[str, list[int]],
         Field(description='Generated numbers keyed by logical stream id.'),
     ] = Field(default_factory=dict)
+    active_measurement_streams: Annotated[
+        list[str],
+        Field(description='Stream IDs that will emit newMeasurement events.'),
+    ] = Field(default_factory=list)
 
 
 @dataclass
@@ -79,9 +85,9 @@ class GenerateRandomNumberRequest(BaseModel):
 class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementation):
     """Capability class implementation."""
 
-    intersect_sdk_capability_name = 'Random_Number_Generator'
+    intersect_sdk_capability_name = 'RandomNumberGenerator'
     intersect_sdk_events: ClassVar[dict[str, IntersectEventDefinition]] = {
-        'new_measurement': IntersectEventDefinition(event_type=int),
+        'newMeasurement': IntersectEventDefinition(event_type=int),
     }
 
     def __init__(self) -> None:
@@ -90,12 +96,21 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         self.state = RandomServiceRandomNumGenCapabilityImplState()
         self._rng_by_stream: dict[str, random.Random] = {}
         self._stream_seed_initialized: set[str] = set()
+        self._measurement_streams_started: set[str] = set()
+        self._measurement_stop_events: dict[str, threading.Event] = {}
+        self._measurement_threads: dict[str, threading.Thread] = {}
 
     @intersect_status()
     def status(self) -> RandomServiceRandomNumGenCapabilityImplState:
         """Return status of current state."""
         logger.info('Status requested, current state: %s', self.state)
         return self.state
+
+    def _stream_worker(self, stream_id: str) -> None:
+        """Continuously emit measurements while a stream is active."""
+        stop_event = self._measurement_stop_events[stream_id]
+        while not stop_event.wait(MEASUREMENT_INTERVAL_SECONDS):
+            self.generate_random_number(GenerateRandomNumberRequest(stream_id=stream_id))
 
     @intersect_message()
     def generate_random_number(
@@ -132,6 +147,10 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         # Update state
         self.state.streams.setdefault(stream_id, []).append(random_int)
 
+        if stream_id in self._measurement_streams_started:
+            logger.info('Emitting newMeasurement event for stream %s value %s', stream_id, random_int)
+            self.intersect_sdk_emit_event('newMeasurement', random_int)
+
         logger.info('Generated random number: %s for stream %s', random_int, stream_id)
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
@@ -147,8 +166,14 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         logger.warning('reset called')
 
         self.state.streams = {}
+        self.state.active_measurement_streams = []
         self._rng_by_stream = {}
         self._stream_seed_initialized = set()
+        self._measurement_streams_started = set()
+        for stop_event in self._measurement_stop_events.values():
+            stop_event.set()
+        self._measurement_stop_events = {}
+        self._measurement_threads = {}
 
         return RandomServiceRandomNumGenCapabilityImplResponse(
             stream_id='default',
@@ -158,6 +183,32 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         )
 
     @intersect_message()
+    def start_measurement(
+        self,
+        request: Annotated[
+            GenerateRandomNumberRequest,
+            Field(default_factory=GenerateRandomNumberRequest),
+        ],
+    ) -> RandomServiceRandomNumGenCapabilityImplResponse:
+        """Activate stream emissions and emit the first measurement immediately."""
+        stream_id = request.stream_id
+        if stream_id not in self._measurement_streams_started:
+            self._measurement_streams_started.add(stream_id)
+            stop_event = threading.Event()
+            self._measurement_stop_events[stream_id] = stop_event
+            worker = threading.Thread(
+                target=self._stream_worker,
+                args=(stream_id,),
+                daemon=True,
+                name=f'measurement-stream-{stream_id}',
+            )
+            self._measurement_threads[stream_id] = worker
+            worker.start()
+
+        self.state.active_measurement_streams = sorted(self._measurement_streams_started)
+        return self.generate_random_number(request)
+
+    @intersect_message()
     def emit_new_measurement(
         self,
         request: Annotated[
@@ -165,10 +216,20 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
             Field(default_factory=GenerateRandomNumberRequest),
         ],
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
-        """Generate and emit a random value as the ``new_measurement`` event."""
-        response = self.generate_random_number(request)
-        self.intersect_sdk_emit_event('new_measurement', response.value)
-        return response
+        """Emit one measurement when stream output has been activated."""
+        stream_id = request.stream_id
+        if stream_id not in self._measurement_streams_started:
+            logger.warning(
+                'emit_new_measurement called before start_measurement for stream %s', stream_id
+            )
+            return RandomServiceRandomNumGenCapabilityImplResponse(
+                stream_id=stream_id,
+                value=0,
+                state=self.state,
+                success=False,
+            )
+
+        return self.generate_random_number(request)
 
     @staticmethod
     def run() -> None:
