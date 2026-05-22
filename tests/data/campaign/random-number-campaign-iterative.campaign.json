@@ -12,7 +12,7 @@
         {
           "id": "ed2b47e0-c4bd-4c94-bfe9-235c0489304d",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
-          "capability": "Random_Number_Generator",
+          "capability": "RandomNumberGenerator",
           "operation_id": "generate_random_number",
           "event_name": null,
           "output": {
@@ -66,7 +66,7 @@
         {
           "id": "0434b32a-f7c9-4a10-908a-aff0b5daa696",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
-          "capability": "Random_Number_Generator",
+          "capability": "RandomNumberGenerator",
           "operation_id": "generate_random_number",
           "event_name": null,
           "output": {

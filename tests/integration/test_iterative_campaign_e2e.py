@@ -25,32 +25,10 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
 )
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
+from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 
 if TYPE_CHECKING:
     import pathlib
-
-
-def _campaign_with_fresh_ids(campaign_data: dict) -> dict:
-    """Return a deep-copied campaign payload with fresh IDs.
-
-    This prevents stale broker replies from prior tests (with old request/campaign IDs)
-    from colliding with the current test run when using the shared fixed queue.
-    """
-    data = json.loads(json.dumps(campaign_data))
-    data['id'] = str(uuid.uuid4())
-
-    for task_group in data.get('task_groups', []):
-        task_group['id'] = str(uuid.uuid4())
-        for task in task_group.get('tasks', []):
-            task['id'] = str(uuid.uuid4())
-        for objective in task_group.get('objectives') or []:
-            objective['id'] = str(uuid.uuid4())
-
-    for objective in data.get('objectives') or []:
-        objective['id'] = str(uuid.uuid4())
-
-    return data
-
 
 @pytest.mark.integration
 class TestIterativeCampaignE2E:
@@ -67,7 +45,7 @@ class TestIterativeCampaignE2E:
         iterative_campaign_json: dict,
     ) -> None:
         """Submitting the iterative campaign should create state, Petri net, and initial events."""
-        campaign_data = _campaign_with_fresh_ids(iterative_campaign_json)
+        campaign_data = campaign_with_fresh_ids(iterative_campaign_json)
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -111,7 +89,7 @@ class TestIterativeCampaignE2E:
         * ``RANDOM_NUMBER_SERVICE_AVAILABLE`` is not set (service not present), or
         * a competing orchestrator service is subscribed to the same queue.
         """
-        campaign_data = _campaign_with_fresh_ids(iterative_campaign_json)
+        campaign_data = campaign_with_fresh_ids(iterative_campaign_json)
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()

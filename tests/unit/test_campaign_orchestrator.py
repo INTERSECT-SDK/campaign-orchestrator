@@ -36,8 +36,12 @@ class FakeClient:
     def broadcast_message(self, message: bytes) -> None:
         self.broadcasts.append(message)
 
-    def subscribe_to_events(self, service_hierarchy: str) -> None:
-        self.event_subscriptions.append(service_hierarchy)
+    def subscribe_to_events(
+        self, service_hierarchy: str, capability_name: str, event_name: str
+    ) -> None:
+        self.event_subscriptions.append(
+            f'{service_hierarchy}/{capability_name}/{event_name}'
+        )
 
 
 def _event_types(broadcasts: list[bytes]) -> list[str]:
@@ -88,8 +92,8 @@ def _make_event_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign
                     {
                         'id': str(step_id),
                         'hierarchy': 'org.fac.system.subsystem.service',
-                        'capability': 'Random_Number_Generator',
-                        'event_name': 'new_measurement',
+                        'capability': 'RandomNumberGenerator',
+                        'event_name': 'newMeasurement',
                         'output': None,
                         'input': None,
                         'task_dependencies': [],
@@ -155,7 +159,7 @@ def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
                     {
                         'id': str(step_id),
                         'hierarchy': 'org.fac.system.subsystem.service',
-                        'capability': 'Random_Number_Generator',
+                        'capability': 'RandomNumberGenerator',
                         'operation_id': 'generate_random_number',
                         'output': None,
                         'input': {
@@ -201,7 +205,9 @@ def test_dispatch_event_subscribes_to_service_events() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    assert client.event_subscriptions == ['org.fac.system.subsystem.service']
+    assert client.event_subscriptions == [
+        'org.fac.system.subsystem.service/RandomNumberGenerator/newMeasurement'
+    ]
 
 
 def test_handle_event_broker_message_completes_event_task() -> None:
@@ -223,8 +229,8 @@ def test_handle_event_broker_message_completes_event_task() -> None:
             'created_at': '2024-01-01T00:00:00Z',
             'sdk_version': '0.0.1',
             'data_handler': 'MESSAGE',
-            'capability_name': 'Random_Number_Generator',
-            'event_name': 'new_measurement',
+            'capability_name': 'RandomNumberGenerator',
+            'event_name': 'newMeasurement',
         },
     )
 

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import uuid
 from typing import Any
 
 import httpx
@@ -25,6 +24,7 @@ from tests.integration.conftest import (
     get_orchestrator_ws_url,
     load_campaign_json,
 )
+from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 
 
 @pytest.mark.integration

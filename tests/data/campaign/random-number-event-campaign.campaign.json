@@ -11,8 +11,8 @@
         {
           "id": "e8dca8a9-e249-4bd9-9fdb-7f987f68f95d",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
-          "capability": "Random_Number_Generator",
-          "operation_id": "emit_new_measurement",
+          "capability": "RandomNumberGenerator",
+          "operation_id": "start_measurement",
           "event_name": null,
           "output": null,
           "input": {
@@ -47,9 +47,9 @@
         {
           "id": "f5bbf89a-5738-4d95-b278-e905ecaabd52",
           "hierarchy": "random-organization.random-facility.random-system.random-subsystem.random-service",
-          "capability": "Random_Number_Generator",
+          "capability": "RandomNumberGenerator",
           "operation_id": null,
-          "event_name": "new_measurement",
+          "event_name": "newMeasurement",
           "output": null,
           "input": null,
           "task_dependencies": [],
