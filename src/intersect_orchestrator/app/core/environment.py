@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     )
     """PostgreSQL DSN for campaign storage."""
 
-    MINIO_URI: HttpUrl = 'http://localhost:9000'
+    MINIO_URI: HttpUrl = 'http://localhost:9000'  # type: ignore[assignment]  # known problem with mypy
     """(should include port)"""
     MINIO_USERNAME: str = 'minioadmin'
     MINIO_PASSWORD: str = 'minioadmin'  # noqa: S105

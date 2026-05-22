@@ -7,6 +7,7 @@ import pytest
 
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
+from intersect_orchestrator.app.core.objective_checkers import IterateChecker
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
 
 
@@ -43,6 +44,7 @@ def _make_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign:
     """Create a test Campaign with a single task."""
     return Campaign(
         id=campaign_id,
+        run_id=campaign_id,
         name='test-campaign',
         user='test-user',
         description='Test campaign for orchestrator',
@@ -109,6 +111,7 @@ def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
     step_id = uuid.uuid4()
     campaign = Campaign(
         id=campaign_id,
+        run_id=campaign_id,
         name='test-campaign',
         user='test-user',
         description='Test campaign for request payload defaults',
@@ -534,6 +537,7 @@ def _make_iterative_campaign(
     """Create a campaign with parallel tasks and an ObjectiveIterate objective."""
     return Campaign(
         id=campaign_id,
+        run_id=campaign_id,
         name='iterative-campaign',
         user='test-user',
         description='Iterative campaign for orchestrator tests',
@@ -582,8 +586,6 @@ def _reply_headers(campaign_id: uuid.UUID, step_id: uuid.UUID) -> dict[str, str]
 
 def test_build_task_group_executions_with_iterate() -> None:
     """_build_task_group_executions should create IterateChecker from ObjectiveIterate."""
-    from intersect_orchestrator.app.core.objective_checkers import IterateChecker
-
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
 

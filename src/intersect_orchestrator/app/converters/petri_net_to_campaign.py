@@ -75,6 +75,7 @@ class PetriNetToCampaignConverter:
         # Reconstruct the campaign
         campaign = Campaign(
             id=original_campaign.id,
+            run_id=original_campaign.run_id,
             name=original_campaign.name,
             user=original_campaign.user,
             description=original_campaign.description,
@@ -120,6 +121,9 @@ class PetriNetToCampaignConverter:
         Returns:
             List of reconstructed TaskGroup objects
         """
+        if not self.original_campaign:
+            return []
+
         task_groups = []
 
         for original_tg in self.original_campaign.task_groups:

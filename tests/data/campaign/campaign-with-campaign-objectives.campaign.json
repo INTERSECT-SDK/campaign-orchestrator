@@ -1,5 +1,6 @@
 {
   "id": "6285f1bd-da63-4fb4-ae07-268badc6681d",
+  "run_id": "6285f1bd-da63-4fb4-ae07-268badc6681e",
   "name": "Time-Limited Campaign Objectives",
   "user": "researcher",
   "description": "Campaign demonstrating campaign-level objectives like total runtime constraints",

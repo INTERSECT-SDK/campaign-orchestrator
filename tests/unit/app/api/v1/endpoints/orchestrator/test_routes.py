@@ -65,7 +65,7 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
 
         stored_campaign = orchestrator.get_campaign(campaign_uuid)
         assert stored_campaign is not None
-        assert stored_campaign.id == uuid.UUID(payload['id'])
+        assert stored_campaign.run_id == uuid.UUID(payload['run_id'])
 
         stored_state = orchestrator.get_campaign_state(campaign_uuid)
         assert stored_state is not None
@@ -81,10 +81,10 @@ def test_start_campaign_stores_campaign_state_and_petri_net(
         if stored_state.status != ExecutionStatus.COMPLETE:
             # If campaign is still active, Petri Net should be available
             assert petri_net is not None
-            assert petri_net.name == f'Campaign_{payload["id"]}'
+            assert petri_net.name == f'Campaign_{payload["run_id"]}'
         elif petri_net is not None:
             # If campaign completed, Petri Net may have been cleaned up (or not yet)
-            assert petri_net.name == f'Campaign_{payload["id"]}'
+            assert petri_net.name == f'Campaign_{payload["run_id"]}'
 
         # Check that events were recorded in the repository
         repo: CampaignRepository = orchestrator._repository

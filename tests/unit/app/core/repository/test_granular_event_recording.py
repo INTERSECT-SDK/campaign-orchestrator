@@ -51,6 +51,7 @@ def simple_campaign():
     )
     return Campaign(
         id=uuid.uuid4(),
+        run_id=uuid.uuid4(),
         name='Test Campaign',
         user='test_user',
         description='A simple test campaign',

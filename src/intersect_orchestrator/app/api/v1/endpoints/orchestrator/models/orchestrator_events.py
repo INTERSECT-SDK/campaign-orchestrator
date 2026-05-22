@@ -83,6 +83,8 @@ class OrchestratorEvent(BaseModel):
     """Campaigns periodically"""
 
     campaign_id: IntersectCampaignId
-    """this is the ID of the campaign which emitted the event"""
+    """this is the ID of the campaign which emitted the event, ONLY used for iHub lookup purposes"""
+    run_id: IntersectCampaignId
+    """the ID of the run itself"""
     event: OrchestratorEventType = Field(discriminator='event_type')
     """This is the event itself. All event types will have a field named 'event_type' which can be used for assistance in parsing this output."""

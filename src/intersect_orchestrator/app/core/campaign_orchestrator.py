@@ -100,7 +100,8 @@ class TaskGroupExecution:
 
 @dataclass
 class CampaignState:
-    campaign_id: uuid.UUID
+    campaign_run_id: uuid.UUID
+    """the run_id from the Campaign object submitted by clients"""
     campaign: Campaign
     task_group_executions: list[TaskGroupExecution]
     current_group_index: int = 0
@@ -122,7 +123,7 @@ class CampaignOrchestrator:
 
     def submit_campaign(self, campaign: Campaign) -> IntersectCampaignId:
         """Register a campaign and begin execution."""
-        campaign_id = campaign.id
+        campaign_id = campaign.run_id
         executions = self._build_task_group_executions(campaign)
 
         campaign_state = CampaignStateModel.from_campaign(
@@ -136,7 +137,7 @@ class CampaignOrchestrator:
                 err_msg = f'Campaign already registered: {campaign_id}'
                 raise ValueError(err_msg)
             state = CampaignState(
-                campaign_id=campaign_id,
+                campaign_run_id=campaign_id,
                 campaign=campaign,
                 task_group_executions=executions,
             )
@@ -155,11 +156,12 @@ class CampaignOrchestrator:
             return False
 
         self._emit_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign.id,
+            run_id=state.campaign_run_id,
             event=UnknownErrorEvent(exception_message='Campaign cancelled by user'),
         )
         self._record_campaign_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign_run_id,
             event_type='CAMPAIGN_CANCELLED',
             payload={'reason': 'Campaign cancelled by user'},
         )
@@ -323,7 +325,8 @@ class CampaignOrchestrator:
             )
 
         self._emit_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign.id,
+            run_id=state.campaign_run_id,
             event=CampaignErrorFromServiceEvent(
                 step_id=failed_step,
                 service_hierarchy=source,
@@ -331,11 +334,11 @@ class CampaignOrchestrator:
             ),
         )
         self._record_campaign_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign_run_id,
             event_type='CAMPAIGN_ERROR',
             payload={'error': error_message, 'step_id': str(failed_step)},
         )
-        self._remove_campaign(state.campaign_id)
+        self._remove_campaign(state.campaign_run_id)
 
     def _start_next_iteration(self, state: CampaignState) -> None:
         """Start the next iteration of the current task group, or advance to the next group."""
@@ -359,14 +362,14 @@ class CampaignOrchestrator:
                 # Record objective-met events for each objective
                 for checker in execution.objective_checkers:
                     self._record_task_group_event(
-                        campaign_id=state.campaign_id,
+                        campaign_id=state.campaign_run_id,
                         task_group_id=execution.task_group_id,
                         event_type='TASK_GROUP_OBJECTIVE_MET',
                         payload={'objective_id': str(checker.objective_id)},
                     )
                 # Record a single completion event now that all objectives are met
                 self._record_task_group_event(
-                    campaign_id=state.campaign_id,
+                    campaign_id=state.campaign_run_id,
                     task_group_id=execution.task_group_id,
                     event_type='TASK_GROUP_COMPLETED',
                     payload={'reason': 'objectives_met'},
@@ -374,7 +377,7 @@ class CampaignOrchestrator:
             else:
                 # No objectives — just record task group completed
                 self._record_task_group_event(
-                    campaign_id=state.campaign_id,
+                    campaign_id=state.campaign_run_id,
                     task_group_id=execution.task_group_id,
                     event_type='TASK_GROUP_COMPLETED',
                     payload={'reason': 'single_pass'},
@@ -386,14 +389,14 @@ class CampaignOrchestrator:
         if execution.current_iteration == 0 and state.current_group_index == 0:
             # First iteration of first group — emit CAMPAIGN_STARTED
             self._record_campaign_event(
-                campaign_id=state.campaign_id,
+                campaign_id=state.campaign_run_id,
                 event_type='CAMPAIGN_STARTED',
                 payload={'task_group_id': str(execution.task_group_id)},
             )
 
         if execution.current_iteration == 0:
             self._record_task_group_event(
-                campaign_id=state.campaign_id,
+                campaign_id=state.campaign_run_id,
                 task_group_id=execution.task_group_id,
                 event_type='TASK_GROUP_STARTED',
                 payload={'iteration': 0},
@@ -413,7 +416,8 @@ class CampaignOrchestrator:
 
         for task_id in execution.task_ids:
             self._emit_event(
-                campaign_id=state.campaign_id,
+                campaign_id=state.campaign.id,
+                run_id=state.campaign_run_id,
                 event=StepStartEvent(step_id=task_id),
             )
 
@@ -429,11 +433,12 @@ class CampaignOrchestrator:
         execution.iteration_payloads[step_id] = payload
 
         self._emit_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign.id,
+            run_id=state.campaign_run_id,
             event=StepCompleteEvent(step_id=step_id, payload=payload),
         )
         self._record_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign_run_id,
             event_type='STEP_COMPLETE',
             payload={'step_id': str(step_id)},
         )
@@ -451,20 +456,26 @@ class CampaignOrchestrator:
 
     def _finish_campaign(self, state: CampaignState) -> None:
         self._emit_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign.id,
+            run_id=state.campaign_run_id,
             event=CampaignCompleteEvent(),
         )
         self._record_campaign_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign_run_id,
             event_type='CAMPAIGN_COMPLETED',
             payload={},
         )
-        self._remove_campaign(state.campaign_id)
+        self._remove_campaign(state.campaign_run_id)
 
-    def _emit_event(self, campaign_id: IntersectCampaignId, event: OrchestratorEventType) -> None:
+    def _emit_event(
+        self,
+        campaign_id: IntersectCampaignId,
+        run_id: IntersectCampaignId,
+        event: OrchestratorEventType,
+    ) -> None:
         logger.info('emitting event: %s for campaign ID: %s', event.event_type, campaign_id)
         logger.info('EVENT VALUE: %s', event)
-        orchestrator_event = OrchestratorEvent(campaign_id=campaign_id, event=event)
+        orchestrator_event = OrchestratorEvent(campaign_id=campaign_id, run_id=run_id, event=event)
         self._client.broadcast_message(orchestrator_event.model_dump_json().encode('utf-8'))
 
     def _dispatch_active_tasks(self, state: CampaignState) -> None:
@@ -474,7 +485,9 @@ class CampaignOrchestrator:
         for task_id in list(execution.active_tasks):
             task = self._get_task_from_campaign(state.campaign, task_id)
             if task is None:
-                msg = f'No task found for step ID: {task_id} in campaign ID: {state.campaign_id}'
+                msg = (
+                    f'No task found for step ID: {task_id} in campaign ID: {state.campaign_run_id}'
+                )
                 logger.error(msg)
                 self._handle_dispatch_error(state, msg)
                 return
@@ -492,11 +505,11 @@ class CampaignOrchestrator:
             source=self._hierarchy_to_topic(self._client.orchestrator_base_topic),
             destination=hierarchy,
             # make sure _dispatch_request is only called when task.operation_id has been validated to be truthy
-            operation_id=f'{task.capability}.{task.operation_id}',  # type: ignore  # noqa: PGH003
+            operation_id=f'{task.capability}.{task.operation_id}',
             # FIXME be more flexible about this later on
             data_handler=IntersectDataHandler.MESSAGE,
-            campaign_id=state.campaign_id,
-            request_id=task.id,  # type: ignore  # noqa: PGH003
+            campaign_id=state.campaign_run_id,
+            request_id=task.id,
         )
 
         # The request payload is built from task input defaults in campaign JSON.
@@ -549,15 +562,16 @@ class CampaignOrchestrator:
 
     def _handle_dispatch_error(self, state: CampaignState, error_message: str) -> None:
         self._emit_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign.id,
+            run_id=state.campaign_run_id,
             event=UnknownErrorEvent(exception_message=error_message),
         )
         self._record_campaign_event(
-            campaign_id=state.campaign_id,
+            campaign_id=state.campaign_run_id,
             event_type='CAMPAIGN_ERROR',
             payload={'error': error_message},
         )
-        self._remove_campaign(state.campaign_id)
+        self._remove_campaign(state.campaign_run_id)
 
     def _remove_campaign(self, campaign_id: IntersectCampaignId) -> CampaignState | None:
         with self._lock:
