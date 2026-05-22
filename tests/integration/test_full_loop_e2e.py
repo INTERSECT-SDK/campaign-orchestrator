@@ -100,7 +100,7 @@ async def test_full_campaign_loop_with_websocket(
             await asyncio.wait_for(listen_task, timeout=60.0)
         except TimeoutError:
             pytest.fail(
-                f'Campaign did not complete within 60 seconds, got {len(received_events)} events back'
+                f'Campaign did not complete within 60 seconds, got {len(received_events)} events back\n{received_events}'
             )
 
     # Verify we received events
