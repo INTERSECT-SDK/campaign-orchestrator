@@ -192,9 +192,15 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         logger.warning('reset called')
 
         with self._measurement_lock:
-            for stop_event in self._measurement_stop_events.values():
+            stop_events = tuple(self._measurement_stop_events.values())
+            measurement_threads = tuple(self._measurement_threads.values())
+            for stop_event in stop_events:
                 stop_event.set()
 
+        for worker in measurement_threads:
+            worker.join(timeout=MEASUREMENT_INTERVAL_SECONDS)
+
+        with self._measurement_lock:
             self.state.streams = {}
             self.state.active_measurement_streams = []
             self._rng_by_stream = {}
