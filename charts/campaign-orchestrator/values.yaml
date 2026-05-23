@@ -1,0 +1,76 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/intersect-sdk/campaign-orchestrator
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+app:
+  production: true
+  logLevel: INFO
+  baseUrl: ""
+  serverWorkers: 1
+  apiKey: test-api-key-12345678901234567890
+  systemName: campaign-orchestrator-system
+  minio:
+    uri: http://minio:9000
+    username: minioadmin
+    password: minioadmin
+
+broker:
+  host: broker
+  port: 5672
+  protocol: amqp0.9.1
+  username: intersect_username
+  password: intersect_password
+  tlsCert: ""
+
+campaignRepository:
+  backend: memory
+  mongo:
+    image:
+      repository: mongo
+      tag: "7.0"
+      pullPolicy: IfNotPresent
+    auth:
+      rootUsername: intersect
+      rootPassword: intersect
+      database: intersect_orchestrator
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    resources: {}
+  postgres:
+    image:
+      repository: postgres
+      tag: "16"
+      pullPolicy: IfNotPresent
+    auth:
+      username: intersect
+      password: intersect
+      database: intersect_orchestrator
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    resources: {}

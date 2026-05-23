@@ -1,0 +1,78 @@
+{{- if eq .Values.campaignRepository.backend "mongo" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "campaign-orchestrator.mongo.fullname" . }}
+  labels:
+    {{- include "campaign-orchestrator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  serviceName: {{ include "campaign-orchestrator.mongo.serviceName" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "campaign-orchestrator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongodb
+  template:
+    metadata:
+      labels:
+        {{- include "campaign-orchestrator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: "{{ .Values.campaignRepository.mongo.image.repository }}:{{ .Values.campaignRepository.mongo.image.tag }}"
+          imagePullPolicy: {{ .Values.campaignRepository.mongo.image.pullPolicy }}
+          ports:
+            - name: mongo
+              containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: {{ .Values.campaignRepository.mongo.auth.rootUsername | quote }}
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: {{ .Values.campaignRepository.mongo.auth.rootPassword | quote }}
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.campaignRepository.mongo.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+      {{- if not .Values.campaignRepository.mongo.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.campaignRepository.mongo.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- with .Values.campaignRepository.mongo.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.campaignRepository.mongo.persistence.size }}
+  {{- end }}
+{{- end }}
