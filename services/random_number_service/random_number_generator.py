@@ -111,8 +111,8 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Continuously emit measurements while a stream is active."""
         with self._measurement_lock:
             stop_event = self._measurement_stop_events.get(stream_id)
-        if stop_event is None:
-            return
+            if stop_event is None:
+                return
         while not stop_event.wait(MEASUREMENT_INTERVAL_SECONDS):
             self._generate_random_number(
                 GenerateRandomNumberRequest(stream_id=stream_id),
