@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RANDOM_SEED = 0
 MEASUREMENT_INTERVAL_SECONDS = 0.2
+MEASUREMENT_THREAD_JOIN_TIMEOUT_SECONDS = 1.0
 
 
 class RandomServiceRandomNumGenCapabilityImplState(BaseModel):
@@ -198,7 +199,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
                 stop_event.set()
 
         for worker in measurement_threads:
-            worker.join(timeout=MEASUREMENT_INTERVAL_SECONDS)
+            worker.join(timeout=MEASUREMENT_THREAD_JOIN_TIMEOUT_SECONDS)
 
         with self._measurement_lock:
             self.state.streams = {}
