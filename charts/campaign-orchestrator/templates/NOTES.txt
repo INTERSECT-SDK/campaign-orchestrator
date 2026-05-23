@@ -1,0 +1,5 @@
+The campaign orchestrator is available at:
+
+  http://{{ include "campaign-orchestrator.fullname" . }}:{{ .Values.service.port }}
+
+Backend mode: {{ .Values.campaignRepository.backend }}

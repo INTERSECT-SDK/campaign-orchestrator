@@ -1,0 +1,84 @@
+{{- if eq .Values.campaignRepository.backend "postgres" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "campaign-orchestrator.postgres.fullname" . }}
+  labels:
+    {{- include "campaign-orchestrator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: {{ include "campaign-orchestrator.postgres.serviceName" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "campaign-orchestrator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "campaign-orchestrator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: "{{ .Values.campaignRepository.postgres.image.repository }}:{{ .Values.campaignRepository.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.campaignRepository.postgres.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.campaignRepository.postgres.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.campaignRepository.postgres.auth.password | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.campaignRepository.postgres.auth.database | quote }}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.campaignRepository.postgres.auth.username | quote }}
+                - -d
+                - {{ .Values.campaignRepository.postgres.auth.database | quote }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.campaignRepository.postgres.auth.username | quote }}
+                - -d
+                - {{ .Values.campaignRepository.postgres.auth.database | quote }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.campaignRepository.postgres.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      {{- if not .Values.campaignRepository.postgres.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.campaignRepository.postgres.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- with .Values.campaignRepository.postgres.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.campaignRepository.postgres.persistence.size }}
+  {{- end }}
+{{- end }}
