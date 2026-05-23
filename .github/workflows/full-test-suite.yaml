@@ -4,7 +4,23 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ main ]
+    branches: [ '**' ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'services/**'
+      - 'docker-compose.yml'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - '.github/workflows/full-test-suite.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   full-tests:
@@ -104,6 +120,7 @@ jobs:
 
 
   full-tests-docker-compose:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4

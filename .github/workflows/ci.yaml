@@ -2,10 +2,18 @@ name: Code Checks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ '**' ]
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   lint:
