@@ -94,6 +94,7 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
         """Constructors are never exposed to INTERSECT."""
         super().__init__()
         self.state = RandomServiceRandomNumGenCapabilityImplState()
+        self._measurement_lock = threading.RLock()
         self._rng_by_stream: dict[str, random.Random] = {}
         self._stream_seed_initialized: set[str] = set()
         self._measurement_streams_started: set[str] = set()
@@ -108,9 +109,60 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
 
     def _stream_worker(self, stream_id: str) -> None:
         """Continuously emit measurements while a stream is active."""
-        stop_event = self._measurement_stop_events[stream_id]
+        with self._measurement_lock:
+            stop_event = self._measurement_stop_events.get(stream_id)
+        if stop_event is None:
+            return
         while not stop_event.wait(MEASUREMENT_INTERVAL_SECONDS):
-            self.generate_random_number(GenerateRandomNumberRequest(stream_id=stream_id))
+            self._generate_random_number(
+                GenerateRandomNumberRequest(stream_id=stream_id),
+                stop_event=stop_event,
+            )
+
+    def _generate_random_number(
+        self,
+        request: GenerateRandomNumberRequest,
+        *,
+        stop_event: threading.Event | None = None,
+    ) -> RandomServiceRandomNumGenCapabilityImplResponse | None:
+        """Generate a random number while holding the measurement lock."""
+        seed = request.seed
+        stream_id = request.stream_id
+
+        with self._measurement_lock:
+            if stop_event is not None and stop_event.is_set():
+                return None
+
+            if stream_id not in self._rng_by_stream:
+                self._rng_by_stream[stream_id] = random.Random(DEFAULT_RANDOM_SEED)  # noqa: S311
+                self.state.streams.setdefault(stream_id, [])
+
+            rng = self._rng_by_stream[stream_id]
+
+            # Seed is applied only once per stream unless reset(), so each stream
+            # remains deterministic while still advancing across iterations.
+            if seed is not None and stream_id not in self._stream_seed_initialized:
+                rng.seed(seed)
+                self._stream_seed_initialized.add(stream_id)
+
+            random_int = rng.randint(1, 100)
+
+            self.state.streams.setdefault(stream_id, []).append(random_int)
+            should_emit_event = stream_id in self._measurement_streams_started
+
+            response = RandomServiceRandomNumGenCapabilityImplResponse(
+                stream_id=stream_id,
+                value=random_int,
+                state=self.state,
+                success=True,
+            )
+
+        if should_emit_event:
+            logger.info('Emitting newMeasurement event for stream %s value %s', stream_id, random_int)
+            self.intersect_sdk_emit_event('newMeasurement', random_int)
+
+        logger.info('Generated random number: %s for stream %s', random_int, stream_id)
+        return response
 
     @intersect_message()
     def generate_random_number(
@@ -130,57 +182,33 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
             logger.info('Simulating work for %.1f seconds...', delay)
             time.sleep(delay)
 
-        if stream_id not in self._rng_by_stream:
-            self._rng_by_stream[stream_id] = random.Random(DEFAULT_RANDOM_SEED)  # noqa: S311
-            self.state.streams.setdefault(stream_id, [])
-
-        rng = self._rng_by_stream[stream_id]
-
-        # Seed is applied only once per stream unless reset(), so each stream
-        # remains deterministic while still advancing across iterations.
-        if seed is not None and stream_id not in self._stream_seed_initialized:
-            rng.seed(seed)
-            self._stream_seed_initialized.add(stream_id)
-
-        random_int = rng.randint(1, 100)
-
-        # Update state
-        self.state.streams.setdefault(stream_id, []).append(random_int)
-
-        if stream_id in self._measurement_streams_started:
-            logger.info('Emitting newMeasurement event for stream %s value %s', stream_id, random_int)
-            self.intersect_sdk_emit_event('newMeasurement', random_int)
-
-        logger.info('Generated random number: %s for stream %s', random_int, stream_id)
-
-        return RandomServiceRandomNumGenCapabilityImplResponse(
-            stream_id=stream_id,
-            value=random_int,
-            state=self.state,
-            success=True,
-        )
+        response = self._generate_random_number(request)
+        assert response is not None
+        return response
 
     @intersect_message()
     def reset(self) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Reset state."""
         logger.warning('reset called')
 
-        self.state.streams = {}
-        self.state.active_measurement_streams = []
-        self._rng_by_stream = {}
-        self._stream_seed_initialized = set()
-        self._measurement_streams_started = set()
-        for stop_event in self._measurement_stop_events.values():
-            stop_event.set()
-        self._measurement_stop_events = {}
-        self._measurement_threads = {}
+        with self._measurement_lock:
+            for stop_event in self._measurement_stop_events.values():
+                stop_event.set()
 
-        return RandomServiceRandomNumGenCapabilityImplResponse(
-            stream_id='default',
-            value=0,
-            state=self.state,
-            success=True,
-        )
+            self.state.streams = {}
+            self.state.active_measurement_streams = []
+            self._rng_by_stream = {}
+            self._stream_seed_initialized = set()
+            self._measurement_streams_started = set()
+            self._measurement_stop_events = {}
+            self._measurement_threads = {}
+
+            return RandomServiceRandomNumGenCapabilityImplResponse(
+                stream_id='default',
+                value=0,
+                state=self.state,
+                success=True,
+            )
 
     @intersect_message()
     def start_measurement(
@@ -192,21 +220,25 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Activate stream emissions and emit the first measurement immediately."""
         stream_id = request.stream_id
-        if stream_id not in self._measurement_streams_started:
-            self._measurement_streams_started.add(stream_id)
-            stop_event = threading.Event()
-            self._measurement_stop_events[stream_id] = stop_event
-            worker = threading.Thread(
-                target=self._stream_worker,
-                args=(stream_id,),
-                daemon=True,
-                name=f'measurement-stream-{stream_id}',
-            )
-            self._measurement_threads[stream_id] = worker
-            worker.start()
+        with self._measurement_lock:
+            if stream_id not in self._measurement_streams_started:
+                self._measurement_streams_started.add(stream_id)
+                stop_event = threading.Event()
+                self._measurement_stop_events[stream_id] = stop_event
+                worker = threading.Thread(
+                    target=self._stream_worker,
+                    args=(stream_id,),
+                    daemon=True,
+                    name=f'measurement-stream-{stream_id}',
+                )
+                self._measurement_threads[stream_id] = worker
+                worker.start()
 
-        self.state.active_measurement_streams = sorted(self._measurement_streams_started)
-        return self.generate_random_number(request)
+            self.state.active_measurement_streams = sorted(self._measurement_streams_started)
+            response = self._generate_random_number(request)
+
+        assert response is not None
+        return response
 
     @intersect_message()
     def emit_new_measurement(
@@ -218,18 +250,22 @@ class RandomServiceRandomNumGenCapabilityImpl(IntersectBaseCapabilityImplementat
     ) -> RandomServiceRandomNumGenCapabilityImplResponse:
         """Emit one measurement when stream output has been activated."""
         stream_id = request.stream_id
-        if stream_id not in self._measurement_streams_started:
-            logger.warning(
-                'emit_new_measurement called before start_measurement for stream %s', stream_id
-            )
-            return RandomServiceRandomNumGenCapabilityImplResponse(
-                stream_id=stream_id,
-                value=0,
-                state=self.state,
-                success=False,
-            )
+        with self._measurement_lock:
+            if stream_id not in self._measurement_streams_started:
+                logger.warning(
+                    'emit_new_measurement called before start_measurement for stream %s', stream_id
+                )
+                return RandomServiceRandomNumGenCapabilityImplResponse(
+                    stream_id=stream_id,
+                    value=0,
+                    state=self.state,
+                    success=False,
+                )
 
-        return self.generate_random_number(request)
+            response = self._generate_random_number(request)
+
+        assert response is not None
+        return response
 
     @staticmethod
     def run() -> None:
