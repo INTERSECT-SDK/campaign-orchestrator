@@ -25,7 +25,6 @@ from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_st
 )
 from intersect_orchestrator.app.core.campaign_orchestrator import CampaignOrchestrator
 from intersect_orchestrator.app.core.repository import InMemoryCampaignRepository
-from tests.integration.campaign_payload_utils import campaign_with_fresh_ids
 
 if TYPE_CHECKING:
     import pathlib
@@ -46,7 +45,8 @@ class TestIterativeCampaignE2E:
         iterative_campaign_json: dict,
     ) -> None:
         """Submitting the iterative campaign should create state, Petri net, and initial events."""
-        campaign_data = campaign_with_fresh_ids(iterative_campaign_json)
+        campaign_data = json.loads(json.dumps(iterative_campaign_json))
+        campaign_data['run_id'] = str(uuid.uuid4())
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
@@ -90,7 +90,8 @@ class TestIterativeCampaignE2E:
         * ``RANDOM_NUMBER_SERVICE_AVAILABLE`` is not set (service not present), or
         * a competing orchestrator service is subscribed to the same queue.
         """
-        campaign_data = campaign_with_fresh_ids(iterative_campaign_json)
+        campaign_data = json.loads(json.dumps(iterative_campaign_json))
+        campaign_data['run_id'] = str(uuid.uuid4())
         campaign = Campaign(**campaign_data)
 
         repository = InMemoryCampaignRepository()
