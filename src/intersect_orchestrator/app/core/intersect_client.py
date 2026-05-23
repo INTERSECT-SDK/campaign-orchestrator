@@ -128,7 +128,9 @@ class CoreServiceIntersectClient:
         event_name: str,
     ) -> None:
         """Subscribe orchestrator to a specific service event channel."""
-        channel = f'{service_hierarchy.replace(".", "/")}/events/{capability_name}/{event_name}'
+        channel = (
+            f'{self._hierarchy_to_channel(service_hierarchy)}/events/{capability_name}/{event_name}'
+        )
         if channel in self._event_subscription_channels:
             return
 
@@ -139,6 +141,42 @@ class CoreServiceIntersectClient:
             EVENT_QUEUE_NAME,
         )
         self._event_subscription_channels.add(channel)
+
+    def get_orchestrator_hierarchy(self) -> str:
+        """Return orchestrator source hierarchy in dot-separated header format."""
+        return self._channel_to_hierarchy(self.orchestrator_base_topic)
+
+    def publish_request_message(
+        self,
+        service_hierarchy: str,
+        payload: bytes,
+        content_type: str,
+        headers: dict[str, str],
+        persist: bool = True,
+    ) -> None:
+        """Publish a request message using protocol-agnostic channel format.
+
+        INTERSECT control-plane channels use '/' separators. Broker-specific
+        transports (AMQP/MQTT) perform any additional conversion internally.
+        """
+        channel = f'{self._hierarchy_to_channel(service_hierarchy)}/request'
+        self.control_plane_manager.publish_message(
+            channel,
+            payload,
+            content_type,
+            headers,
+            persist=persist,
+        )
+
+    @staticmethod
+    def _hierarchy_to_channel(hierarchy: str) -> str:
+        """Map dot-separated hierarchy to protocol-agnostic channel separator format."""
+        return hierarchy.replace('.', '/')
+
+    @staticmethod
+    def _channel_to_hierarchy(channel: str) -> str:
+        """Map protocol-agnostic channel separator format to dot-separated hierarchy."""
+        return channel.replace('/', '.')
 
     def set_campaign_orchestrator(self, orchestrator: CampaignOrchestrator) -> None:
         """Assign the campaign orchestrator for broker callbacks."""

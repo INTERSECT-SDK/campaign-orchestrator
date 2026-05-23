@@ -112,6 +112,9 @@ def client():
     mock_client.add_http_connection.return_value = MagicMock()
     mock_client.orchestrator_base_topic = 'test/orchestrator'
     mock_client.control_plane_manager = MagicMock()
+    mock_client.get_orchestrator_hierarchy.return_value = 'test.orchestrator'
+    mock_client.publish_request_message.return_value = None
+    mock_client.subscribe_to_events.return_value = None
 
     # Create the orchestrator
     orchestrator = CampaignOrchestrator(mock_client)
