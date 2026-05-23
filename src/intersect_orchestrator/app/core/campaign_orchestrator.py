@@ -313,7 +313,6 @@ class CampaignOrchestrator:
             logger.warning('Invalid event headers, ignoring event: %s', str(err))
             return
 
-        normalized_source = headers.source.replace('/', '.')
         logger.info(
             'received event message source=%s capability=%s event_name=%s',
             headers.source,
@@ -340,7 +339,7 @@ class CampaignOrchestrator:
                     continue
 
                 if (
-                    task.hierarchy == normalized_source
+                    task.hierarchy == headers.source
                     and task.capability == headers.capability_name
                     and task.event_name == headers.event_name
                 ):
@@ -590,11 +589,9 @@ class CampaignOrchestrator:
                 self._dispatch_request(state, task)
 
     def _dispatch_request(self, state: CampaignState, task: Task) -> None:
-        hierarchy = task.hierarchy
-        broker_channel = f'{hierarchy.replace(".", "/")}/request'
         headers = create_userspace_message_headers(
-            source=self._hierarchy_to_topic(self._client.orchestrator_base_topic),
-            destination=hierarchy,
+            source=self._client.get_orchestrator_hierarchy(),
+            destination=task.hierarchy,
             # make sure _dispatch_request is only called when task.operation_id has been validated to be truthy
             operation_id=f'{task.capability}.{task.operation_id}',
             # FIXME be more flexible about this later on
@@ -612,13 +609,12 @@ class CampaignOrchestrator:
         payload = self._build_task_request_payload(task)
 
         logger.debug('current campaigns: %s', list(self._campaigns.keys()))
-        logger.debug('PUBLISHING MESSAGE %s %s', broker_channel, headers)
-        self._client.control_plane_manager.publish_message(
-            broker_channel,
+        logger.debug('PUBLISHING REQUEST MESSAGE to %s with headers %s', task.hierarchy, headers)
+        self._client.publish_request_message(
+            task.hierarchy,
             payload,
             content_type,
             headers,
-            persist=True,
         )
 
     def _build_task_request_payload(self, task: Task) -> bytes:
@@ -663,7 +659,7 @@ class CampaignOrchestrator:
         except Exception as err:
             msg = (
                 f'Failed to subscribe to events for task {task.id} '
-                f'({task.hierarchy}/{task.capability}/{task.event_name}): {err}'
+                f'(hierarchy={task.hierarchy}, capability={task.capability}, event_name={task.event_name}): {err}'
             )
             logger.exception(msg)
             self._handle_dispatch_error(state, msg)
@@ -982,10 +978,3 @@ class CampaignOrchestrator:
                 )
             )
         return executions
-
-    def _hierarchy_to_topic(self, hierarchy: str) -> str:
-        """convert INTERSECT in-memory API format (using /) to schema and message format (using .)
-
-        TODO all of these conversions throughout the INTERSECT-SDK are quite frankly stupid, pick one format and only do the conversion for specific ControlPlane protocols.
-        """
-        return hierarchy.replace('/', '.')

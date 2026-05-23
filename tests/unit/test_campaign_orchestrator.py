@@ -39,7 +39,22 @@ class FakeClient:
     def subscribe_to_events(
         self, service_hierarchy: str, capability_name: str, event_name: str
     ) -> None:
-        self.event_subscriptions.append(f'{service_hierarchy}/{capability_name}/{event_name}')
+        channel = f'{service_hierarchy.replace(".", "/")}/events/{capability_name}/{event_name}'
+        self.event_subscriptions.append(channel)
+
+    def get_orchestrator_hierarchy(self) -> str:
+        return self.orchestrator_base_topic.replace('/', '.')
+
+    def publish_request_message(
+        self,
+        service_hierarchy: str,
+        payload: bytes,
+        content_type: str,
+        headers: dict[str, str],
+        persist: bool = True,
+    ) -> None:
+        channel = f'{service_hierarchy.replace(".", "/")}/request'
+        self.control_plane_manager.publish_message(channel, payload, content_type, headers, persist)
 
 
 def _event_types(broadcasts: list[bytes]) -> list[str]:
@@ -187,7 +202,12 @@ def test_dispatch_request_uses_task_input_defaults_in_payload() -> None:
     orchestrator.submit_campaign(campaign)
 
     assert len(client.control_plane_manager.published) == 1
-    published_payload = client.control_plane_manager.published[0][1]
+    published = client.control_plane_manager.published[0]
+    published_channel = published[0]
+    published_payload = published[1]
+    published_headers = published[3]
+    assert published_channel == 'org/fac/system/subsystem/service/request'
+    assert published_headers['source'] == 'test.orchestrator'
     assert json.loads(published_payload.decode('utf-8')) == {
         'seed': 7,
         'stream_id': 'x',
@@ -205,7 +225,7 @@ def test_dispatch_event_subscribes_to_service_events() -> None:
     orchestrator.submit_campaign(campaign)
 
     assert client.event_subscriptions == [
-        'org.fac.system.subsystem.service/RandomNumberGenerator/newMeasurement'
+        'org/fac/system/subsystem/service/events/RandomNumberGenerator/newMeasurement'
     ]
 
 
