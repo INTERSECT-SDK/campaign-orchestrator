@@ -15,6 +15,29 @@ podLabels: {}
 service:
   type: ClusterIP
   port: 8000
+  nodePort: ""
+  clusterIP: ""
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: Cluster
+  annotations: {}
+  sessionAffinity: None
+  sessionAffinityConfig: {}
+
+ingress:
+  enabled: false
+  pathType: ImplementationSpecific
+  hostname: ""
+  ingressClassName: ""
+  path: /
+  annotations: {}
+  tls: false
+  selfSigned: false
+  extraHosts: []
+  extraPaths: []
+  extraTls: []
+  secrets: []
+  extraRules: []
 
 resources:
   requests:
