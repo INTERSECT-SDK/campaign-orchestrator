@@ -44,3 +44,35 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "campaign-orchestrator.postgres.serviceName" -}}
 {{- include "campaign-orchestrator.postgres.fullname" . -}}
 {{- end -}}
+
+{{- define "campaign-orchestrator.apiKeyValidation" -}}
+{{- $inlineApiKey := trim (default "" .Values.app.apiKey) -}}
+{{- $useExistingSecret := default false .Values.app.apiKeyExistingSecret.enabled -}}
+{{- if $useExistingSecret -}}
+{{- $secretName := trim (default "" .Values.app.apiKeyExistingSecret.name) -}}
+{{- $secretKey := trim (default "" .Values.app.apiKeyExistingSecret.key) -}}
+{{- if or (eq $secretName "") (eq $secretKey "") -}}
+{{- fail "app.apiKeyExistingSecret.enabled=true requires both app.apiKeyExistingSecret.name and app.apiKeyExistingSecret.key" -}}
+{{- end -}}
+{{- else if eq $inlineApiKey "" -}}
+{{- fail "Either set app.apiKey or enable app.apiKeyExistingSecret with name/key" -}}
+{{- else if lt (len $inlineApiKey) 32 -}}
+{{- fail "app.apiKey must be at least 32 characters to satisfy application validation" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "campaign-orchestrator.apiKeySecretName" -}}
+{{- if .Values.app.apiKeyExistingSecret.enabled -}}
+{{- .Values.app.apiKeyExistingSecret.name -}}
+{{- else -}}
+{{- printf "%s-env" (include "campaign-orchestrator.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "campaign-orchestrator.apiKeySecretKey" -}}
+{{- if .Values.app.apiKeyExistingSecret.enabled -}}
+{{- .Values.app.apiKeyExistingSecret.key -}}
+{{- else -}}
+API_KEY
+{{- end -}}
+{{- end -}}

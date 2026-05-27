@@ -13,11 +13,45 @@ its campaign repository backend in the same release.
 ## Install
 
 ```bash
-helm install campaign-orchestrator ./charts/campaign-orchestrator -n intersect --create-namespace
+helm install campaign-orchestrator ./charts/campaign-orchestrator -n intersect --create-namespace \
+  --set app.apiKey=<your-api-key>
 ```
 
 The default values run the orchestrator with the in-memory campaign repository.
 That means only the application pod is created.
+
+The chart requires an API key at render/install time. If no API key source is
+configured, template rendering fails.
+
+## API Key Configuration
+
+Option 1: Set inline key value (recommended for simple installs)
+
+The application requires a minimum API key length of 32 characters.
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  --set app.apiKey=<your-api-key>
+```
+
+Option 2: Reference an existing secret (advanced/umbrella use)
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  --set app.apiKeyExistingSecret.enabled=true \
+  --set app.apiKeyExistingSecret.name=<secret-name> \
+  --set app.apiKeyExistingSecret.key=<secret-key>
+```
+
+You can also start from this example values file:
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  -f ./charts/campaign-orchestrator/examples/values-umbrella-existing-secret.yaml
+```
 
 ## Backend Options
 
@@ -54,13 +88,13 @@ application at the in-cluster PostgreSQL service.
 ## Defaults
 
 The chart mirrors the repository's local Docker Compose defaults for the broker
-and repository credentials so it works as a demo install without extra values.
-Override `app.apiKey` and the broker/database settings before using it in a real
+and repository credentials so it works as a demo install with minimal overrides.
+Set API key configuration and broker/database settings appropriate for your
 environment.
 
 ## Validation
 
 ```bash
-helm lint ./charts/campaign-orchestrator
-helm template campaign-orchestrator ./charts/campaign-orchestrator
+helm lint ./charts/campaign-orchestrator --set app.apiKey=<min-32-char-key>
+helm template campaign-orchestrator ./charts/campaign-orchestrator --set app.apiKey=<min-32-char-key>
 ```

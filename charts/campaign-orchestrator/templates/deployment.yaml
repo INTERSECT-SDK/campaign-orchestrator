@@ -29,6 +29,12 @@ spec:
         - name: {{ include "campaign-orchestrator.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "campaign-orchestrator.apiKeySecretName" . }}
+                  key: {{ include "campaign-orchestrator.apiKeySecretKey" . }}
           envFrom:
             - secretRef:
                 name: {{ include "campaign-orchestrator.fullname" . }}-env
