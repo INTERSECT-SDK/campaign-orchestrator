@@ -52,7 +52,7 @@ broker:
   username: intersect_username
   password:
     isSecret: false
-    hardcoded: intersect_password
+    hardcoded: ""
     secretName: ""
     secretKey: ""
   tlsCert: ""

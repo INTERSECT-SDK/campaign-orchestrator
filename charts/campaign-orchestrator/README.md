@@ -14,7 +14,8 @@ its campaign repository backend in the same release.
 
 ```bash
 helm install campaign-orchestrator ./charts/campaign-orchestrator -n intersect --create-namespace \
-  --set app.apiKey.hardcoded=<your-api-key>
+  --set app.apiKey.hardcoded=<your-api-key> \
+  --set broker.password.hardcoded=<your-broker-password>
 ```
 
 The default values run the orchestrator with the in-memory campaign repository.
@@ -47,7 +48,8 @@ The application requires a minimum API key length of 32 characters.
 ```bash
 helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
   -n intersect --create-namespace \
-  --set app.apiKey.hardcoded=<your-api-key>
+  --set app.apiKey.hardcoded=<your-api-key> \
+  --set broker.password.hardcoded=<your-broker-password>
 ```
 
 Option 2: Reference an existing secret (advanced/umbrella use)
@@ -109,6 +111,10 @@ For production, prefer `isSecret: true` for all sensitive credential fields.
 ## Validation
 
 ```bash
-helm lint ./charts/campaign-orchestrator --set app.apiKey.hardcoded=<min-32-char-key>
-helm template campaign-orchestrator ./charts/campaign-orchestrator --set app.apiKey.hardcoded=<min-32-char-key>
+helm lint ./charts/campaign-orchestrator \
+  --set app.apiKey.hardcoded=<min-32-char-key> \
+  --set broker.password.hardcoded=<broker-password>
+helm template campaign-orchestrator ./charts/campaign-orchestrator \
+  --set app.apiKey.hardcoded=<min-32-char-key> \
+  --set broker.password.hardcoded=<broker-password>
 ```
