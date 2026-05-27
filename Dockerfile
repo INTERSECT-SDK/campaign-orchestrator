@@ -1,6 +1,6 @@
 # see https://docs.astral.sh/uv/guides/integration/docker/#optimizations and https://www.joshkasuboski.com/posts/distroless-python-uv/
 
-FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:debian-slim AS builder
+FROM ghcr.io/astral-sh/uv:debian-slim AS builder
 
 ARG PYTHON_VERSION=3.13
 # set to "0" to include dev dependencies, "1" to exclude them (default: "1")
@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-editable --extra mongo --extra postgres
 
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS runner
+FROM gcr.io/distroless/cc:nonroot AS runner
 
 COPY --from=builder --chown=python:python /python /python
 
@@ -49,7 +49,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 # note that you generally will NOT want to set UVICORN_WORKERS if running in a Kubernetes cluster, let Kubernetes handle that for you
 CMD ["python", "-m", "intersect_orchestrator"]
 
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS full
+FROM gcr.io/distroless/cc:nonroot AS full
 
 COPY --from=builder-full --chown=python:python /python /python
 
