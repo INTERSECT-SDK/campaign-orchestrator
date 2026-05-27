@@ -77,6 +77,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
+{{- if .Values.broker.password.isSecret -}}
+{{- else -}}
+{{- $brokerPassword := trim (default "" .Values.broker.password.hardcoded) -}}
+{{- if eq $brokerPassword "" -}}
+{{- fail "broker.password.hardcoded is required when broker.password.isSecret=false" -}}
+{{- end -}}
+{{- end -}}
+
 {{- if eq .Values.campaignRepository.backend "mongo" -}}
 {{- if .Values.campaignRepository.mongo.connectionUri.isSecret -}}
 {{- else -}}
