@@ -40,3 +40,4 @@ spec:
       {{- end }}
   selector:
     {{- include "campaign-orchestrator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: orchestrator
