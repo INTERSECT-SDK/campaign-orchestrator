@@ -25,6 +25,14 @@ Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#insta
 
 ## Running the full integration test suite locally
 
+## Published container images
+
+- `ghcr.io/intersect-sdk/campaign-orchestrator:latest` - base image (no optional DB drivers)
+- `ghcr.io/intersect-sdk/campaign-orchestrator-backends-full:latest` - includes both MongoDB and PostgreSQL optional dependencies
+
+The Helm chart defaults to the `campaign-orchestrator-backends-full` image so
+all repository backend modes are available.
+
 The CI workflow (`.github/workflows/full-test-suite.yaml`) runs integration tests
 against RabbitMQ, MongoDB, PostgreSQL, the orchestrator, and the random-number-service.
 You can reproduce this locally in three commands using docker-compose.
