@@ -30,7 +30,14 @@ spec:
             - name: MONGO_INITDB_ROOT_USERNAME
               value: {{ .Values.campaignRepository.mongo.auth.rootUsername | quote }}
             - name: MONGO_INITDB_ROOT_PASSWORD
-              value: {{ .Values.campaignRepository.mongo.auth.rootPassword | quote }}
+              {{- if .Values.campaignRepository.mongo.auth.rootPassword.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.campaignRepository.mongo.auth.rootPassword.secretName | quote }}
+                  key: {{ .Values.campaignRepository.mongo.auth.rootPassword.secretKey | quote }}
+              {{- else }}
+              value: {{ .Values.campaignRepository.mongo.auth.rootPassword.hardcoded | quote }}
+              {{- end }}
           livenessProbe:
             exec:
               command:

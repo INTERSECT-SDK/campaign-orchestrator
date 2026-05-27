@@ -30,7 +30,14 @@ spec:
             - name: POSTGRES_USER
               value: {{ .Values.campaignRepository.postgres.auth.username | quote }}
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.campaignRepository.postgres.auth.password | quote }}
+              {{- if .Values.campaignRepository.postgres.auth.password.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.campaignRepository.postgres.auth.password.secretName | quote }}
+                  key: {{ .Values.campaignRepository.postgres.auth.password.secretKey | quote }}
+              {{- else }}
+              value: {{ .Values.campaignRepository.postgres.auth.password.hardcoded | quote }}
+              {{- end }}
             - name: POSTGRES_DB
               value: {{ .Values.campaignRepository.postgres.auth.database | quote }}
             - name: PGDATA

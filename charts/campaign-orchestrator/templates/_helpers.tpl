@@ -45,34 +45,74 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- include "campaign-orchestrator.postgres.fullname" . -}}
 {{- end -}}
 
-{{- define "campaign-orchestrator.apiKeyValidation" -}}
-{{- $inlineApiKey := trim (default "" .Values.app.apiKey) -}}
-{{- $useExistingSecret := default false .Values.app.apiKeyExistingSecret.enabled -}}
-{{- if $useExistingSecret -}}
-{{- $secretName := trim (default "" .Values.app.apiKeyExistingSecret.name) -}}
-{{- $secretKey := trim (default "" .Values.app.apiKeyExistingSecret.key) -}}
+{{- define "campaign-orchestrator.validateCredentialRef" -}}
+{{- $path := index . 0 -}}
+{{- $cred := index . 1 -}}
+{{- if $cred.isSecret -}}
+{{- $secretName := trim (default "" $cred.secretName) -}}
+{{- $secretKey := trim (default "" $cred.secretKey) -}}
 {{- if or (eq $secretName "") (eq $secretKey "") -}}
-{{- fail "app.apiKeyExistingSecret.enabled=true requires both app.apiKeyExistingSecret.name and app.apiKeyExistingSecret.key" -}}
+{{- fail (printf "%s.isSecret=true requires both %s.secretName and %s.secretKey" $path $path $path) -}}
 {{- end -}}
-{{- else if eq $inlineApiKey "" -}}
-{{- fail "Either set app.apiKey or enable app.apiKeyExistingSecret with name/key" -}}
-{{- else if lt (len $inlineApiKey) 32 -}}
-{{- fail "app.apiKey must be at least 32 characters to satisfy application validation" -}}
 {{- end -}}
 {{- end -}}
 
-{{- define "campaign-orchestrator.apiKeySecretName" -}}
-{{- if .Values.app.apiKeyExistingSecret.enabled -}}
-{{- .Values.app.apiKeyExistingSecret.name -}}
+{{- define "campaign-orchestrator.validations" -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "app.apiKey" .Values.app.apiKey) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "broker.password" .Values.broker.password) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "app.minio.password" .Values.app.minio.password) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "campaignRepository.mongo.auth.rootPassword" .Values.campaignRepository.mongo.auth.rootPassword) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "campaignRepository.mongo.connectionUri" .Values.campaignRepository.mongo.connectionUri) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "campaignRepository.postgres.auth.password" .Values.campaignRepository.postgres.auth.password) -}}
+{{- include "campaign-orchestrator.validateCredentialRef" (list "campaignRepository.postgres.dsn" .Values.campaignRepository.postgres.dsn) -}}
+
+{{- if .Values.app.apiKey.isSecret -}}
 {{- else -}}
-{{- printf "%s-env" (include "campaign-orchestrator.fullname" .) -}}
+{{- $apiKey := trim (default "" .Values.app.apiKey.hardcoded) -}}
+{{- if eq $apiKey "" -}}
+{{- fail "app.apiKey.hardcoded is required when app.apiKey.isSecret=false" -}}
+{{- end -}}
+{{- if lt (len $apiKey) 32 -}}
+{{- fail "app.apiKey.hardcoded must be at least 32 characters to satisfy application validation" -}}
 {{- end -}}
 {{- end -}}
 
-{{- define "campaign-orchestrator.apiKeySecretKey" -}}
-{{- if .Values.app.apiKeyExistingSecret.enabled -}}
-{{- .Values.app.apiKeyExistingSecret.key -}}
+{{- if eq .Values.campaignRepository.backend "mongo" -}}
+{{- if .Values.campaignRepository.mongo.connectionUri.isSecret -}}
 {{- else -}}
-API_KEY
+{{- $mongoUri := trim (default "" .Values.campaignRepository.mongo.connectionUri.hardcoded) -}}
+{{- if and (eq $mongoUri "") .Values.campaignRepository.mongo.auth.rootPassword.isSecret -}}
+{{- fail "campaignRepository.mongo.connectionUri must be provided (hardcoded or secret) when campaignRepository.mongo.auth.rootPassword.isSecret=true" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- if eq .Values.campaignRepository.backend "postgres" -}}
+{{- if .Values.campaignRepository.postgres.dsn.isSecret -}}
+{{- else -}}
+{{- $postgresDsn := trim (default "" .Values.campaignRepository.postgres.dsn.hardcoded) -}}
+{{- if and (eq $postgresDsn "") .Values.campaignRepository.postgres.auth.password.isSecret -}}
+{{- fail "campaignRepository.postgres.dsn must be provided (hardcoded or secret) when campaignRepository.postgres.auth.password.isSecret=true" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "campaign-orchestrator.mongo.connectionUri" -}}
+{{- $hardcodedUri := trim (default "" .Values.campaignRepository.mongo.connectionUri.hardcoded) -}}
+{{- if ne $hardcodedUri "" -}}
+{{- $hardcodedUri -}}
+{{- else -}}
+{{- printf "mongodb://%s:%s@%s/?authSource=admin" .Values.campaignRepository.mongo.auth.rootUsername .Values.campaignRepository.mongo.auth.rootPassword.hardcoded (include "campaign-orchestrator.mongo.serviceName" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "campaign-orchestrator.postgres.dsn" -}}
+{{- $hardcodedDsn := trim (default "" .Values.campaignRepository.postgres.dsn.hardcoded) -}}
+{{- if ne $hardcodedDsn "" -}}
+{{- $hardcodedDsn -}}
+{{- else -}}
+{{- printf "postgresql://%s:%s@%s/%s" .Values.campaignRepository.postgres.auth.username .Values.campaignRepository.postgres.auth.password.hardcoded (include "campaign-orchestrator.postgres.serviceName" .) .Values.campaignRepository.postgres.auth.database -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
