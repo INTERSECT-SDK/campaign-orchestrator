@@ -10,6 +10,9 @@ its campaign repository backend in the same release.
 - Optional MongoDB StatefulSet and Service when `campaignRepository.backend=mongo`
 - Optional PostgreSQL StatefulSet and Service when `campaignRepository.backend=postgres`
 
+By default, this chart uses the full backend-capable image:
+`ghcr.io/intersect-sdk/campaign-orchestrator-backends-full:latest`
+
 ## Install
 
 ```bash
@@ -162,6 +165,9 @@ instead.
 The chart mirrors the repository's local Docker Compose defaults for the broker
 and repository credentials so it works as a demo install with minimal overrides.
 For production, prefer `isSecret: true` for all sensitive credential fields.
+
+The chart default image includes both MongoDB and PostgreSQL Python drivers so
+`campaignRepository.backend=mongo|postgres` is supported out of the box.
 
 ## Validation
 
