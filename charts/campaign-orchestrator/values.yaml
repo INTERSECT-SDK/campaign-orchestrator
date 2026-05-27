@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/intersect-sdk/campaign-orchestrator
+  repository: ghcr.io/intersect-sdk/campaign-orchestrator-backends-full
   tag: latest
   pullPolicy: IfNotPresent
 
