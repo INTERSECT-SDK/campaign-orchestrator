@@ -1,5 +1,31 @@
-The campaign orchestrator is available at:
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.hostname }}
+Campaign orchestrator ingress is enabled.
 
-  http://{{ include "campaign-orchestrator.fullname" . }}:{{ .Values.service.port }}
+Access URL:
+  http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.hostname }}{{ .Values.ingress.path }}
+{{- else }}
+Campaign orchestrator ingress is enabled.
+
+No ingress hostname is set; inspect your ingress object for host/path routing details:
+  kubectl get ingress {{ include "campaign-orchestrator.fullname" . }} -o yaml
+{{- end }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+Service type is LoadBalancer.
+
+Get external address:
+  kubectl get svc {{ include "campaign-orchestrator.fullname" . }}
+{{- else if eq .Values.service.type "NodePort" }}
+Service type is NodePort.
+
+Get node port:
+  kubectl get svc {{ include "campaign-orchestrator.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}'
+{{- else }}
+To access the campaign orchestrator locally, run:
+  kubectl port-forward svc/{{ include "campaign-orchestrator.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then open:
+  http://127.0.0.1:{{ .Values.service.port }}
+{{- end }}
 
 Backend mode: {{ .Values.campaignRepository.backend }}

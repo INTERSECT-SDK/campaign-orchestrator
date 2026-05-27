@@ -85,6 +85,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
+{{- if .Values.ingress.enabled -}}
+{{- if and (eq (trim (default "" .Values.ingress.hostname)) "") (eq (len .Values.ingress.extraHosts) 0) (eq (len .Values.ingress.extraRules) 0) -}}
+{{- fail "ingress.enabled=true requires ingress.hostname, ingress.extraHosts, or ingress.extraRules" -}}
+{{- end -}}
+{{- end -}}
+
 {{- if eq .Values.campaignRepository.backend "mongo" -}}
 {{- if .Values.campaignRepository.mongo.connectionUri.isSecret -}}
 {{- else -}}

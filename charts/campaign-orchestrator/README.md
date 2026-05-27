@@ -102,6 +102,46 @@ helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
 This enables the PostgreSQL StatefulSet in the same release and points the
 application at the in-cluster PostgreSQL service.
 
+## Service Exposure
+
+Default exposure is internal `ClusterIP` service.
+
+NodePort example:
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  --set app.apiKey.hardcoded=<your-api-key> \
+  --set broker.password.hardcoded=<your-broker-password> \
+  --set service.type=NodePort
+```
+
+LoadBalancer example:
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  --set app.apiKey.hardcoded=<your-api-key> \
+  --set broker.password.hardcoded=<your-broker-password> \
+  --set service.type=LoadBalancer
+```
+
+Ingress example:
+
+```bash
+helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
+  -n intersect --create-namespace \
+  --set app.apiKey.hardcoded=<your-api-key> \
+  --set broker.password.hardcoded=<your-broker-password> \
+  --set ingress.enabled=true \
+  --set ingress.hostname=campaign.example.com \
+  --set ingress.path=/
+```
+
+If you expose through a subpath (for example `/orchestrator`), set
+`app.baseUrl` to the same path so generated application links and docs are
+correct.
+
 ## Defaults
 
 The chart mirrors the repository's local Docker Compose defaults for the broker
