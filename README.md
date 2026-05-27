@@ -23,8 +23,6 @@ Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#insta
 - `docker compose up -d` - configures a message broker setup if you don't already have one
 - `uv run python -m intersect_orchestrator`
 
-## Running the full integration test suite locally
-
 ## Published container images
 
 - `ghcr.io/intersect-sdk/campaign-orchestrator:latest` - base image (no optional DB drivers)
@@ -32,6 +30,8 @@ Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#insta
 
 The Helm chart defaults to the `campaign-orchestrator-backends-full` image so
 all repository backend modes are available.
+
+## Running the full integration test suite locally
 
 The CI workflow (`.github/workflows/full-test-suite.yaml`) runs integration tests
 against RabbitMQ, MongoDB, PostgreSQL, the orchestrator, and the random-number-service.
