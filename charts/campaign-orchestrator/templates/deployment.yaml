@@ -10,10 +10,12 @@ spec:
   selector:
     matchLabels:
       {{- include "campaign-orchestrator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orchestrator
   template:
     metadata:
       labels:
         {{- include "campaign-orchestrator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orchestrator
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

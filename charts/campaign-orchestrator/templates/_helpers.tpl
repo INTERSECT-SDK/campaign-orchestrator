@@ -26,14 +26,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "campaign-orchestrator.fullnameWithSuffix" -}}
 {{- $suffix := index . 0 -}}
 {{- $context := index . 1 -}}
-{{- $base := include "campaign-orchestrator.fullname" $context -}}
-{{- $reserved := add (len $suffix) 1 -}}
-{{- if ge $reserved 63 -}}
-{{- $suffix | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $baseMaxLen := sub 63 $reserved -}}
-{{- printf "%s-%s" ($base | trunc $baseMaxLen | trimSuffix "-") $suffix -}}
-{{- end -}}
+{{- printf "%s-%s" (include "campaign-orchestrator.fullname" $context) $suffix | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "campaign-orchestrator.mongo.fullname" -}}
