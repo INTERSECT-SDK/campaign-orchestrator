@@ -29,7 +29,12 @@ app:
   logLevel: INFO
   baseUrl: ""
   serverWorkers: 1
-  apiKey: test-api-key-12345678901234567890
+  # Required unless app.apiKeyExistingSecret.enabled=true.
+  apiKey: ""
+  apiKeyExistingSecret:
+    enabled: false
+    name: ""
+    key: API_KEY
   systemName: campaign-orchestrator-system
   minio:
     uri: http://minio:9000
