@@ -162,8 +162,9 @@ instead.
 
 ## Defaults
 
-The chart mirrors the repository's local Docker Compose defaults for the broker
-and repository credentials so it works as a demo install with minimal overrides.
+The chart mirrors the repository's local Docker Compose defaults for the
+repository credentials. You must still provide `app.apiKey.hardcoded` and
+`broker.password.hardcoded` when installing or rendering the chart.
 For production, prefer `isSecret: true` for all sensitive credential fields.
 
 The chart default image includes both MongoDB and PostgreSQL Python drivers so
