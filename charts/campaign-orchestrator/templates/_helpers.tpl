@@ -115,4 +115,3 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "postgresql://%s:%s@%s/%s" .Values.campaignRepository.postgres.auth.username .Values.campaignRepository.postgres.auth.password.hardcoded (include "campaign-orchestrator.postgres.serviceName" .) .Values.campaignRepository.postgres.auth.database -}}
 {{- end -}}
 {{- end -}}
-{{- end -}}
