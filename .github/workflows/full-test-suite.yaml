@@ -23,8 +23,25 @@ permissions:
   contents: read
 
 jobs:
+  docker-image-targets:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build base orchestrator image target
+      run: docker build --target runner -t campaign-orchestrator-base:test .
+
+    - name: Build full orchestrator image target
+      run: docker build --target full -t campaign-orchestrator-full:test .
+
+    - name: Test base and full image dependencies
+      run: |
+        docker run --rm campaign-orchestrator-base:test python -c "import intersect_orchestrator"
+        docker run --rm campaign-orchestrator-full:test python -c "import intersect_orchestrator, pymongo, psycopg"
+
   full-tests:
     runs-on: ubuntu-latest
+    needs: docker-image-targets
     services:
       broker:
         image: rabbitmq:3-management-alpine
@@ -122,6 +139,7 @@ jobs:
   full-tests-docker-compose:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: docker-image-targets
     steps:
     - uses: actions/checkout@v4
 

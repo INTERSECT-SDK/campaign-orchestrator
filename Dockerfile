@@ -16,18 +16,25 @@ RUN uv python install ${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Install (required) dependencies
+# Install required dependencies only for the base image target.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project --no-editable
 
-# Sync the project
+# Sync the project for the base image target.
 COPY src src
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-editable
+
+# Full dependency builder includes optional repository drivers for mongo + postgres.
+FROM builder AS builder-full
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-editable --extra mongo --extra postgres
 
 FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS runner
 
@@ -40,4 +47,15 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # override CMD at container runtime for tests
 # note that you generally will NOT want to set UVICORN_WORKERS if running in a Kubernetes cluster, let Kubernetes handle that for you
+CMD ["python", "-m", "intersect_orchestrator"]
+
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc:nonroot AS full
+
+COPY --from=builder-full --chown=python:python /python /python
+
+WORKDIR /app
+COPY --from=builder-full --chown=app:app /app/.venv /app/.venv
+
+ENV PATH="/app/.venv/bin:$PATH"
+
 CMD ["python", "-m", "intersect_orchestrator"]

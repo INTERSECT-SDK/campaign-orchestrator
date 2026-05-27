@@ -28,11 +28,37 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
+    - name: Build base orchestrator image (smoke test)
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        target: runner
+        platforms: linux/amd64
+        tags: campaign-orchestrator-base:ci
+        load: true
+        push: false
+
+    - name: Build full orchestrator image (smoke test)
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        target: full
+        platforms: linux/amd64
+        tags: campaign-orchestrator-full:ci
+        load: true
+        push: false
+
+    - name: Smoke test orchestrator image targets
+      run: |
+        docker run --rm campaign-orchestrator-base:ci python -c "import intersect_orchestrator"
+        docker run --rm campaign-orchestrator-full:ci python -c "import intersect_orchestrator, pymongo, psycopg"
+
     - name: Build and push Orchestrator
       if: ${{ github.ref == 'refs/heads/main' }}
       uses: docker/build-push-action@v7
       with:
         context: .
+        target: runner
         platforms: linux/amd64,linux/arm64
         tags: ghcr.io/intersect-sdk/campaign-orchestrator:latest
         push: true
@@ -42,9 +68,31 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         context: .
+        target: runner
         platforms: linux/amd64,linux/arm64
         tags: |
           ghcr.io/intersect-sdk/campaign-orchestrator:${{ github.ref_name }}
+        push: true
+
+    - name: Build and push Orchestrator Full Backends (latest)
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        target: full
+        platforms: linux/amd64,linux/arm64
+        tags: ghcr.io/intersect-sdk/campaign-orchestrator-backends-full:latest
+        push: true
+
+    - name: Push tagged Orchestrator Full Backends images
+      if: startsWith(github.ref, 'refs/tags')
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        target: full
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ghcr.io/intersect-sdk/campaign-orchestrator-backends-full:${{ github.ref_name }}
         push: true
 
     - name: Build and push Random Number Service (latest)
