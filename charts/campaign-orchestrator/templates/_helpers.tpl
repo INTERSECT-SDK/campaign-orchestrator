@@ -105,6 +105,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if and (eq $mongoUri "") .Values.campaignRepository.mongo.auth.rootPassword.isSecret -}}
 {{- fail "campaignRepository.mongo.connectionUri must be provided (hardcoded or secret) when campaignRepository.mongo.auth.rootPassword.isSecret=true" -}}
 {{- end -}}
+{{- if eq $mongoUri "" -}}
+{{- $rootUsername := default "" .Values.campaignRepository.mongo.auth.rootUsername -}}
+{{- $rootPassword := default "" .Values.campaignRepository.mongo.auth.rootPassword.hardcoded -}}
+{{- if or (regexMatch ".*[@:/%].*" $rootUsername) (regexMatch ".*[@:/%].*" $rootPassword) -}}
+{{- fail "campaignRepository.mongo.connectionUri.hardcoded must be provided when campaignRepository.mongo.auth.rootUsername or campaignRepository.mongo.auth.rootPassword.hardcoded contains reserved URI characters such as @, :, /, or %" -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
@@ -114,6 +121,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- $postgresDsn := trim (default "" .Values.campaignRepository.postgres.dsn.hardcoded) -}}
 {{- if and (eq $postgresDsn "") .Values.campaignRepository.postgres.auth.password.isSecret -}}
 {{- fail "campaignRepository.postgres.dsn must be provided (hardcoded or secret) when campaignRepository.postgres.auth.password.isSecret=true" -}}
+{{- end -}}
+{{- if eq $postgresDsn "" -}}
+{{- $postgresUsername := default "" .Values.campaignRepository.postgres.auth.username -}}
+{{- $postgresPassword := default "" .Values.campaignRepository.postgres.auth.password.hardcoded -}}
+{{- if or (regexMatch ".*[@:/%].*" $postgresUsername) (regexMatch ".*[@:/%].*" $postgresPassword) -}}
+{{- fail "campaignRepository.postgres.dsn.hardcoded must be provided when campaignRepository.postgres.auth.username or campaignRepository.postgres.auth.password.hardcoded contains reserved URI characters such as @, :, /, or %" -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
