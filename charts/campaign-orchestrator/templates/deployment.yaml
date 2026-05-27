@@ -1,3 +1,4 @@
+{{- include "campaign-orchestrator.validations" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,14 +31,87 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: PRODUCTION
+              value: {{ .Values.app.production | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.app.logLevel | quote }}
+            - name: BASE_URL
+              value: {{ .Values.app.baseUrl | quote }}
+            - name: SERVER_PORT
+              value: {{ .Values.service.port | quote }}
+            - name: SERVER_WORKERS
+              value: {{ .Values.app.serverWorkers | quote }}
             - name: API_KEY
+              {{- if .Values.app.apiKey.isSecret }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "campaign-orchestrator.apiKeySecretName" . }}
-                  key: {{ include "campaign-orchestrator.apiKeySecretKey" . }}
-          envFrom:
-            - secretRef:
-                name: {{ include "campaign-orchestrator.fullname" . }}-env
+                  name: {{ .Values.app.apiKey.secretName | quote }}
+                  key: {{ .Values.app.apiKey.secretKey | quote }}
+              {{- else }}
+              value: {{ .Values.app.apiKey.hardcoded | quote }}
+              {{- end }}
+            - name: SYSTEM_NAME
+              value: {{ .Values.app.systemName | quote }}
+            - name: BROKER_HOST
+              value: {{ .Values.broker.host | quote }}
+            - name: BROKER_PORT
+              value: {{ .Values.broker.port | quote }}
+            - name: BROKER_PROTOCOL
+              value: {{ .Values.broker.protocol | quote }}
+            - name: BROKER_USERNAME
+              value: {{ .Values.broker.username | quote }}
+            - name: BROKER_PASSWORD
+              {{- if .Values.broker.password.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.broker.password.secretName | quote }}
+                  key: {{ .Values.broker.password.secretKey | quote }}
+              {{- else }}
+              value: {{ .Values.broker.password.hardcoded | quote }}
+              {{- end }}
+            {{- if .Values.broker.tlsCert }}
+            - name: BROKER_TLS_CERT
+              value: {{ .Values.broker.tlsCert | quote }}
+            {{- end }}
+            - name: MINIO_URI
+              value: {{ .Values.app.minio.uri | quote }}
+            - name: MINIO_USERNAME
+              value: {{ .Values.app.minio.username | quote }}
+            - name: MINIO_PASSWORD
+              {{- if .Values.app.minio.password.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.app.minio.password.secretName | quote }}
+                  key: {{ .Values.app.minio.password.secretKey | quote }}
+              {{- else }}
+              value: {{ .Values.app.minio.password.hardcoded | quote }}
+              {{- end }}
+            - name: CAMPAIGN_REPOSITORY_BACKEND
+              value: {{ .Values.campaignRepository.backend | quote }}
+            {{- if eq .Values.campaignRepository.backend "mongo" }}
+            - name: CAMPAIGN_REPOSITORY_MONGO_URI
+              {{- if .Values.campaignRepository.mongo.connectionUri.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.campaignRepository.mongo.connectionUri.secretName | quote }}
+                  key: {{ .Values.campaignRepository.mongo.connectionUri.secretKey | quote }}
+              {{- else }}
+              value: {{ include "campaign-orchestrator.mongo.connectionUri" . | quote }}
+              {{- end }}
+            - name: CAMPAIGN_REPOSITORY_MONGO_DB
+              value: {{ .Values.campaignRepository.mongo.auth.database | quote }}
+            {{- end }}
+            {{- if eq .Values.campaignRepository.backend "postgres" }}
+            - name: CAMPAIGN_REPOSITORY_POSTGRES_DSN
+              {{- if .Values.campaignRepository.postgres.dsn.isSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.campaignRepository.postgres.dsn.secretName | quote }}
+                  key: {{ .Values.campaignRepository.postgres.dsn.secretKey | quote }}
+              {{- else }}
+              value: {{ include "campaign-orchestrator.postgres.dsn" . | quote }}
+              {{- end }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

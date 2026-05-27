@@ -14,25 +14,40 @@ its campaign repository backend in the same release.
 
 ```bash
 helm install campaign-orchestrator ./charts/campaign-orchestrator -n intersect --create-namespace \
-  --set app.apiKey=<your-api-key>
+  --set app.apiKey.hardcoded=<your-api-key>
 ```
 
 The default values run the orchestrator with the in-memory campaign repository.
 That means only the application pod is created.
 
-The chart requires an API key at render/install time. If no API key source is
-configured, template rendering fails.
+The chart requires an API key source at render/install time. If no API key
+source is configured, template rendering fails.
+
+## Credential Pattern
+
+Sensitive values use the same structure as broker-http-proxy charts:
+
+```yaml
+<field>:
+  isSecret: false
+  hardcoded: ""
+  secretName: ""
+  secretKey: ""
+```
+
+- `isSecret: false` uses `hardcoded`
+- `isSecret: true` reads from `secretName` + `secretKey`
 
 ## API Key Configuration
 
-Option 1: Set inline key value (recommended for simple installs)
+Option 1: Set hardcoded key (recommended for simple installs)
 
 The application requires a minimum API key length of 32 characters.
 
 ```bash
 helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
   -n intersect --create-namespace \
-  --set app.apiKey=<your-api-key>
+  --set app.apiKey.hardcoded=<your-api-key>
 ```
 
 Option 2: Reference an existing secret (advanced/umbrella use)
@@ -40,9 +55,9 @@ Option 2: Reference an existing secret (advanced/umbrella use)
 ```bash
 helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
   -n intersect --create-namespace \
-  --set app.apiKeyExistingSecret.enabled=true \
-  --set app.apiKeyExistingSecret.name=<secret-name> \
-  --set app.apiKeyExistingSecret.key=<secret-key>
+  --set app.apiKey.isSecret=true \
+  --set app.apiKey.secretName=<secret-name> \
+  --set app.apiKey.secretKey=<secret-key>
 ```
 
 You can also start from this example values file:
@@ -89,12 +104,11 @@ application at the in-cluster PostgreSQL service.
 
 The chart mirrors the repository's local Docker Compose defaults for the broker
 and repository credentials so it works as a demo install with minimal overrides.
-Set API key configuration and broker/database settings appropriate for your
-environment.
+For production, prefer `isSecret: true` for all sensitive credential fields.
 
 ## Validation
 
 ```bash
-helm lint ./charts/campaign-orchestrator --set app.apiKey=<min-32-char-key>
-helm template campaign-orchestrator ./charts/campaign-orchestrator --set app.apiKey=<min-32-char-key>
+helm lint ./charts/campaign-orchestrator --set app.apiKey.hardcoded=<min-32-char-key>
+helm template campaign-orchestrator ./charts/campaign-orchestrator --set app.apiKey.hardcoded=<min-32-char-key>
 ```

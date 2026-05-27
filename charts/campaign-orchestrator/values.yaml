@@ -29,24 +29,32 @@ app:
   logLevel: INFO
   baseUrl: ""
   serverWorkers: 1
-  # Required unless app.apiKeyExistingSecret.enabled=true.
-  apiKey: ""
-  apiKeyExistingSecret:
-    enabled: false
-    name: ""
-    key: API_KEY
+  # Required credential for API authentication.
+  apiKey:
+    isSecret: false
+    hardcoded: ""
+    secretName: ""
+    secretKey: ""
   systemName: campaign-orchestrator-system
   minio:
     uri: http://minio:9000
     username: minioadmin
-    password: minioadmin
+    password:
+      isSecret: false
+      hardcoded: minioadmin
+      secretName: ""
+      secretKey: ""
 
 broker:
   host: broker
   port: 5672
   protocol: amqp0.9.1
   username: intersect_username
-  password: intersect_password
+  password:
+    isSecret: false
+    hardcoded: intersect_password
+    secretName: ""
+    secretKey: ""
   tlsCert: ""
 
 campaignRepository:
@@ -58,8 +66,19 @@ campaignRepository:
       pullPolicy: IfNotPresent
     auth:
       rootUsername: intersect
-      rootPassword: intersect
+      rootPassword:
+        isSecret: false
+        hardcoded: intersect
+        secretName: ""
+        secretKey: ""
       database: intersect_orchestrator
+    connectionUri:
+      # If hardcoded is empty, URI will be auto-generated only when
+      # auth.rootPassword.isSecret=false.
+      isSecret: false
+      hardcoded: ""
+      secretName: ""
+      secretKey: ""
     persistence:
       enabled: true
       size: 8Gi
@@ -72,8 +91,19 @@ campaignRepository:
       pullPolicy: IfNotPresent
     auth:
       username: intersect
-      password: intersect
+      password:
+        isSecret: false
+        hardcoded: intersect
+        secretName: ""
+        secretKey: ""
       database: intersect_orchestrator
+    dsn:
+      # If hardcoded is empty, DSN will be auto-generated only when
+      # auth.password.isSecret=false.
+      isSecret: false
+      hardcoded: ""
+      secretName: ""
+      secretKey: ""
     persistence:
       enabled: true
       size: 8Gi
