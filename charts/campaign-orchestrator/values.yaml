@@ -32,7 +32,6 @@ ingress:
   path: /
   annotations: {}
   tls: false
-  selfSigned: false
   extraHosts: []
   extraPaths: []
   extraTls: []
