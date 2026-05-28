@@ -1,91 +1,55 @@
-[![CI](https://github.com/INTERSECT-SDK/campaign-orchestrator/actions/workflows/ci.yaml/badge.svg)](https://github.com/INTERSECT-SDK/campaign-orchestrator/actions/workflows/ci.yaml)
+# Helm Charts
 
-# Campaign orchestrator
+This GitHub Pages site hosts Helm charts published from the
+[campaign-orchestrator repository](https://github.com/INTERSECT-SDK/campaign-orchestrator).
 
-WIP
+## Usage
 
-The INTERSECT Campaign orchestrator is responsible for executing INTERSECT campaigns.
+[Helm](https://helm.sh/) must be installed first.
 
-## Development setup
-
-### Installing
-
-Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#installation))
-
-- `uv venv .venv`
-- `source .venv/bin/activate`
-- `uv sync --all-groups --all-extras --all-packages`
-- `uv run pre-commit install`
-- `cp .env.example .env` - will need to do this each time `.env.example` updates from remote
-
-### Running
-
-- `docker compose up -d` - configures a message broker setup if you don't already have one
-- `uv run python -m intersect_orchestrator`
-
-## Published container images
-
-- `ghcr.io/intersect-sdk/campaign-orchestrator:latest` - base image (no optional DB drivers)
-- `ghcr.io/intersect-sdk/campaign-orchestrator-backends-full:latest` - includes both MongoDB and PostgreSQL optional dependencies
-
-The Helm chart defaults to the `campaign-orchestrator-backends-full` image so
-all repository backend modes are available.
-
-## Running the full integration test suite locally
-
-The CI workflow (`.github/workflows/full-test-suite.yaml`) runs integration tests
-against RabbitMQ, MongoDB, PostgreSQL, the orchestrator, and the random-number-service.
-You can reproduce this locally in three commands using docker-compose.
-
-### Prerequisites
-
-- Docker & Docker Compose
-- [uv](https://docs.astral.sh/uv/#installation)
-- `libpq-dev` (or equivalent) for the PostgreSQL driver:
-  ```bash
-  # Debian / Ubuntu
-  sudo apt-get install -y libpq-dev
-  # macOS
-  brew install libpq
-  ```
-
-### 1. Install dependencies (one-time)
+Add the chart repository:
 
 ```bash
-uv sync --dev --extra mongo --extra postgres
+helm repo add intersect-campaign-orchestrator https://intersect-sdk.github.io/campaign-orchestrator
 ```
 
-### 2. Start all services
+If you already added it before, refresh chart metadata:
 
 ```bash
-docker compose up -d --build --wait
+helm repo update
 ```
 
-This builds and starts the broker, MongoDB, PostgreSQL, the orchestrator, and
-the random-number-service. The `--wait` flag blocks until every service passes
-its health check (equivalent to the CI `timeout 120 … until healthy` loop).
-
-### 3. Run the integration tests
+List available charts:
 
 ```bash
-set -a && source .env.test && set +a && uv run pytest tests/integration --cov=intersect_orchestrator --cov-report=term-missing --cov-report=html
+helm search repo intersect-campaign-orchestrator
 ```
 
-The `.env.test` file contains the environment variables that point the test
-runner at the local docker-compose services (broker credentials, DB URIs,
-orchestrator host/port, etc.). It mirrors the CI job exactly.
+## Available Charts
 
-### Cleanup
+- `campaign-orchestrator`
+
+## Install
 
 ```bash
-docker compose down -v
+helm install campaign-orchestrator intersect-campaign-orchestrator/campaign-orchestrator \
+  --namespace intersect \
+  --create-namespace \
+  --set app.apiKey.hardcoded=<min-32-char-api-key> \
+  --set broker.password.hardcoded=<broker-password>
 ```
 
-### Quick reference
+## Upgrade
 
-| Step | Command |
-|------|---------|
-| Install deps | `uv sync --dev --extra mongo --extra postgres` |
-| Start services | `docker compose up -d --build --wait` |
-| Run tests | `set -a && source .env.test && set +a && uv run pytest tests/integration --cov=intersect_orchestrator --cov-report=term-missing` |
-| Tear down | `docker compose down -v` |
+```bash
+helm upgrade campaign-orchestrator intersect-campaign-orchestrator/campaign-orchestrator \
+  --namespace intersect \
+  --set app.apiKey.hardcoded=<min-32-char-api-key> \
+  --set broker.password.hardcoded=<broker-password>
+```
+
+## Uninstall
+
+```bash
+helm uninstall campaign-orchestrator --namespace intersect
+```
