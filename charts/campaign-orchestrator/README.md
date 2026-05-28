@@ -78,6 +78,10 @@ helm upgrade --install campaign-orchestrator ./charts/campaign-orchestrator \
 
 ## Backend Options
 
+`campaignRepository.backend=memory` is supported only with `replicaCount=1`.
+For multi-replica deployments, set `campaignRepository.backend` to `mongo` or
+`postgres`.
+
 ### In-memory
 
 ```bash
