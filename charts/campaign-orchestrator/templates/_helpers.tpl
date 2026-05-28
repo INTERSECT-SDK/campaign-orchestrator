@@ -98,7 +98,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- fail "campaignRepository.backend must be one of: memory, mongo, postgres" -}}
 {{- end -}}
 
-{{- if and (gt .Values.replicaCount 1) (eq .Values.campaignRepository.backend "memory") -}}
+{{- if and (gt (int .Values.replicaCount) 1) (eq .Values.campaignRepository.backend "memory") -}}
 {{- fail "replicaCount > 1 requires campaignRepository.backend=mongo|postgres; memory backend is single-pod only" -}}
 {{- end -}}
 
