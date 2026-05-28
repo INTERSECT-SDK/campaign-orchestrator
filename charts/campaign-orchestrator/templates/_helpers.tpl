@@ -75,6 +75,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if lt (len $apiKey) 32 -}}
 {{- fail "app.apiKey.hardcoded must be at least 32 characters to satisfy application validation" -}}
 {{- end -}}
+{{- if gt (len $apiKey) 255 -}}
+{{- fail "app.apiKey.hardcoded must be at most 255 characters to satisfy application validation" -}}
+{{- end -}}
 {{- end -}}
 
 {{- if .Values.broker.password.isSecret -}}
