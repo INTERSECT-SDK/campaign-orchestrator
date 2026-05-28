@@ -94,6 +94,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
+{{- if not (has .Values.campaignRepository.backend (list "memory" "mongo" "postgres")) -}}
+{{- fail "campaignRepository.backend must be one of: memory, mongo, postgres" -}}
+{{- end -}}
+
 {{- if eq .Values.campaignRepository.backend "mongo" -}}
 {{- if .Values.campaignRepository.mongo.connectionUri.isSecret -}}
 {{- else -}}
