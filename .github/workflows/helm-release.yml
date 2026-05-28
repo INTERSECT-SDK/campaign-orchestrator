@@ -6,14 +6,12 @@ on:
       - main
     paths:
       - charts/**
-      - lint-charts.sh
       - .github/workflows/helm-release.yml
   pull_request:
     branches:
       - main
     paths:
       - charts/**
-      - lint-charts.sh
       - .github/workflows/helm-release.yml
   workflow_dispatch:
     inputs:
@@ -46,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint and template charts
-        run: ./lint-charts.sh
+        run: ./charts/lint-charts.sh
 
   helm-release:
     runs-on: ubuntu-latest
