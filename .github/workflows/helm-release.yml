@@ -74,3 +74,17 @@ jobs:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           charts_dir: charts
+
+      - name: Sync GitHub Pages README
+        run: |
+          cp charts/README.md /tmp/gh-pages-readme.md
+          git fetch origin gh-pages:gh-pages
+          git checkout gh-pages
+          cp /tmp/gh-pages-readme.md README.md
+          git add README.md
+          if git diff --cached --quiet; then
+            echo "GitHub Pages README already up to date"
+            exit 0
+          fi
+          git commit -m "docs: update GitHub Pages Helm README"
+          git push origin gh-pages
