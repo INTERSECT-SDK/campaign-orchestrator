@@ -3,6 +3,16 @@ entries:
   campaign-orchestrator:
   - apiVersion: v2
     appVersion: 0.0.1
+    created: "2026-05-29T14:38:16.233512711Z"
+    description: Helm chart for the INTERSECT campaign orchestrator
+    digest: 60ee14bf86a4b8063ef2a0fa7dd306ead14e4f80eac9f9e6f6ac0d7268bf1ead
+    name: campaign-orchestrator
+    type: application
+    urls:
+    - https://github.com/INTERSECT-SDK/campaign-orchestrator/releases/download/campaign-orchestrator-0.1.2/campaign-orchestrator-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: 0.0.1
     created: "2026-05-28T12:57:29.181375682Z"
     description: Helm chart for the INTERSECT campaign orchestrator
     digest: 3628eb8aea0a3cc8ccdb6cd4b5cde8bf15580acb6bd9eb4dc079384329535bbf
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/INTERSECT-SDK/campaign-orchestrator/releases/download/campaign-orchestrator-0.1.1/campaign-orchestrator-0.1.1.tgz
     version: 0.1.1
-generated: "2026-05-28T12:57:29.181382512Z"
+generated: "2026-05-29T14:38:16.233524523Z"
