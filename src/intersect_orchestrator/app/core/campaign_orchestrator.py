@@ -600,7 +600,9 @@ class CampaignOrchestrator:
         execution = state.task_group_executions[state.current_group_index]
         self._dispatch_task_ids(state, list(execution.active_tasks))
 
-    def _dispatch_task_ids(self, state: CampaignState, task_ids: set[uuid.UUID] | list[uuid.UUID]) -> None:
+    def _dispatch_task_ids(
+        self, state: CampaignState, task_ids: set[uuid.UUID] | list[uuid.UUID]
+    ) -> None:
         """Dispatch the given task IDs."""
         tasks: list[Task] = []
 
@@ -658,7 +660,9 @@ class CampaignOrchestrator:
             headers,
         )
 
-    def _build_task_request_payload(self, task: Task, resolved_output_values: dict[uuid.UUID, Any] | None = None) -> bytes:
+    def _build_task_request_payload(
+        self, task: Task, resolved_output_values: dict[uuid.UUID, Any] | None = None
+    ) -> bytes:
         """Build request payload for a task from input-schema defaults, overridden
         by any resolved output values from previously completed tasks.
 
