@@ -762,3 +762,284 @@ def test_iterative_campaign_two_iterations() -> None:
     assert len(step_starts) == 4  # 2 tasks x 2 iterations
     assert len(step_completes) == 4
     assert events[-1] == 'CAMPAIGN_COMPLETE'
+
+
+# ---------------------------------------------------------------------------
+# Task dependency sequencing and output-to-input wiring tests
+# ---------------------------------------------------------------------------
+
+
+def _started_step_ids(broadcasts: list[bytes]) -> list[str]:
+    """Return step_id strings for all STEP_START events, in order."""
+    return [
+        json.loads(m.decode())['event']['step_id']
+        for m in broadcasts
+        if json.loads(m.decode())['event']['event_type'] == 'STEP_START'
+    ]
+
+
+def test_task_dependencies_gate_dispatch() -> None:
+    """Task B (depends on A) must NOT start until task A completes."""
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_a = uuid.uuid4()
+    task_b = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='sequential-tasks',
+        user='test-user',
+        description='task B depends on task A',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(task_a),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op-a',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(task_b),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op-b',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [str(task_a)],
+                        'task_objectives': None,
+                    },
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    # After submit only task A should have received STEP_START
+    started = _started_step_ids(client.broadcasts)
+    assert started == [str(task_a)], (
+        f'Expected only task A to start initially, got step_ids: {started}'
+    )
+
+    # Complete task A
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        _reply_headers(campaign_id, task_a),
+    )
+
+    # Now task B should also have started
+    started_after_a = _started_step_ids(client.broadcasts)
+    assert str(task_b) in started_after_a, (
+        f'Task B should start after task A completes; started IDs: {started_after_a}'
+    )
+
+    # Complete task B → campaign finishes
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        _reply_headers(campaign_id, task_b),
+    )
+
+    assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
+
+
+def test_output_value_wired_to_dependent_task_input() -> None:
+    """Output value from task A (resolved at completion) should override the
+    default in task B's input when the same value-ID is referenced.
+    """
+    shared_value_id = uuid.uuid4()
+
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_a = uuid.uuid4()
+    task_b = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='output-wiring',
+        user='test-user',
+        description='task A output wired to task B input via shared value ID',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(task_a),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'initialize-op',
+                        'output': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {'workflow_id': {'type': 'string'}},
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'workflow_id'}],
+                        },
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(task_b),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'update-op',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'workflow_id': {
+                                        'type': 'string',
+                                        'default': '000000000000000000000001',
+                                    }
+                                },
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'workflow_id'}],
+                        },
+                        'task_dependencies': [str(task_a)],
+                        'task_objectives': None,
+                    },
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    # Only task A dispatched so far (task B waits on task A)
+    assert len(client.control_plane_manager.published) == 1
+
+    # Complete task A returning the real workflow_id as a JSON string
+    real_workflow_id = 'abc123def456abc123def456'
+    orchestrator.handle_request_reply_broker_message(
+        json.dumps(real_workflow_id).encode(),
+        'application/json',
+        _reply_headers(campaign_id, task_a),
+    )
+
+    # Task B should now have been dispatched with the real workflow_id
+    assert len(client.control_plane_manager.published) == 2
+    task_b_payload = json.loads(client.control_plane_manager.published[1][1].decode())
+    assert task_b_payload['workflow_id'] == real_workflow_id, (
+        f"Expected workflow_id='{real_workflow_id}' but got: {task_b_payload}"
+    )
+
+
+def test_cross_group_output_resolves_to_downstream_group_input() -> None:
+    """Output from a task in Group 1 should flow into a task input in Group 2
+    when the same value-ID is referenced.
+    """
+    shared_value_id = uuid.uuid4()
+
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_init = uuid.uuid4()
+    task_update = uuid.uuid4()
+    tg1_id = uuid.uuid4()
+    tg2_id = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='cross-group-wiring',
+        user='test-user',
+        description='initialize_workflow in Group 1, update_workflow in Group 2',
+        task_groups=[
+            {
+                'id': str(tg1_id),
+                'tasks': [
+                    {
+                        'id': str(task_init),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'initialize-workflow',
+                        'output': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {'workflow_id': {'type': 'string'}},
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'workflow_id'}],
+                        },
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            },
+            {
+                'id': str(tg2_id),
+                'tasks': [
+                    {
+                        'id': str(task_update),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'update-workflow',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'workflow_id': {
+                                        'type': 'string',
+                                        'default': '000000000000000000000001',
+                                    }
+                                },
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'workflow_id'}],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [str(tg1_id)],
+                'objectives': [],
+            },
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    # Group 1: complete task_init with real workflow_id
+    real_workflow_id = 'deadbeefdeadbeefdeadbeef'
+    orchestrator.handle_request_reply_broker_message(
+        json.dumps(real_workflow_id).encode(),
+        'application/json',
+        _reply_headers(campaign_id, task_init),
+    )
+
+    # Group 2 task_update should have been dispatched with the real workflow_id
+    assert len(client.control_plane_manager.published) == 2
+    task_update_payload = json.loads(client.control_plane_manager.published[1][1].decode())
+    assert task_update_payload['workflow_id'] == real_workflow_id, (
+        f"Expected workflow_id='{real_workflow_id}' but got: {task_update_payload}"
+    )
+
+    # Complete task_update → campaign finishes
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        _reply_headers(campaign_id, task_update),
+    )
+    assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
