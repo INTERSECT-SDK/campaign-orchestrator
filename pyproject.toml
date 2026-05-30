@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "intersect-orchestrator"
-version = "0.0.1"
+version = "0.1.4"
 description = "Executor of INTERSECT campaigns"
 classifiers = ["Private :: Do Not Upload"]
 authors = [
