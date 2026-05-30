@@ -87,6 +87,8 @@ class TaskGroupExecution:
     objective_checkers: list[ObjectiveChecker] = field(default_factory=list)
     current_iteration: int = 0
     active_tasks: set[uuid.UUID] = field(default_factory=set)
+    pending_tasks: set[uuid.UUID] = field(default_factory=set)
+    """Tasks whose task_dependencies have not yet all completed; not yet dispatched."""
     completed_tasks: set[uuid.UUID] = field(default_factory=set)
     iteration_payloads: dict[uuid.UUID, bytes] = field(default_factory=dict)
 
@@ -108,6 +110,9 @@ class CampaignState:
     campaign: Campaign
     task_group_executions: list[TaskGroupExecution]
     current_group_index: int = 0
+    resolved_output_values: dict[uuid.UUID, Any] = field(default_factory=dict)
+    """Maps output Value IDs from completed tasks to their resolved runtime values.
+    Persists across task groups so upstream outputs flow into downstream inputs."""
 
 
 class CampaignOrchestrator:
@@ -490,12 +495,27 @@ class CampaignOrchestrator:
             len(execution.task_ids),
         )
 
-        # Dispatch all tasks in the group simultaneously
-        execution.active_tasks = set(execution.task_ids)
         execution.completed_tasks = set()
         execution.iteration_payloads = {}
 
+        # Separate tasks into immediately-ready (no unmet dependencies) vs pending.
+        ready: set[uuid.UUID] = set()
+        pending: set[uuid.UUID] = set()
         for task_id in execution.task_ids:
+            task = self._get_task_from_campaign(state.campaign, task_id)
+            if task is None:
+                continue
+            if not task.task_dependencies or all(
+                dep in execution.completed_tasks for dep in task.task_dependencies
+            ):
+                ready.add(task_id)
+            else:
+                pending.add(task_id)
+
+        execution.active_tasks = ready
+        execution.pending_tasks = pending
+
+        for task_id in ready:
             self._emit_event(
                 campaign_id=state.campaign.id,
                 run_id=state.campaign_run_id,
@@ -524,13 +544,29 @@ class CampaignOrchestrator:
             payload={'step_id': str(step_id)},
         )
 
-        if not execution.active_tasks:
+        # Resolve and store output values from the completed task so downstream
+        # tasks (in this or future groups) can reference them via shared value IDs.
+        self._store_task_output_values(state, step_id, payload)
+
+        # Unblock any pending tasks whose dependencies are now all satisfied.
+        newly_unblocked = self._pop_unblocked_tasks(state, execution)
+        if newly_unblocked:
+            for task_id in newly_unblocked:
+                self._emit_event(
+                    campaign_id=state.campaign.id,
+                    run_id=state.campaign_run_id,
+                    event=StepStartEvent(step_id=task_id),
+                )
+            self._dispatch_task_ids(state, newly_unblocked)
+
+        if not execution.active_tasks and not execution.pending_tasks:
             # All tasks in this iteration are done — let checkers observe
             for checker in execution.objective_checkers:
                 checker.record_iteration(execution.iteration_payloads)
 
             execution.current_iteration += 1
             execution.active_tasks = set()
+            execution.pending_tasks = set()
             execution.completed_tasks = set()
             execution.iteration_payloads = {}
             self._start_next_iteration(state)
@@ -562,10 +598,13 @@ class CampaignOrchestrator:
     def _dispatch_active_tasks(self, state: CampaignState) -> None:
         """Dispatch all currently active tasks in the task group."""
         execution = state.task_group_executions[state.current_group_index]
+        self._dispatch_task_ids(state, list(execution.active_tasks))
 
+    def _dispatch_task_ids(self, state: CampaignState, task_ids: set[uuid.UUID] | list[uuid.UUID]) -> None:
+        """Dispatch the given task IDs."""
         tasks: list[Task] = []
 
-        for task_id in list(execution.active_tasks):
+        for task_id in task_ids:
             task = self._get_task_from_campaign(state.campaign, task_id)
             if task is None:
                 msg = (
@@ -606,7 +645,9 @@ class CampaignOrchestrator:
         # FIXME hardcoding content-type and payload for now
         # some ideas on 'payload': this may be base-64 encoded for websocket purposes, but if so should be decoded before publishing message
         content_type = 'application/json'
-        payload = self._build_task_request_payload(task)
+        campaign_state = self._campaigns.get(state.campaign_run_id)
+        resolved = campaign_state.resolved_output_values if campaign_state is not None else {}
+        payload = self._build_task_request_payload(task, resolved)
 
         logger.debug('current campaigns: %s', list(self._campaigns.keys()))
         logger.debug('PUBLISHING REQUEST MESSAGE to %s with headers %s', task.hierarchy, headers)
@@ -617,31 +658,86 @@ class CampaignOrchestrator:
             headers,
         )
 
-    def _build_task_request_payload(self, task: Task) -> bytes:
-        """Build request payload for a task from input-schema defaults.
+    def _build_task_request_payload(self, task: Task, resolved_output_values: dict[uuid.UUID, Any] | None = None) -> bytes:
+        """Build request payload for a task from input-schema defaults, overridden
+        by any resolved output values from previously completed tasks.
 
-        Campaign task inputs currently carry schema + value variable names, but no
-        explicit runtime value map. For deterministic integration runs, we use
-        ``schema.properties.<var>.default`` when present.
+        ``resolved_output_values`` maps output Value UUIDs from completed tasks to
+        their runtime values.  When a task's input Value ID matches a key in that
+        dict, the resolved value is used instead of the schema default.
         """
         # TODO: Need to return b'null' for content type application/json
         #       and empty byte string for non-json content types
         if task.input is None:
             return b'null'
 
+        if resolved_output_values is None:
+            resolved_output_values = {}
+
         properties = task.input.json_schema.get('properties', {})
         payload: dict[str, Any] = {}
 
         for value in task.input.values:
             var_name = value.var
-            property_schema = properties.get(var_name)
-            if isinstance(property_schema, dict) and 'default' in property_schema:
-                payload[var_name] = property_schema['default']
+            # Resolved runtime value takes precedence over schema default.
+            if value.id in resolved_output_values:
+                payload[var_name] = resolved_output_values[value.id]
+            else:
+                property_schema = properties.get(var_name)
+                if isinstance(property_schema, dict) and 'default' in property_schema:
+                    payload[var_name] = property_schema['default']
 
         if not payload:
             return b''
 
         return json.dumps(payload).encode('utf-8')
+
+    def _store_task_output_values(
+        self, state: CampaignState, step_id: uuid.UUID, payload: bytes
+    ) -> None:
+        """Extract output values from a completed task's payload and store them
+        in ``state.resolved_output_values`` keyed by their Value UUID.
+
+        Supports two payload shapes:
+        * JSON object: each ``var`` key in the output values is extracted from
+          the decoded dict.
+        * JSON scalar (string, number, bool): if the task declares exactly one
+          output value, that scalar becomes the resolved value for its Value ID.
+        """
+        task = self._get_task_from_campaign(state.campaign, step_id)
+        if task is None or task.output is None or not task.output.values:
+            return
+
+        try:
+            decoded = json.loads(payload)
+        except (json.JSONDecodeError, ValueError):
+            return
+
+        if isinstance(decoded, dict):
+            for val in task.output.values:
+                if val.var in decoded:
+                    state.resolved_output_values[val.id] = decoded[val.var]
+        elif len(task.output.values) == 1:
+            # Scalar payload (e.g. a bare string or number) maps to the single output variable.
+            state.resolved_output_values[task.output.values[0].id] = decoded
+
+    def _pop_unblocked_tasks(
+        self, state: CampaignState, execution: TaskGroupExecution
+    ) -> set[uuid.UUID]:
+        """Return the subset of ``execution.pending_tasks`` whose task_dependencies
+        are now all satisfied (present in ``execution.completed_tasks``), and
+        remove them from ``pending_tasks`` / add them to ``active_tasks``."""
+        newly_unblocked: set[uuid.UUID] = set()
+        for task_id in list(execution.pending_tasks):
+            task = self._get_task_from_campaign(state.campaign, task_id)
+            if task is None:
+                continue
+            if all(dep in execution.completed_tasks for dep in task.task_dependencies):
+                newly_unblocked.add(task_id)
+
+        execution.pending_tasks -= newly_unblocked
+        execution.active_tasks |= newly_unblocked
+        return newly_unblocked
 
     def _dispatch_event(self, state: CampaignState, task: Task) -> None:
         # TODO - unsubscribe when no active campaigns depend on this service.
