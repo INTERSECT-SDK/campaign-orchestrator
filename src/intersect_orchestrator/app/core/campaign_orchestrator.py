@@ -55,7 +55,11 @@ from ..api.v1.endpoints.orchestrator.models.campaign_state import (
 )
 from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
 from .objective_checkers import AssertChecker, IterateChecker, ObjectiveChecker
-from .repository import CampaignEvent, CampaignRepository, InMemoryCampaignRepository
+from .repository import (
+    CampaignEvent,
+    CampaignRepository,
+    InMemoryCampaignRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -315,11 +319,9 @@ class CampaignOrchestrator:
             self._complete_step(state, node_id, message)
 
     def handle_event_broker_message(
-        self, message: bytes, content_type: str, raw_headers: dict[str, str]
+        self, message: bytes, _content_type: str, raw_headers: dict[str, str]
     ) -> None:
         """Process broker callbacks from Event messages to advance event tasks."""
-        del content_type
-
         try:
             headers = validate_event_message_headers(raw_headers)
         except ValidationError as err:
@@ -603,7 +605,11 @@ class CampaignOrchestrator:
         run_id: IntersectCampaignId,
         event: OrchestratorEventType,
     ) -> None:
-        logger.info('emitting event: %s for campaign ID: %s', event.event_type, campaign_id)
+        logger.info(
+            'emitting event: %s for campaign ID: %s',
+            event.event_type,
+            campaign_id,
+        )
         logger.info('EVENT VALUE: %s', event)
         orchestrator_event = OrchestratorEvent(campaign_id=campaign_id, run_id=run_id, event=event)
         self._client.broadcast_message(orchestrator_event.model_dump_json().encode('utf-8'))
@@ -665,7 +671,11 @@ class CampaignOrchestrator:
         payload = self._build_task_request_payload(task, resolved)
 
         logger.debug('current campaigns: %s', list(self._campaigns.keys()))
-        logger.debug('PUBLISHING REQUEST MESSAGE to %s with headers %s', task.hierarchy, headers)
+        logger.debug(
+            'PUBLISHING REQUEST MESSAGE to %s with headers %s',
+            task.hierarchy,
+            headers,
+        )
         self._client.publish_request_message(
             task.hierarchy,
             payload,
@@ -674,7 +684,9 @@ class CampaignOrchestrator:
         )
 
     def _build_task_request_payload(
-        self, task: Task, resolved_output_values: dict[uuid.UUID, Any] | None = None
+        self,
+        task: Task,
+        resolved_output_values: dict[uuid.UUID, Any] | None = None,
     ) -> bytes:
         """Build request payload for a task from input-schema defaults, overridden
         by any resolved output values from previously completed tasks.
@@ -800,7 +812,10 @@ class CampaignOrchestrator:
             return state
 
     def _record_event(
-        self, campaign_id: IntersectCampaignId, event_type: str, payload: dict[str, Any]
+        self,
+        campaign_id: IntersectCampaignId,
+        event_type: str,
+        payload: dict[str, Any],
     ) -> None:
         snapshot = self._repository.load_snapshot(campaign_id)
         if snapshot is None:
