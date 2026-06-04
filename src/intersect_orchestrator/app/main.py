@@ -20,7 +20,7 @@ setup_logging()
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> typing.AsyncGenerator[None, None]:  # noqa: ARG001
+async def lifespan(_app: FastAPI) -> typing.AsyncGenerator[None, None]:
     # On startup
     logger.info('Initializing app')
 

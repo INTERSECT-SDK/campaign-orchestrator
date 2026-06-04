@@ -742,7 +742,7 @@ def test_iterative_campaign_two_iterations() -> None:
 
     orchestrator.submit_campaign(campaign)
 
-    for _ in range(2):  # noqa: B007
+    for _ in range(2):
         # Both tasks dispatch in parallel; complete them in order
         orchestrator.handle_request_reply_broker_message(
             b'{}',

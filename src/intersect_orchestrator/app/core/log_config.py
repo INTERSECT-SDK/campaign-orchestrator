@@ -31,7 +31,7 @@ _BUNYAN_LOG_LEVELS = {
 """Log levels are based off of the Bunyan format specification's log levels, not Python's."""
 
 
-def _use_bunyan_structure(_: Any, _name: str, event_dict: EventDict) -> EventDict:  # noqa: ARG001
+def _use_bunyan_structure(_: Any, _name: str, event_dict: EventDict) -> EventDict:
     """
     Match Bunyan format: https://github.com/trentm/node-bunyan?tab=readme-ov-file#core-fields
     """
@@ -43,7 +43,7 @@ def _use_bunyan_structure(_: Any, _name: str, event_dict: EventDict) -> EventDic
     return event_dict
 
 
-def _drop_color_message_key(_: Any, _name: str, event_dict: EventDict) -> EventDict:  # noqa: ARG001
+def _drop_color_message_key(_: Any, _name: str, event_dict: EventDict) -> EventDict:
     """
     Uvicorn logs the message a second time in the extra `color_message`, but we don't
     need it. This processor drops the key from the event dict if it exists.
