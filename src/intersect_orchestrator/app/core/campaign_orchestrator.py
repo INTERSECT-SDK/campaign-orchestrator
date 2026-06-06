@@ -48,10 +48,11 @@ from ..api.v1.endpoints.orchestrator.models.campaign import (
     ObjectiveIterate,
 )
 from ..api.v1.endpoints.orchestrator.models.campaign_state import (
-    CampaignState as CampaignStateModel,
+    CampaignInfo,
+    ExecutionStatus,
 )
 from ..api.v1.endpoints.orchestrator.models.campaign_state import (
-    ExecutionStatus,
+    CampaignState as CampaignStateModel,
 )
 from ..converters.campaign_to_petri_net import CampaignPetriNetConverter
 from .objective_checkers import AssertChecker, IterateChecker, ObjectiveChecker
@@ -184,6 +185,32 @@ class CampaignOrchestrator:
             payload={'reason': 'Campaign cancelled by user'},
         )
         return True
+
+    def list_campaigns(self, status: list[ExecutionStatus] | None = None) -> list[CampaignInfo]:
+        """List campaigns, optionally filtered by status.
+
+        Args:
+            status: If provided, filter to only campaigns with this status.
+                   If None, return all campaigns (running only for now).
+
+        Returns:
+            List of CampaignInfo objects with campaign_id and status.
+        """
+        with self._lock:
+            # Currently we only track running campaigns in memory
+            campaigns = []
+            for _campaign_id, state in self._campaigns.items():
+                campaign_status = ExecutionStatus.RUNNING
+                # Filter by status if provided
+                if status is not None and campaign_status not in status:
+                    continue
+                campaigns.append(
+                    CampaignInfo(
+                        campaign_id=str(state.campaign.id),
+                        status=campaign_status,
+                    )
+                )
+            return campaigns
 
     def get_campaign(self, campaign_id: IntersectCampaignId) -> Campaign | None:
         """Get a campaign payload from memory."""

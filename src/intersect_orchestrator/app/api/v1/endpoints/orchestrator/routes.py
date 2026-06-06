@@ -7,6 +7,7 @@ from fastapi import (
     APIRouter,
     Body,
     HTTPException,
+    Query,
     Request,
     Security,
     WebSocket,
@@ -20,8 +21,26 @@ from ...api_key import api_key_header
 if TYPE_CHECKING:
     from .....core.intersect_client import CoreServiceIntersectClient
 from .models.campaign import Campaign, IntersectCampaignId
+from .models.campaign_state import CampaignListResponse, ExecutionStatus
 
 router = APIRouter()
+
+
+@router.get(
+    '/campaigns',
+    description='List campaigns',
+    response_description='List of campaigns with their IDs and status',
+)
+async def list_campaigns(
+    request: Request,
+    api_key: Annotated[str, Security(api_key_header)],
+    status: Annotated[list[ExecutionStatus] | None, Query()] = None,
+) -> CampaignListResponse:
+    if api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
+    orchestrator = request.app.state.campaign_orchestrator
+    campaigns = orchestrator.list_campaigns(status=status)
+    return CampaignListResponse(campaigns=campaigns)
 
 
 @router.post(

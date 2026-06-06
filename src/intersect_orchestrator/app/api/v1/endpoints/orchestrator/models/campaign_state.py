@@ -50,6 +50,27 @@ class TaskState(Task):
     status: ExecutionStatus = ExecutionStatus.QUEUED
 
 
+# --- Response models for /campaigns endpoint ---
+
+from pydantic import BaseModel  # noqa: E402
+
+
+class CampaignInfo(BaseModel):
+    """Summary info for a single campaign in list responses."""
+
+    campaign_id: str
+    status: ExecutionStatus
+
+
+class CampaignListResponse(BaseModel):
+    """Response model for listing campaigns."""
+
+    campaigns: list[CampaignInfo]
+
+
+# --- End response models ---
+
+
 class TaskGroupState(TaskGroup):
     """Task group with execution state."""
 
