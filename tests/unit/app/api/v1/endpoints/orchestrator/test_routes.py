@@ -178,3 +178,93 @@ def test_stop_campaign_invalid_uuid(client, valid_api_key):
 
     # Should fail validation due to UUID format
     assert response.status_code == 422  # Validation error
+
+
+# --- Tests for GET /campaigns endpoint ---
+
+
+def test_get_campaigns_empty(client, valid_api_key):
+    """Test getting campaigns when none are running."""
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert 'campaigns' in data
+    assert data['campaigns'] == []
+
+
+def test_get_campaigns_with_running_filter(client, valid_api_key, sample_campaign_data):
+    """Test getting only running campaigns with status filter."""
+    # Start a campaign first
+    start_response = client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    assert start_response.status_code == 200
+
+    # Get running campaigns
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'running'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert 'campaigns' in data
+    # Each campaign entry should have campaign_id and status
+    for campaign in data['campaigns']:
+        assert 'campaign_id' in campaign
+        assert 'status' in campaign
+        # Validate campaign_id is a valid UUID
+        uuid.UUID(campaign['campaign_id'])
+
+
+def test_get_campaigns_returns_campaign_id_and_status(client, valid_api_key, sample_campaign_data):
+    """Test that campaign entries include campaign_id and status fields."""
+    # Start a campaign
+    start_response = client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    assert start_response.status_code == 200
+
+    # Get all campaigns
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) >= 1
+
+    # Verify structure of each campaign entry
+    campaign_entry = data['campaigns'][0]
+    assert 'campaign_id' in campaign_entry
+    assert 'status' in campaign_entry
+    # campaign_id should match the one from the campaign data
+    assert campaign_entry['campaign_id'] == sample_campaign_data['id']
+
+
+def test_get_campaigns_invalid_api_key(client, invalid_api_key):
+    """Test getting campaigns with invalid API key."""
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        headers={'Authorization': invalid_api_key},
+    )
+
+    assert response.status_code == 401
+    assert 'invalid or incorrect API key provided' in response.json()['detail']
+
+
+def test_get_campaigns_missing_api_key(client):
+    """Test getting campaigns without API key."""
+    response = client.get('/v1/orchestrator/campaigns')
+
+    assert response.status_code == 403  # FastAPI's default for missing security dependency
