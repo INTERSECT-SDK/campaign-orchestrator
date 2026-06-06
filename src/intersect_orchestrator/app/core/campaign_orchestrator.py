@@ -118,6 +118,8 @@ class CampaignState:
     resolved_output_values: dict[uuid.UUID, Any] = field(default_factory=dict)
     """Maps output Value IDs from completed tasks to their resolved runtime values.
     Persists across task groups so upstream outputs flow into downstream inputs."""
+    status: ExecutionStatus = ExecutionStatus.RUNNING
+    """Current execution status of the campaign."""
     lock: threading.Lock = field(default_factory=threading.Lock)
     """Per-campaign lock to serialise broker callback threads."""
 
@@ -200,14 +202,13 @@ class CampaignOrchestrator:
             # Currently we only track running campaigns in memory
             campaigns = []
             for _campaign_id, state in self._campaigns.items():
-                campaign_status = ExecutionStatus.RUNNING
                 # Filter by status if provided
-                if status is not None and campaign_status not in status:
+                if status is not None and state.status not in status:
                     continue
                 campaigns.append(
                     CampaignInfo(
                         campaign_id=str(state.campaign.id),
-                        status=campaign_status,
+                        status=state.status,
                     )
                 )
             return campaigns

@@ -268,3 +268,207 @@ def test_get_campaigns_missing_api_key(client):
     response = client.get('/v1/orchestrator/campaigns')
 
     assert response.status_code == 403  # FastAPI's default for missing security dependency
+
+
+def test_get_campaigns_multiple_status_filter(
+    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+):
+    """Test filtering campaigns with multiple status values."""
+    # Start first campaign
+    response1 = client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    assert response1.status_code == 200
+
+    # Start second campaign
+    response2 = client.post(
+        '/v1/orchestrator/start_campaign',
+        json=random_number_and_histogram_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    assert response2.status_code == 200
+
+    # Manually set one campaign to ERROR status to test multi-status filter
+    orchestrator = client.app.state.campaign_orchestrator
+    campaign_ids = list(orchestrator._campaigns.keys())
+    assert len(campaign_ids) >= 2
+
+    # Change the second campaign's status to ERROR
+    second_campaign_state = orchestrator._campaigns[campaign_ids[1]]
+    second_campaign_state.status = ExecutionStatus.ERROR
+
+    # Query with multiple statuses: running AND error
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params=[('status', 'running'), ('status', 'error')],
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) == 2
+
+    # Verify we have both statuses in the response
+    statuses = {c['status'] for c in data['campaigns']}
+    assert statuses == {'running', 'error'}
+
+
+def test_get_campaigns_filter_running_only(
+    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+):
+    """Test filtering to only running campaigns excludes other statuses."""
+    # Start two campaigns
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=random_number_and_histogram_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    # Set one to ERROR
+    orchestrator = client.app.state.campaign_orchestrator
+    campaign_ids = list(orchestrator._campaigns.keys())
+    orchestrator._campaigns[campaign_ids[1]].status = ExecutionStatus.ERROR
+
+    # Query only running
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'running'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) == 1
+    assert data['campaigns'][0]['status'] == 'running'
+
+
+def test_get_campaigns_filter_error_only(
+    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+):
+    """Test filtering to only error campaigns excludes other statuses."""
+    # Start two campaigns
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=random_number_and_histogram_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    # Set one to ERROR
+    orchestrator = client.app.state.campaign_orchestrator
+    campaign_ids = list(orchestrator._campaigns.keys())
+    orchestrator._campaigns[campaign_ids[1]].status = ExecutionStatus.ERROR
+
+    # Query only error
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'error'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) == 1
+    assert data['campaigns'][0]['status'] == 'error'
+
+
+def test_get_campaigns_filter_queued_only(
+    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+):
+    """Test filtering to only queued campaigns."""
+    # Start two campaigns
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=random_number_and_histogram_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    # Set one to QUEUED
+    orchestrator = client.app.state.campaign_orchestrator
+    campaign_ids = list(orchestrator._campaigns.keys())
+    orchestrator._campaigns[campaign_ids[1]].status = ExecutionStatus.QUEUED
+
+    # Query only queued
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'queued'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) == 1
+    assert data['campaigns'][0]['status'] == 'queued'
+
+
+def test_get_campaigns_filter_complete_only(
+    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+):
+    """Test filtering to only complete campaigns."""
+    # Start two campaigns
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=random_number_and_histogram_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    # Set one to COMPLETE
+    orchestrator = client.app.state.campaign_orchestrator
+    campaign_ids = list(orchestrator._campaigns.keys())
+    orchestrator._campaigns[campaign_ids[1]].status = ExecutionStatus.COMPLETE
+
+    # Query only complete
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'complete'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['campaigns']) == 1
+    assert data['campaigns'][0]['status'] == 'complete'
+
+
+def test_get_campaigns_filter_nonexistent_status_returns_empty(
+    client, valid_api_key, sample_campaign_data
+):
+    """Test filtering with status that no campaign has returns empty list."""
+    # Start a running campaign
+    client.post(
+        '/v1/orchestrator/start_campaign',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    # Query for queued (but campaign is running)
+    response = client.get(
+        '/v1/orchestrator/campaigns',
+        params={'status': 'queued'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['campaigns'] == []
