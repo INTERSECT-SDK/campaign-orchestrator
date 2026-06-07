@@ -722,6 +722,14 @@ class CampaignOrchestrator:
         ``resolved_output_values`` maps output Value UUIDs from completed tasks to
         their runtime values.  When a task's input Value ID matches a key in that
         dict, the resolved value is used instead of the schema default.
+
+        Supports two schema shapes:
+        * Object schema (``{"type": "object", "properties": {...}}``): builds a
+          dict payload with property values extracted from resolved values or defaults.
+        * Primitive schema (``{"type": "string"}``, ``{"type": "integer"}``, etc.):
+          sends the raw value directly (e.g., ``"uuid-value"`` instead of
+          ``{"uuid": "uuid-value"}``). This is needed for capabilities that expect
+          a raw primitive argument rather than a Pydantic model.
         """
         # TODO: Need to return b'null' for content type application/json
         #       and empty byte string for non-json content types
@@ -731,6 +739,25 @@ class CampaignOrchestrator:
         if resolved_output_values is None:
             resolved_output_values = {}
 
+        schema_type = task.input.json_schema.get('type', 'object')
+
+        # Handle non-object schema types (string, integer, number, boolean, array)
+        if schema_type != 'object':
+            # For primitive types, use the single value's resolved value or schema default
+            if task.input.values:
+                value = task.input.values[0]
+                if value.id in resolved_output_values:
+                    raw_value = resolved_output_values[value.id]
+                elif 'default' in task.input.json_schema:
+                    raw_value = task.input.json_schema['default']
+                else:
+                    return b'null'
+                return json.dumps(raw_value).encode('utf-8')
+            elif 'default' in task.input.json_schema:
+                return json.dumps(task.input.json_schema['default']).encode('utf-8')
+            return b'null'
+
+        # Handle object schema type (existing logic)
         properties = task.input.json_schema.get('properties', {})
         payload: dict[str, Any] = {}
 
