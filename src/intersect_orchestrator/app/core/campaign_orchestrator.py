@@ -753,7 +753,7 @@ class CampaignOrchestrator:
                 else:
                     return b'null'
                 return json.dumps(raw_value).encode('utf-8')
-            elif 'default' in task.input.json_schema:
+            if 'default' in task.input.json_schema:
                 return json.dumps(task.input.json_schema['default']).encode('utf-8')
             return b'null'
 
