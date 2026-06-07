@@ -1043,3 +1043,197 @@ def test_cross_group_output_resolves_to_downstream_group_input() -> None:
         _reply_headers(campaign_id, task_update),
     )
     assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
+
+
+def test_dispatch_request_with_raw_string_schema() -> None:
+    """Test that tasks with a non-object schema (e.g., string) send the raw value, not a wrapped object.
+
+    When a target capability expects a raw string (like `uuid: str`) instead of an object,
+    the orchestrator should send `"the-value"` rather than `{"uuid": "the-value"}`.
+    """
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign for raw string schema',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'dial',
+                        'operation_id': 'get_workflow_data',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'string',
+                                'default': 'deadbeefdeadbeefdeadbeef',
+                            },
+                            'values': [
+                                {'id': str(uuid.uuid4()), 'var': 'uuid'},
+                            ],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    assert len(client.control_plane_manager.published) == 1
+    published_payload = client.control_plane_manager.published[0][1]
+    # Should be a raw JSON string, not an object
+    assert json.loads(published_payload.decode('utf-8')) == 'deadbeefdeadbeefdeadbeef'
+
+
+def test_dispatch_request_with_raw_integer_schema() -> None:
+    """Test that tasks with an integer schema send the raw integer value."""
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign for raw integer schema',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'SomeCapability',
+                        'operation_id': 'some_operation',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'integer',
+                                'default': 42,
+                            },
+                            'values': [
+                                {'id': str(uuid.uuid4()), 'var': 'count'},
+                            ],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    assert len(client.control_plane_manager.published) == 1
+    published_payload = client.control_plane_manager.published[0][1]
+    # Should be a raw JSON integer, not an object
+    assert json.loads(published_payload.decode('utf-8')) == 42
+
+
+def test_dispatch_request_with_raw_string_from_resolved_value() -> None:
+    """Test that a raw string schema uses resolved values from previous tasks.
+
+    When task B depends on task A's output and task B expects a raw string,
+    the orchestrator should send the resolved string value directly.
+    """
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    tg1_id = uuid.uuid4()
+    tg2_id = uuid.uuid4()
+    task_init = uuid.uuid4()
+    task_get_data = uuid.uuid4()
+    shared_value_id = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='test-campaign',
+        user='test-user',
+        description='Test campaign with raw string from resolved value',
+        task_groups=[
+            {
+                'id': str(tg1_id),
+                'tasks': [
+                    {
+                        'id': str(task_init),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'dial',
+                        'operation_id': 'init_workflow',
+                        'output': {
+                            'schema': {
+                                'type': 'string',
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'workflow_id'}],
+                        },
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            },
+            {
+                'id': str(tg2_id),
+                'tasks': [
+                    {
+                        'id': str(task_get_data),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'dial',
+                        'operation_id': 'get_workflow_data',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'string',
+                                'default': 'placeholder',
+                            },
+                            'values': [{'id': str(shared_value_id), 'var': 'uuid'}],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [str(tg1_id)],
+                'objectives': [],
+            },
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    # Group 1: complete task_init with real workflow_id
+    real_workflow_id = 'cafebabecafebabecafebabe'
+    orchestrator.handle_request_reply_broker_message(
+        json.dumps(real_workflow_id).encode(),
+        'application/json',
+        _reply_headers(campaign_id, task_init),
+    )
+
+    # Group 2 task_get_data should have been dispatched with the real workflow_id as raw string
+    assert len(client.control_plane_manager.published) == 2
+    task_get_data_payload = json.loads(client.control_plane_manager.published[1][1].decode())
+    # Should be the raw string, not {"uuid": "cafebabecafebabecafebabe"}
+    assert task_get_data_payload == real_workflow_id, (
+        f"Expected raw string '{real_workflow_id}' but got: {task_get_data_payload}"
+    )
