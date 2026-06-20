@@ -343,9 +343,7 @@ def test_event_task_payload_populates_downstream_request_inputs_without_explicit
     orchestrator._store_task_output_values(
         state,
         event_task_id,
-        json.dumps(
-            {'q': [0.5, 0.7], 'intensity': [1.0, 2.0], 'error': [0.1, 0.2]}
-        ).encode('utf-8'),
+        json.dumps({'q': [0.5, 0.7], 'intensity': [1.0, 2.0], 'error': [0.1, 0.2]}).encode('utf-8'),
     )
 
     request_task = campaign.task_groups[0].tasks[1]
