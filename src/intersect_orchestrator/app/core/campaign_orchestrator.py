@@ -789,7 +789,7 @@ class CampaignOrchestrator:
           output value, that scalar becomes the resolved value for its Value ID.
         """
         task = self._get_task_from_campaign(state.campaign, step_id)
-        if task is None or task.output is None or not task.output.values:
+        if task is None:
             return
 
         try:
@@ -797,13 +797,25 @@ class CampaignOrchestrator:
         except (json.JSONDecodeError, ValueError):
             return
 
+        if task.output is not None and task.output.values:
+            if isinstance(decoded, dict):
+                for val in task.output.values:
+                    if val.var in decoded:
+                        state.resolved_output_values[val.id] = decoded[val.var]
+            elif len(task.output.values) == 1:
+                # Scalar payload (e.g. a bare string or number) maps to the single output variable.
+                state.resolved_output_values[task.output.values[0].id] = decoded
+            return
+
+        if task.event_name is None or task.input is None or not task.input.values:
+            return
+
         if isinstance(decoded, dict):
-            for val in task.output.values:
+            for val in task.input.values:
                 if val.var in decoded:
                     state.resolved_output_values[val.id] = decoded[val.var]
-        elif len(task.output.values) == 1:
-            # Scalar payload (e.g. a bare string or number) maps to the single output variable.
-            state.resolved_output_values[task.output.values[0].id] = decoded
+        elif len(task.input.values) == 1:
+            state.resolved_output_values[task.input.values[0].id] = decoded
 
     def _pop_unblocked_tasks(
         self, state: CampaignState, execution: TaskGroupExecution

@@ -260,6 +260,104 @@ def test_handle_event_broker_message_completes_event_task() -> None:
     ]
 
 
+def test_event_task_payload_populates_downstream_request_inputs_without_explicit_output() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    group_id = uuid.uuid4()
+    event_task_id = uuid.uuid4()
+    request_task_id = uuid.uuid4()
+    shared_q = uuid.uuid4()
+    shared_intensity = uuid.uuid4()
+    shared_error = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='event-pass-through-campaign',
+        user='test-user',
+        description='Test event payload propagation without explicit output mapping',
+        task_groups=[
+            {
+                'id': str(group_id),
+                'tasks': [
+                    {
+                        'id': str(event_task_id),
+                        'hierarchy': 'org.fac.system.subsystem.analysis',
+                        'capability': 'LiveStreamAnalysis',
+                        'event_name': 'histogram_updated',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'q': {'type': 'array', 'default': []},
+                                    'intensity': {'type': 'array', 'default': []},
+                                    'error': {'type': 'array', 'default': []},
+                                },
+                            },
+                            'values': [
+                                {'id': str(shared_q), 'var': 'q'},
+                                {'id': str(shared_intensity), 'var': 'intensity'},
+                                {'id': str(shared_error), 'var': 'error'},
+                            ],
+                        },
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(request_task_id),
+                        'hierarchy': 'org.fac.system.subsystem.surrogate',
+                        'capability': 'SurrogateDiffraction',
+                        'operation_id': 'update_with_data',
+                        'output': None,
+                        'input': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'q': {'type': 'array', 'default': []},
+                                    'intensity': {'type': 'array', 'default': []},
+                                    'error': {'type': 'array', 'default': []},
+                                },
+                            },
+                            'values': [
+                                {'id': str(shared_q), 'var': 'q'},
+                                {'id': str(shared_intensity), 'var': 'intensity'},
+                                {'id': str(shared_error), 'var': 'error'},
+                            ],
+                        },
+                        'task_dependencies': [str(event_task_id)],
+                        'task_objectives': None,
+                    },
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+    state = orchestrator._campaigns[campaign_id]
+
+    orchestrator._store_task_output_values(
+        state,
+        event_task_id,
+        json.dumps(
+            {'q': [0.5, 0.7], 'intensity': [1.0, 2.0], 'error': [0.1, 0.2]}
+        ).encode('utf-8'),
+    )
+
+    request_task = campaign.task_groups[0].tasks[1]
+    payload = orchestrator._build_task_request_payload(request_task, state.resolved_output_values)
+
+    assert json.loads(payload.decode('utf-8')) == {
+        'q': [0.5, 0.7],
+        'intensity': [1.0, 2.0],
+        'error': [0.1, 0.2],
+    }
+
+
 def test_handle_broker_message_emits_error() -> None:
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
