@@ -31,6 +31,7 @@ _log = logging.getLogger(__name__)
 
 RESERVED_QUEUE_NAME = 'intersect-orchestrator'
 EVENT_QUEUE_NAME = 'intersect-orchestrator-events'
+EVENT_WILDCARD_CHANNEL = '*#'
 
 
 class CoreServiceIntersectClient:
@@ -44,7 +45,7 @@ class CoreServiceIntersectClient:
     def __init__(self, settings: Settings) -> None:
         self.http_connections: set[Queue[bytes]] = set()
         self.campaign_orchestrator: CampaignOrchestrator | None = None
-        self._event_subscription_channels: set[str] = set()
+        self._event_subscription_registered = False
         """
         self.message_validator: TypeAdapter[EventMessage | LifecycleMessage | UserspaceMessage] = (
             TypeAdapter(EventMessage | LifecycleMessage | UserspaceMessage)
@@ -74,14 +75,20 @@ class CoreServiceIntersectClient:
         TODO - the registry service needs to make sure to disallow non-root users from subscribing to this channel (publishing is universal)
         """
 
-        self.control_plane_manager.connect()
-        # must add "/response" suffix due to INTERSECT-SDK convention
         self.control_plane_manager.add_subscription_channel(
             f'{self.orchestrator_base_topic}/response',
             {self._handle_message},
             True,
             RESERVED_QUEUE_NAME,
         )
+        self.control_plane_manager.add_subscription_channel(
+            EVENT_WILDCARD_CHANNEL,
+            {self._handle_event_message},
+            True,
+            EVENT_QUEUE_NAME,
+        )
+        self._event_subscription_registered = True
+        self.control_plane_manager.connect()
 
     def _handle_message(self, message: bytes, content_type: str, headers: dict[str, str]) -> None:
         """Broker callback calls this function when we get a message."""
@@ -100,16 +107,9 @@ class CoreServiceIntersectClient:
         # (this will eventually be managed by checking the message's Content-Type)
 
         if self.campaign_orchestrator is not None:
-            # Some broker/control-plane configurations can route event traffic
-            # through this callback. Detect event headers and forward them.
-            if 'event_name' in headers and 'capability_name' in headers:
-                self.campaign_orchestrator.handle_event_broker_message(
-                    message, content_type, headers
-                )
-            else:
-                self.campaign_orchestrator.handle_request_reply_broker_message(
-                    message, content_type, headers
-                )
+            self.campaign_orchestrator.handle_request_reply_broker_message(
+                message, content_type, headers
+            )
 
         for connection in self.http_connections:
             connection.put_nowait(message)
@@ -127,20 +127,17 @@ class CoreServiceIntersectClient:
         capability_name: str,
         event_name: str,
     ) -> None:
-        """Subscribe orchestrator to a specific service event channel."""
-        channel = (
-            f'{self._hierarchy_to_channel(service_hierarchy)}/events/{capability_name}/{event_name}'
-        )
-        if channel in self._event_subscription_channels:
+        """Ensure the shared wildcard event subscription is registered once."""
+        if self._event_subscription_registered:
             return
 
         self.control_plane_manager.add_subscription_channel(
-            channel,
+            EVENT_WILDCARD_CHANNEL,
             {self._handle_event_message},
             True,
             EVENT_QUEUE_NAME,
         )
-        self._event_subscription_channels.add(channel)
+        self._event_subscription_registered = True
 
     def get_orchestrator_hierarchy(self) -> str:
         """Return orchestrator source hierarchy in dot-separated header format."""

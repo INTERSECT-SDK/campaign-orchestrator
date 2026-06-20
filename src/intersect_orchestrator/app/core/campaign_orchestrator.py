@@ -423,6 +423,14 @@ class CampaignOrchestrator:
 
                 execution = current_state.task_group_executions[current_state.current_group_index]
                 if task_id not in execution.active_tasks:
+                    logger.info(
+                        'Skipping matched event task %s for campaign %s because it is not active; active_tasks=%s pending_tasks=%s event_listener_tasks=%s',
+                        task_id,
+                        current_state.campaign_run_id,
+                        sorted(str(active_task_id) for active_task_id in execution.active_tasks),
+                        sorted(str(pending_task_id) for pending_task_id in execution.pending_tasks),
+                        sorted(str(listener_task_id) for listener_task_id in execution.event_listener_tasks),
+                    )
                     continue
 
                 self._record_task_event(
@@ -611,10 +619,11 @@ class CampaignOrchestrator:
         if task.event_name is not None:
             newly_unblocked = self._pop_unblocked_tasks(state, execution)
             logger.info(
-                'Event task %s completed for campaign %s; unblocked %d dependent task(s)',
+                'Event task %s completed for campaign %s; unblocked %d dependent task(s): %s',
                 step_id,
                 state.campaign_run_id,
                 len(newly_unblocked),
+                sorted(str(task_id) for task_id in newly_unblocked),
             )
             if newly_unblocked:
                 for task_id in newly_unblocked:

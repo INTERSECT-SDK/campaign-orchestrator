@@ -1,4 +1,23 @@
-# ignore everything by default
+.git
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+build
+dist
+docs/_build
+htmlcov
+.coverage
+concepts
+services
+tests
+README.md
+AGENTS.md# ignore everything by default
 *
 # but do not ignore core files
 !src/

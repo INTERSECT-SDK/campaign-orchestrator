@@ -10,13 +10,20 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock /app/
-COPY src /app/src
 
 FROM base AS builder
+
+RUN uv sync --locked --no-editable --no-install-project
+
+COPY src /app/src
 
 RUN uv sync --locked --no-editable
 
 FROM base AS builder-full
+
+RUN uv sync --locked --no-editable --extra mongo --extra postgres --no-install-project
+
+COPY src /app/src
 
 RUN uv sync --locked --no-editable --extra mongo --extra postgres
 
