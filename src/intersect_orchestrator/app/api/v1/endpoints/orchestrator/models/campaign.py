@@ -212,6 +212,15 @@ class Task(BaseModel):
 
     Each event name has an output schema. Event names are namespaced to Capabilities.
     """
+    event_mode: Literal['once', 'count', 'persistent'] = 'once'
+    """How an event task consumes matching events.
+
+    once: complete permanently after the first matching event.
+    count: complete after ``event_count`` matching events.
+    persistent: reactivate after each matching event and remain open.
+    """
+    event_count: int | None = None
+    """Required positive count when ``event_mode`` is ``count``; otherwise must be omitted."""
     output: Output | None = None
     input: Input | None = None
     task_dependencies: Annotated[list[uuid.UUID], Field(default_factory=list)]
@@ -226,6 +235,25 @@ class Task(BaseModel):
         if bool(self.event_name) == bool(self.operation_id):
             errors.append(
                 f'Task {self.id} needs to define exactly one of operation_id or event_name'
+            )
+
+        if self.event_name is None:
+            if self.event_mode != 'once':
+                errors.append(
+                    f'Task {self.id} cannot define event_mode unless event_name is set'
+                )
+            if self.event_count is not None:
+                errors.append(
+                    f'Task {self.id} cannot define event_count unless event_name is set'
+                )
+        elif self.event_mode == 'count':
+            if self.event_count is None or self.event_count <= 0:
+                errors.append(
+                    f'Task {self.id} with event_mode=count must define a positive event_count'
+                )
+        elif self.event_count is not None:
+            errors.append(
+                f'Task {self.id} can only define event_count when event_mode=count'
             )
 
         if errors:
