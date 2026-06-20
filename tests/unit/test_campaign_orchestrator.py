@@ -121,6 +121,43 @@ def _make_event_campaign(campaign_id: uuid.UUID, step_id: uuid.UUID) -> Campaign
     )
 
 
+def _make_event_mode_campaign(
+    campaign_id: uuid.UUID,
+    step_id: uuid.UUID,
+    *,
+    event_mode: str,
+    event_count: int | None = None,
+) -> Campaign:
+    return Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='test-event-mode-campaign',
+        user='test-user',
+        description='Test campaign for event mode handling',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(step_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'RandomNumberGenerator',
+                        'event_name': 'newMeasurement',
+                        'event_mode': event_mode,
+                        'event_count': event_count,
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    }
+                ],
+                'group_dependencies': [],
+                'objectives': [],
+            }
+        ],
+    )
+
+
 def test_handle_broker_message_completes_step() -> None:
     client = FakeClient()
     orchestrator = CampaignOrchestrator(client)
@@ -258,6 +295,303 @@ def test_handle_event_broker_message_completes_event_task() -> None:
         'STEP_COMPLETE',
         'CAMPAIGN_COMPLETE',
     ]
+
+
+def test_once_event_task_completes_permanently_after_first_match() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_event_mode_campaign(campaign_id, step_id, event_mode='once')
+
+    orchestrator.submit_campaign(campaign)
+
+    headers = {
+        'message_id': str(uuid.uuid4()),
+        'source': 'org.fac.system.subsystem.service',
+        'created_at': '2024-01-01T00:00:00Z',
+        'sdk_version': '0.0.1',
+        'data_handler': 'MESSAGE',
+        'capability_name': 'RandomNumberGenerator',
+        'event_name': 'newMeasurement',
+    }
+
+    orchestrator.handle_event_broker_message(b'{"value": 1}', 'application/json', headers)
+    orchestrator.handle_event_broker_message(b'{"value": 2}', 'application/json', headers)
+
+    assert _event_types(client.broadcasts) == [
+        'STEP_START',
+        'STEP_COMPLETE',
+        'CAMPAIGN_COMPLETE',
+    ]
+
+
+def test_count_event_task_completes_after_configured_matches() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_event_mode_campaign(
+        campaign_id,
+        step_id,
+        event_mode='count',
+        event_count=2,
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    headers = {
+        'message_id': str(uuid.uuid4()),
+        'source': 'org.fac.system.subsystem.service',
+        'created_at': '2024-01-01T00:00:00Z',
+        'sdk_version': '0.0.1',
+        'data_handler': 'MESSAGE',
+        'capability_name': 'RandomNumberGenerator',
+        'event_name': 'newMeasurement',
+    }
+
+    orchestrator.handle_event_broker_message(b'{"value": 1}', 'application/json', headers)
+    assert _event_types(client.broadcasts) == ['STEP_START', 'STEP_COMPLETE']
+
+    orchestrator.handle_event_broker_message(b'{"value": 2}', 'application/json', headers)
+    assert _event_types(client.broadcasts) == [
+        'STEP_START',
+        'STEP_COMPLETE',
+        'STEP_COMPLETE',
+        'CAMPAIGN_COMPLETE',
+    ]
+
+
+def test_persistent_event_task_reactivates_after_match() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    step_id = uuid.uuid4()
+    campaign = _make_event_mode_campaign(campaign_id, step_id, event_mode='persistent')
+
+    orchestrator.submit_campaign(campaign)
+
+    headers = {
+        'message_id': str(uuid.uuid4()),
+        'source': 'org.fac.system.subsystem.service',
+        'created_at': '2024-01-01T00:00:00Z',
+        'sdk_version': '0.0.1',
+        'data_handler': 'MESSAGE',
+        'capability_name': 'RandomNumberGenerator',
+        'event_name': 'newMeasurement',
+    }
+
+    orchestrator.handle_event_broker_message(b'{"value": 1}', 'application/json', headers)
+    orchestrator.handle_event_broker_message(b'{"value": 2}', 'application/json', headers)
+
+    assert _event_types(client.broadcasts) == [
+        'STEP_START',
+        'STEP_COMPLETE',
+        'STEP_COMPLETE',
+    ]
+
+
+def test_once_event_chain_advances_one_gate_per_event() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    first_event_id = uuid.uuid4()
+    first_request_id = uuid.uuid4()
+    second_event_id = uuid.uuid4()
+    second_request_id = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='serialized-event-chain',
+        user='test-user',
+        description='Ensure once-mode event gates serialize a chain',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'group_dependencies': [],
+                'tasks': [
+                    {
+                        'id': str(first_event_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'SurrogateDiffraction',
+                        'event_name': 'condition_met',
+                        'event_mode': 'once',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(first_request_id),
+                        'hierarchy': 'org.fac.system.subsystem.instrument',
+                        'capability': 'InstrumentControl',
+                        'operation_id': 'move_sample',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [str(first_event_id)],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(second_event_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'SurrogateDiffraction',
+                        'event_name': 'condition_met',
+                        'event_mode': 'once',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [str(first_request_id)],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(second_request_id),
+                        'hierarchy': 'org.fac.system.subsystem.instrument',
+                        'capability': 'InstrumentControl',
+                        'operation_id': 'move_sample',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [str(second_event_id)],
+                        'task_objectives': None,
+                    },
+                ],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    event_headers = {
+        'message_id': str(uuid.uuid4()),
+        'source': 'org.fac.system.subsystem.service',
+        'created_at': '2024-01-01T00:00:00Z',
+        'sdk_version': '0.0.1',
+        'data_handler': 'MESSAGE',
+        'capability_name': 'SurrogateDiffraction',
+        'event_name': 'condition_met',
+    }
+
+    orchestrator.handle_event_broker_message(b'{"value": 1}', 'application/json', event_headers)
+
+    event_types = _event_types(client.broadcasts)
+    assert event_types == ['STEP_START', 'STEP_COMPLETE', 'STEP_START']
+
+    state = orchestrator._campaigns[campaign_id]
+    execution = state.task_group_executions[state.current_group_index]
+    assert first_event_id not in execution.active_tasks
+    assert second_event_id in execution.pending_tasks
+
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        {
+            'has_error': 'false',
+            'source': 'org.fac.system.subsystem.instrument',
+            'campaign_id': str(campaign_id),
+            'request_id': str(first_request_id),
+            'message_id': str(uuid.uuid4()),
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'InstrumentControl.move_sample',
+        },
+    )
+
+    execution = orchestrator._campaigns[campaign_id].task_group_executions[0]
+    assert second_event_id in execution.active_tasks
+
+    orchestrator.handle_event_broker_message(b'{"value": 2}', 'application/json', event_headers)
+
+    event_types = _event_types(client.broadcasts)
+    assert event_types.count('STEP_COMPLETE') == 3
+    assert event_types.count('STEP_START') == 4
+
+
+def test_persistent_listener_closes_when_campaign_completes() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    event_task_id = uuid.uuid4()
+    request_task_id = uuid.uuid4()
+    task_group_id = uuid.uuid4()
+
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='persistent-objective-close',
+        user='test-user',
+        description='Persistent listener should close when campaign completes',
+        task_groups=[
+            {
+                'id': str(task_group_id),
+                'group_dependencies': [],
+                'tasks': [
+                    {
+                        'id': str(event_task_id),
+                        'hierarchy': 'org.fac.system.subsystem.analysis',
+                        'capability': 'LiveStreamAnalysis',
+                        'event_name': 'histogram_updated',
+                        'event_mode': 'persistent',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [],
+                        'task_objectives': None,
+                    },
+                    {
+                        'id': str(request_task_id),
+                        'hierarchy': 'org.fac.system.subsystem.surrogate',
+                        'capability': 'SurrogateDiffraction',
+                        'operation_id': 'update_with_data',
+                        'output': None,
+                        'input': None,
+                        'task_dependencies': [str(event_task_id)],
+                        'task_objectives': None,
+                    },
+                ],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+
+    event_headers = {
+        'message_id': str(uuid.uuid4()),
+        'source': 'org.fac.system.subsystem.analysis',
+        'created_at': '2024-01-01T00:00:00Z',
+        'sdk_version': '0.0.1',
+        'data_handler': 'MESSAGE',
+        'capability_name': 'LiveStreamAnalysis',
+        'event_name': 'histogram_updated',
+    }
+
+    orchestrator.handle_event_broker_message(b'{"value": 1}', 'application/json', event_headers)
+    orchestrator.handle_request_reply_broker_message(
+        b'{}',
+        'application/json',
+        {
+            'has_error': 'false',
+            'source': 'org.fac.system.subsystem.surrogate',
+            'campaign_id': str(campaign_id),
+            'request_id': str(request_task_id),
+            'message_id': str(uuid.uuid4()),
+            'destination': 'test.orchestrator',
+            'sdk_version': '0.0.1',
+            'created_at': '2024-01-01T00:00:00Z',
+            'operation_id': 'SurrogateDiffraction.update_with_data',
+        },
+    )
+
+    assert campaign_id not in orchestrator._campaigns
+
+    before = len(client.broadcasts)
+    orchestrator.handle_event_broker_message(b'{"value": 2}', 'application/json', event_headers)
+    assert len(client.broadcasts) == before
 
 
 def test_event_task_payload_populates_downstream_request_inputs_without_explicit_output() -> None:

@@ -96,6 +96,8 @@ class TaskGroupExecution:
     """Tasks whose task_dependencies have not yet all completed; not yet dispatched."""
     event_listener_tasks: set[uuid.UUID] = field(default_factory=set)
     """Tasks that have been subscribed for event delivery in the current group."""
+    event_task_match_counts: dict[uuid.UUID, int] = field(default_factory=dict)
+    """Number of matching events consumed by each event task in the current iteration."""
     completed_tasks: set[uuid.UUID] = field(default_factory=set)
     iteration_payloads: dict[uuid.UUID, bytes] = field(default_factory=dict)
 
@@ -500,6 +502,7 @@ class CampaignOrchestrator:
         execution = state.task_group_executions[state.current_group_index]
 
         if execution.objectives_met():
+            self._close_event_listeners(execution)
             # All objectives for this task group are satisfied — advance
             logger.debug(
                 'task group %s objectives met after %d iterations, advancing',
@@ -617,11 +620,15 @@ class CampaignOrchestrator:
         self._store_task_output_values(state, step_id, payload)
 
         if task.event_name is not None:
+            match_count = execution.event_task_match_counts.get(step_id, 0) + 1
+            execution.event_task_match_counts[step_id] = match_count
             newly_unblocked = self._pop_unblocked_tasks(state, execution)
             logger.info(
-                'Event task %s completed for campaign %s; unblocked %d dependent task(s): %s',
+                'Event task %s completed for campaign %s in mode=%s count=%d; unblocked %d dependent task(s): %s',
                 step_id,
                 state.campaign_run_id,
+                task.event_mode,
+                match_count,
                 len(newly_unblocked),
                 sorted(str(task_id) for task_id in newly_unblocked),
             )
@@ -634,16 +641,19 @@ class CampaignOrchestrator:
                     )
                 self._dispatch_task_ids(state, newly_unblocked)
 
-            execution.completed_tasks.discard(step_id)
-            execution.active_tasks.add(step_id)
-            logger.info(
-                'Reactivated event task %s for campaign %s; active_tasks=%d pending_tasks=%d',
-                step_id,
-                state.campaign_run_id,
-                len(execution.active_tasks),
-                len(execution.pending_tasks),
-            )
-            return
+            if self._should_reactivate_event_task(
+                task, match_count, has_unblocked_dependents=bool(newly_unblocked)
+            ):
+                execution.completed_tasks.discard(step_id)
+                execution.active_tasks.add(step_id)
+                logger.info(
+                    'Reactivated event task %s for campaign %s; active_tasks=%d pending_tasks=%d',
+                    step_id,
+                    state.campaign_run_id,
+                    len(execution.active_tasks),
+                    len(execution.pending_tasks),
+                )
+                return
 
         # Unblock any pending tasks whose dependencies are now all satisfied.
         newly_unblocked = self._pop_unblocked_tasks(state, execution)
@@ -665,10 +675,35 @@ class CampaignOrchestrator:
             execution.active_tasks = set()
             execution.pending_tasks = set()
             execution.completed_tasks = set()
+            execution.event_task_match_counts = {}
             execution.iteration_payloads = {}
             self._start_next_iteration(state)
 
+    def _should_reactivate_event_task(
+        self,
+        task: Task,
+        match_count: int,
+        *,
+        has_unblocked_dependents: bool,
+    ) -> bool:
+        if has_unblocked_dependents:
+            return False
+        if task.event_mode == 'persistent':
+            return True
+        if task.event_mode == 'count':
+            return task.event_count is not None and match_count < task.event_count
+        return False
+
+    def _close_event_listeners(self, execution: TaskGroupExecution) -> None:
+        execution.active_tasks.difference_update(execution.event_listener_tasks)
+        execution.pending_tasks.difference_update(execution.event_listener_tasks)
+        execution.event_listener_tasks.clear()
+
     def _finish_campaign(self, state: CampaignState) -> None:
+        if state.current_group_index < len(state.task_group_executions):
+            self._close_event_listeners(
+                state.task_group_executions[state.current_group_index]
+            )
         self._emit_event(
             campaign_id=state.campaign.id,
             run_id=state.campaign_run_id,
