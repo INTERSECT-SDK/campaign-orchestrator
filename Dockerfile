@@ -1,60 +1,38 @@
-# see https://docs.astral.sh/uv/guides/integration/docker/#optimizations and https://www.joshkasuboski.com/posts/distroless-python-uv/
+FROM python:3.13-slim AS base
 
-FROM ghcr.io/astral-sh/uv:debian-slim AS builder
-
-ARG PYTHON_VERSION=3.13
-# set to "0" to include dev dependencies, "1" to exclude them (default: "1")
-ARG UV_NO_DEV="1"
-
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
-ENV UV_PYTHON_INSTALL_DIR=/python
-ENV UV_PYTHON_PREFERENCE=only-managed
-ENV UV_NO_DEV=${UV_NO_DEV}
-
-RUN uv python install ${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Install required dependencies only for the base image target.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-install-project --no-editable
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Sync the project for the base image target.
-COPY src src
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable
+COPY pyproject.toml uv.lock /app/
+COPY src /app/src
 
-# Full dependency builder includes optional repository drivers for mongo + postgres.
-FROM builder AS builder-full
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable --extra mongo --extra postgres
+FROM base AS builder
 
-FROM gcr.io/distroless/cc:nonroot AS runner
+RUN uv sync --locked --no-editable
 
-COPY --from=builder --chown=python:python /python /python
+FROM base AS builder-full
+
+RUN uv sync --locked --no-editable --extra mongo --extra postgres
+
+FROM python:3.13-slim AS runner
 
 WORKDIR /app
-COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# override CMD at container runtime for tests
-# note that you generally will NOT want to set UVICORN_WORKERS if running in a Kubernetes cluster, let Kubernetes handle that for you
 CMD ["python", "-m", "intersect_orchestrator"]
 
-FROM gcr.io/distroless/cc:nonroot AS full
-
-COPY --from=builder-full --chown=python:python /python /python
+FROM python:3.13-slim AS full
 
 WORKDIR /app
-COPY --from=builder-full --chown=app:app /app/.venv /app/.venv
+COPY --from=builder-full /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 

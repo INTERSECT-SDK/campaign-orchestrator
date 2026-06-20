@@ -400,6 +400,14 @@ class CampaignOrchestrator:
             )
             return
 
+        logger.info(
+            'Matched event message source=%s capability=%s event_name=%s to %d task(s)',
+            headers.source,
+            headers.capability_name,
+            headers.event_name,
+            len(matching_steps),
+        )
+
         for state, task_id in matching_steps:
             current_state = self._get_state_for_campaign_alias(state.campaign_run_id)
             if current_state is None:
@@ -574,6 +582,12 @@ class CampaignOrchestrator:
         """Mark a single task as complete. When all tasks in the current iteration
         are done, notify objective checkers and decide whether to iterate again."""
         execution = state.task_group_executions[state.current_group_index]
+        task = self._get_task_from_campaign(state.campaign, step_id)
+        if task is None:
+            msg = f'No task found for step ID: {step_id} in campaign ID: {state.campaign_run_id}'
+            logger.error(msg)
+            self._handle_dispatch_error(state, msg)
+            return
 
         execution.active_tasks.discard(step_id)
         execution.completed_tasks.add(step_id)
@@ -593,6 +607,34 @@ class CampaignOrchestrator:
         # Resolve and store output values from the completed task so downstream
         # tasks (in this or future groups) can reference them via shared value IDs.
         self._store_task_output_values(state, step_id, payload)
+
+        if task.event_name is not None:
+            newly_unblocked = self._pop_unblocked_tasks(state, execution)
+            logger.info(
+                'Event task %s completed for campaign %s; unblocked %d dependent task(s)',
+                step_id,
+                state.campaign_run_id,
+                len(newly_unblocked),
+            )
+            if newly_unblocked:
+                for task_id in newly_unblocked:
+                    self._emit_event(
+                        campaign_id=state.campaign.id,
+                        run_id=state.campaign_run_id,
+                        event=StepStartEvent(step_id=task_id),
+                    )
+                self._dispatch_task_ids(state, newly_unblocked)
+
+            execution.completed_tasks.discard(step_id)
+            execution.active_tasks.add(step_id)
+            logger.info(
+                'Reactivated event task %s for campaign %s; active_tasks=%d pending_tasks=%d',
+                step_id,
+                state.campaign_run_id,
+                len(execution.active_tasks),
+                len(execution.pending_tasks),
+            )
+            return
 
         # Unblock any pending tasks whose dependencies are now all satisfied.
         newly_unblocked = self._pop_unblocked_tasks(state, execution)
@@ -706,6 +748,13 @@ class CampaignOrchestrator:
             'PUBLISHING REQUEST MESSAGE to %s with headers %s',
             task.hierarchy,
             headers,
+        )
+        logger.info(
+            'Dispatching request task %s to hierarchy=%s capability=%s operation=%s',
+            task.id,
+            task.hierarchy,
+            task.capability,
+            task.operation_id,
         )
         self._client.publish_request_message(
             task.hierarchy,
@@ -846,6 +895,13 @@ class CampaignOrchestrator:
             return
 
         try:
+            logger.info(
+                'Subscribing event task %s to hierarchy=%s capability=%s event_name=%s',
+                task.id,
+                task.hierarchy,
+                task.capability,
+                task.event_name,
+            )
             self._client.subscribe_to_events(
                 task.hierarchy,
                 task.capability,
