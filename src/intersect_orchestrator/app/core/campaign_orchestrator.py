@@ -94,6 +94,8 @@ class TaskGroupExecution:
     active_tasks: set[uuid.UUID] = field(default_factory=set)
     pending_tasks: set[uuid.UUID] = field(default_factory=set)
     """Tasks whose task_dependencies have not yet all completed; not yet dispatched."""
+    event_listener_tasks: set[uuid.UUID] = field(default_factory=set)
+    """Tasks that have been subscribed for event delivery in the current group."""
     completed_tasks: set[uuid.UUID] = field(default_factory=set)
     iteration_payloads: dict[uuid.UUID, bytes] = field(default_factory=dict)
 
@@ -261,9 +263,10 @@ class CampaignOrchestrator:
         except ValidationError as e:
             logger.warning('Invalid message headers, rejecting: %s', str(e))
             # abort, but attempt cleanup before aborting
-            campaign_id = raw_headers.get('campaign_id')
-            if campaign_id:
-                state = self._get_state_for_campaign_alias(uuid.UUID(campaign_id))
+            campaign_id_str = raw_headers.get('campaign_id')
+            if campaign_id_str:
+                campaign_id = uuid.UUID(campaign_id_str)
+                state = self._get_state_for_campaign_alias(campaign_id)
                 if state:
                     failed_step_id = None
                     request_id = raw_headers.get('request_id')
@@ -373,10 +376,10 @@ class CampaignOrchestrator:
                 continue
 
             execution = state.task_group_executions[state.current_group_index]
-            if not execution.active_tasks:
+            if not execution.event_listener_tasks:
                 continue
 
-            for task_id in list(execution.active_tasks):
+            for task_id in list(execution.event_listener_tasks):
                 task = self._get_task_from_campaign(state.campaign, task_id)
                 if task is None or task.event_name is None:
                     continue
@@ -571,37 +574,6 @@ class CampaignOrchestrator:
         """Mark a single task as complete. When all tasks in the current iteration
         are done, notify objective checkers and decide whether to iterate again."""
         execution = state.task_group_executions[state.current_group_index]
-        task = self._get_task_from_campaign(state.campaign, step_id)
-
-        if task is not None and task.event_name is not None:
-            execution.iteration_payloads[step_id] = payload
-
-            self._emit_event(
-                campaign_id=state.campaign.id,
-                run_id=state.campaign_run_id,
-                event=StepCompleteEvent(step_id=step_id, payload=payload),
-            )
-            self._record_event(
-                campaign_id=state.campaign_run_id,
-                event_type='STEP_COMPLETE',
-                payload={'step_id': str(step_id)},
-            )
-
-            self._store_task_output_values(state, step_id, payload)
-
-            newly_unblocked = self._pop_unblocked_tasks(state, execution)
-            if newly_unblocked:
-                for task_id in newly_unblocked:
-                    self._emit_event(
-                        campaign_id=state.campaign.id,
-                        run_id=state.campaign_run_id,
-                        event=StepStartEvent(step_id=task_id),
-                    )
-                self._dispatch_task_ids(state, newly_unblocked)
-
-            execution.completed_tasks.discard(step_id)
-            execution.active_tasks.add(step_id)
-            return
 
         execution.active_tasks.discard(step_id)
         execution.completed_tasks.add(step_id)
@@ -879,6 +851,8 @@ class CampaignOrchestrator:
                 task.capability,
                 task.event_name,
             )
+            execution = state.task_group_executions[state.current_group_index]
+            execution.event_listener_tasks.add(task.id)
         except Exception as err:
             msg = (
                 f'Failed to subscribe to events for task {task.id} '
