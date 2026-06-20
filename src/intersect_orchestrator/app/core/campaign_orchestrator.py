@@ -98,6 +98,8 @@ class TaskGroupExecution:
     """Tasks that have been subscribed for event delivery in the current group."""
     event_task_match_counts: dict[uuid.UUID, int] = field(default_factory=dict)
     """Number of matching events consumed by each event task in the current iteration."""
+    requeue_after_completion: set[uuid.UUID] = field(default_factory=set)
+    """Tasks that should return to pending after their current dispatch completes."""
     completed_tasks: set[uuid.UUID] = field(default_factory=set)
     iteration_payloads: dict[uuid.UUID, bytes] = field(default_factory=dict)
 
@@ -604,6 +606,11 @@ class CampaignOrchestrator:
         execution.completed_tasks.add(step_id)
         execution.iteration_payloads[step_id] = payload
 
+        if step_id in execution.requeue_after_completion:
+            execution.requeue_after_completion.discard(step_id)
+            execution.completed_tasks.discard(step_id)
+            execution.pending_tasks.add(step_id)
+
         self._emit_event(
             campaign_id=state.campaign.id,
             run_id=state.campaign_run_id,
@@ -644,6 +651,7 @@ class CampaignOrchestrator:
             if self._should_reactivate_event_task(
                 task, match_count, has_unblocked_dependents=bool(newly_unblocked)
             ):
+                execution.requeue_after_completion.update(newly_unblocked)
                 execution.completed_tasks.discard(step_id)
                 execution.active_tasks.add(step_id)
                 logger.info(
@@ -676,6 +684,7 @@ class CampaignOrchestrator:
             execution.pending_tasks = set()
             execution.completed_tasks = set()
             execution.event_task_match_counts = {}
+            execution.requeue_after_completion = set()
             execution.iteration_payloads = {}
             self._start_next_iteration(state)
 
@@ -686,12 +695,12 @@ class CampaignOrchestrator:
         *,
         has_unblocked_dependents: bool,
     ) -> bool:
-        if has_unblocked_dependents:
-            return False
         if task.event_mode == 'persistent':
             return True
         if task.event_mode == 'count':
             return task.event_count is not None and match_count < task.event_count
+        if has_unblocked_dependents:
+            return False
         return False
 
     def _close_event_listeners(self, execution: TaskGroupExecution) -> None:
