@@ -571,6 +571,37 @@ class CampaignOrchestrator:
         """Mark a single task as complete. When all tasks in the current iteration
         are done, notify objective checkers and decide whether to iterate again."""
         execution = state.task_group_executions[state.current_group_index]
+        task = self._get_task_from_campaign(state.campaign, step_id)
+
+        if task is not None and task.event_name is not None:
+            execution.iteration_payloads[step_id] = payload
+
+            self._emit_event(
+                campaign_id=state.campaign.id,
+                run_id=state.campaign_run_id,
+                event=StepCompleteEvent(step_id=step_id, payload=payload),
+            )
+            self._record_event(
+                campaign_id=state.campaign_run_id,
+                event_type='STEP_COMPLETE',
+                payload={'step_id': str(step_id)},
+            )
+
+            self._store_task_output_values(state, step_id, payload)
+
+            newly_unblocked = self._pop_unblocked_tasks(state, execution)
+            if newly_unblocked:
+                for task_id in newly_unblocked:
+                    self._emit_event(
+                        campaign_id=state.campaign.id,
+                        run_id=state.campaign_run_id,
+                        event=StepStartEvent(step_id=task_id),
+                    )
+                self._dispatch_task_ids(state, newly_unblocked)
+
+            execution.completed_tasks.discard(step_id)
+            execution.active_tasks.add(step_id)
+            return
 
         execution.active_tasks.discard(step_id)
         execution.completed_tasks.add(step_id)
