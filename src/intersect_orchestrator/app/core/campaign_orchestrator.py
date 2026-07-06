@@ -203,13 +203,14 @@ class CampaignOrchestrator:
         with self._lock:
             # Currently we only track running campaigns in memory
             campaigns = []
-            for _campaign_id, state in self._campaigns.items():
+            for campaign_run_id, state in self._campaigns.items():
                 # Filter by status if provided
                 if status is not None and state.status not in status:
                     continue
                 campaigns.append(
                     CampaignInfo(
-                        campaign_id=str(state.campaign.id),
+                        campaign_id=state.campaign.id,
+                        campaign_run_id=campaign_run_id,
                         status=state.status,
                     )
                 )
