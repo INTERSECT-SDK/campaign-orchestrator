@@ -5,12 +5,16 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import Campaign
+from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign import (
+    Campaign,
+)
 from intersect_orchestrator.app.api.v1.endpoints.orchestrator.models.campaign_state import (
     CampaignState,
     ExecutionStatus,
 )
-from intersect_orchestrator.app.converters.campaign_to_petri_net import CampaignPetriNetConverter
+from intersect_orchestrator.app.converters.campaign_to_petri_net import (
+    CampaignPetriNetConverter,
+)
 
 if TYPE_CHECKING:
     from intersect_orchestrator.app.core.repository import CampaignRepository
@@ -219,9 +223,11 @@ def test_get_campaigns_with_running_filter(client, valid_api_key, sample_campaig
     # Each campaign entry should have campaign_id and status
     for campaign in data['campaigns']:
         assert 'campaign_id' in campaign
+        assert 'campaign_run_id' in campaign
         assert 'status' in campaign
         # Validate campaign_id is a valid UUID
         uuid.UUID(campaign['campaign_id'])
+        uuid.UUID(campaign['campaign_run_id'])
 
 
 def test_get_campaigns_returns_campaign_id_and_status(client, valid_api_key, sample_campaign_data):
@@ -247,6 +253,7 @@ def test_get_campaigns_returns_campaign_id_and_status(client, valid_api_key, sam
     # Verify structure of each campaign entry
     campaign_entry = data['campaigns'][0]
     assert 'campaign_id' in campaign_entry
+    assert 'campaign_run_id' in campaign_entry
     assert 'status' in campaign_entry
     # campaign_id should match the one from the campaign data
     assert campaign_entry['campaign_id'] == sample_campaign_data['id']
@@ -271,7 +278,10 @@ def test_get_campaigns_missing_api_key(client):
 
 
 def test_get_campaigns_multiple_status_filter(
-    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+    client,
+    valid_api_key,
+    sample_campaign_data,
+    random_number_and_histogram_campaign_data,
 ):
     """Test filtering campaigns with multiple status values."""
     # Start first campaign
@@ -316,7 +326,10 @@ def test_get_campaigns_multiple_status_filter(
 
 
 def test_get_campaigns_filter_running_only(
-    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+    client,
+    valid_api_key,
+    sample_campaign_data,
+    random_number_and_histogram_campaign_data,
 ):
     """Test filtering to only running campaigns excludes other statuses."""
     # Start two campaigns
@@ -350,7 +363,10 @@ def test_get_campaigns_filter_running_only(
 
 
 def test_get_campaigns_filter_error_only(
-    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+    client,
+    valid_api_key,
+    sample_campaign_data,
+    random_number_and_histogram_campaign_data,
 ):
     """Test filtering to only error campaigns excludes other statuses."""
     # Start two campaigns
@@ -384,7 +400,10 @@ def test_get_campaigns_filter_error_only(
 
 
 def test_get_campaigns_filter_queued_only(
-    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+    client,
+    valid_api_key,
+    sample_campaign_data,
+    random_number_and_histogram_campaign_data,
 ):
     """Test filtering to only queued campaigns."""
     # Start two campaigns
@@ -418,7 +437,10 @@ def test_get_campaigns_filter_queued_only(
 
 
 def test_get_campaigns_filter_complete_only(
-    client, valid_api_key, sample_campaign_data, random_number_and_histogram_campaign_data
+    client,
+    valid_api_key,
+    sample_campaign_data,
+    random_number_and_histogram_campaign_data,
 ):
     """Test filtering to only complete campaigns."""
     # Start two campaigns

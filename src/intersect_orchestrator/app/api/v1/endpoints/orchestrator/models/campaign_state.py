@@ -9,6 +9,7 @@ from pydantic import Field
 
 from .campaign import (
     Campaign,
+    IntersectCampaignId,
     Objective,
     ObjectiveAssert,
     ObjectiveIterate,
@@ -58,7 +59,10 @@ from pydantic import BaseModel  # noqa: E402
 class CampaignInfo(BaseModel):
     """Summary info for a single campaign in list responses."""
 
-    campaign_id: str
+    campaign_id: IntersectCampaignId
+    """The ID of the campaign as tracked by the client"""
+    campaign_run_id: IntersectCampaignId
+    """The RUN ID of the campaign as tracked by the orchestrator"""
     status: ExecutionStatus
 
 
@@ -77,7 +81,8 @@ class TaskGroupState(TaskGroup):
     status: ExecutionStatus = ExecutionStatus.QUEUED
     tasks: Annotated[list[TaskState], Field(default_factory=list)]
     objectives: Annotated[
-        list[ObjectiveAssertState | ObjectiveIterateState], Field(default_factory=list)
+        list[ObjectiveAssertState | ObjectiveIterateState],
+        Field(default_factory=list),
     ]
 
 
