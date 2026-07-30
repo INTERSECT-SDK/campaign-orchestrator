@@ -665,7 +665,10 @@ class CampaignOrchestrator:
                 self._dispatch_task_ids(state, newly_unblocked)
 
             if self._should_reactivate_event_task(
-                task, match_count, has_unblocked_dependents=bool(newly_unblocked)
+                task,
+                match_count,
+                has_unblocked_dependents=bool(newly_unblocked),
+                execution=execution,
             ):
                 execution.requeue_after_completion.update(newly_unblocked)
                 execution.completed_tasks.discard(step_id)
@@ -710,7 +713,18 @@ class CampaignOrchestrator:
         match_count: int,
         *,
         has_unblocked_dependents: bool,
+        execution: TaskGroupExecution,
     ) -> bool:
+        # For single-pass campaigns (no objectives, first iteration) with non-event tasks,
+        # don't reactivate persistent listeners — let the campaign complete after request tasks finish.
+        # Event-only campaigns (all tasks are event listeners) should keep reactivating.
+        if not execution.objective_checkers and execution.current_iteration == 0:
+            all_tasks_are_event_listeners = (
+                set(execution.task_ids) == execution.event_listener_tasks
+            )
+            if not all_tasks_are_event_listeners and task.event_mode == 'persistent':
+                return False
+
         if task.event_mode == 'persistent':
             return True
         if task.event_mode == 'count':
