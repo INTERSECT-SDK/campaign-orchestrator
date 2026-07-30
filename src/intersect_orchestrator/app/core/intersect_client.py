@@ -32,6 +32,8 @@ _log = logging.getLogger(__name__)
 # Base queue name prefixes - suffix is added from settings for uniqueness
 _QUEUE_NAME_PREFIX = 'intersect-orchestrator'
 _EVENT_QUEUE_NAME_PREFIX = 'intersect-orchestrator-events'
+# TODO: orchestrator should only listen for events the active campaigns are interested in,
+# and when it's done listening for an event it should unsubscribe
 EVENT_WILDCARD_CHANNEL = '#'
 
 class CoreServiceIntersectClient:
