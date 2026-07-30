@@ -23,6 +23,21 @@ Make sure you have UV installed ([Instructions](https://docs.astral.sh/uv/#insta
 - `docker compose up -d` - configures a message broker setup if you don't already have one
 - `uv run python -m intersect_orchestrator`
 
+### Running unit tests
+
+Run unit tests without external dependencies:
+
+```bash
+uv run pytest tests/unit -p no:postgresql
+```
+
+To run with all optional dependencies (MongoDB, PostgreSQL):
+
+```bash
+uv sync --dev --extra mongo --extra postgres
+uv run pytest tests/unit --cov=intersect_orchestrator --cov-report=term-missing
+```
+
 ## Published container images
 
 - `ghcr.io/intersect-sdk/campaign-orchestrator:latest` - base image (no optional DB drivers)
