@@ -32,8 +32,7 @@ _log = logging.getLogger(__name__)
 # Base queue name prefixes - suffix is added from settings for uniqueness
 _QUEUE_NAME_PREFIX = 'intersect-orchestrator'
 _EVENT_QUEUE_NAME_PREFIX = 'intersect-orchestrator-events'
-EVENT_WILDCARD_CHANNEL = '*#'
-
+EVENT_WILDCARD_CHANNEL = '#'
 
 class CoreServiceIntersectClient:
     """
