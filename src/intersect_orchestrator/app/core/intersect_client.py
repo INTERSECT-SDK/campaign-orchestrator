@@ -74,6 +74,9 @@ class CoreServiceIntersectClient:
 
         TODO - the registry service needs to make sure to disallow non-root users from subscribing to this channel (publishing is universal)
         """
+        _log.info(f'Orchestrator base topic: {self.orchestrator_base_topic}')
+        _log.info(f'Orchestrator hierarchy: {self._channel_to_hierarchy(self.orchestrator_base_topic)}')
+        _log.info(f'Subscribing to response channel: {self.orchestrator_base_topic}/response')
 
         self.control_plane_manager.add_subscription_channel(
             f'{self.orchestrator_base_topic}/response',
