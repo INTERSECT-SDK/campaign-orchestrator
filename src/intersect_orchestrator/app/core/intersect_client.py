@@ -137,11 +137,17 @@ class CoreServiceIntersectClient:
 
     def subscribe_to_events(
         self,
-        service_hierarchy: str,
-        capability_name: str,
-        event_name: str,
+        _service_hierarchy: str,
+        _capability_name: str,
+        _event_name: str,
     ) -> None:
-        """Ensure the shared wildcard event subscription is registered once."""
+        """Ensure the shared wildcard event subscription is registered once.
+
+        The parameters are part of the public interface (callers specify the
+        exact service/capability/event), but the current implementation uses a
+        single wildcard subscription for all events. Parameters are preserved
+        for future filtering or logging enhancements.
+        """
         if self._event_subscription_registered:
             return
 
