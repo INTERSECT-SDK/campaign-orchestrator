@@ -28,6 +28,9 @@ class _FakeClient:
     def broadcast_message(self, message: bytes) -> None:
         self.broadcasts.append(message)
 
+    def get_orchestrator_hierarchy(self) -> str:
+        return 'test.orchestrator'
+
 
 @pytest.fixture
 def repository() -> InMemoryCampaignRepository:

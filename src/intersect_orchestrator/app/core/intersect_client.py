@@ -47,7 +47,7 @@ class CoreServiceIntersectClient:
         self.http_connections: set[Queue[bytes]] = set()
         self.campaign_orchestrator: CampaignOrchestrator | None = None
         self._event_subscription_registered = False
-        
+
         # Generate unique queue names using the suffix from settings
         # This prevents multiple orchestrator instances from stealing each other's messages
         queue_suffix = settings.QUEUE_NAME_SUFFIX
@@ -149,7 +149,7 @@ class CoreServiceIntersectClient:
             EVENT_WILDCARD_CHANNEL,
             {self._handle_event_message},
             True,
-            EVENT_QUEUE_NAME,
+            self._event_queue_name,
         )
         self._event_subscription_registered = True
 
