@@ -265,7 +265,7 @@ class CampaignOrchestrator:
 
         This does not apply to Event messages, use another callback for this.
         """
-        logger.info(
+        logger.debug(
             '=== RESPONSE RECEIVED === Orchestrator received response (campaign_id=%s, request_id=%s, source=%s)',
             raw_headers.get('campaign_id'),
             raw_headers.get('request_id'),
@@ -414,7 +414,7 @@ class CampaignOrchestrator:
             )
             return
 
-        logger.info(
+        logger.debug(
             'Matched event message source=%s capability=%s event_name=%s to %d task(s)',
             headers.source,
             headers.capability_name,
