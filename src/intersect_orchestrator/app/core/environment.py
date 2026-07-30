@@ -1,4 +1,5 @@
-import uuid
+from datetime import UTC, datetime
+from functools import cached_property
 from typing import Annotated, Literal
 
 from pydantic import BeforeValidator, Field, HttpUrl, PositiveInt
@@ -13,9 +14,9 @@ from .definitions import (
 )
 
 
-def _generate_short_uuid() -> str:
-    """Generate a short 7-character UUID suffix for queue names."""
-    return uuid.uuid4().hex[:7]
+def _generate_timestamp_suffix() -> str:
+    """Generate a timestamp suffix for queue names (ISO format with microseconds)."""
+    return datetime.now(UTC).strftime('%Y%m%dT%H%M%S%f')
 
 
 LogLevel = Literal['CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG']
@@ -77,15 +78,31 @@ class Settings(BaseSettings):
     The System name is used as part of how INTERSECT clients know who to connect to, and can be shared with anyone.
     """
 
-    QUEUE_NAME_SUFFIX: str = Field(default_factory=_generate_short_uuid)
+    AUTOGEN_QUEUE_SUFFIX: bool = False
     """
-    Suffix appended to AMQP queue names to ensure uniqueness across multiple orchestrator instances.
+    If True, append an auto-generated timestamp to the queue name suffix.
+    This ensures unique queue names across orchestrator instances.
     
-    By default, a random 7-character UUID is generated. Set this explicitly to share queues
-    between restarts (e.g., for sticky session behavior) or to completely isolate instances.
+    Use this when running multiple isolated orchestrators against the same broker.
+    """
+
+    QUEUE_NAME_SUFFIX: str = ''
+    """
+    Optional suffix appended to AMQP queue names.
+    
+    Set this to isolate orchestrator instances or identify them in the broker.
+    Combined with AUTOGEN_QUEUE_SUFFIX=True for fully unique names.
     
     Example: QUEUE_NAME_SUFFIX=dev01 would create queues like 'intersect-orchestrator-dev01'
     """
+
+    @cached_property
+    def queue_name_suffix(self) -> str:
+        """Compute the full queue name suffix, including auto-generated part if enabled."""
+        suffix = f'-{self.QUEUE_NAME_SUFFIX}' if self.QUEUE_NAME_SUFFIX else ''
+        if not self.AUTOGEN_QUEUE_SUFFIX:
+            return suffix
+        return f'{suffix}-{_generate_timestamp_suffix()}'
 
     # TODO - should allow for multiple brokers levels eventually.
     BROKER_HOST: str = 'localhost'
