@@ -239,22 +239,16 @@ class Task(BaseModel):
 
         if self.event_name is None:
             if self.event_mode != 'once':
-                errors.append(
-                    f'Task {self.id} cannot define event_mode unless event_name is set'
-                )
+                errors.append(f'Task {self.id} cannot define event_mode unless event_name is set')
             if self.event_count is not None:
-                errors.append(
-                    f'Task {self.id} cannot define event_count unless event_name is set'
-                )
+                errors.append(f'Task {self.id} cannot define event_count unless event_name is set')
         elif self.event_mode == 'count':
             if self.event_count is None or self.event_count <= 0:
                 errors.append(
                     f'Task {self.id} with event_mode=count must define a positive event_count'
                 )
         elif self.event_count is not None:
-            errors.append(
-                f'Task {self.id} can only define event_count when event_mode=count'
-            )
+            errors.append(f'Task {self.id} can only define event_count when event_mode=count')
 
         if errors:
             raise ValueError('\n'.join(errors))

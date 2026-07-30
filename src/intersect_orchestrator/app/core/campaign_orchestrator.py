@@ -142,7 +142,9 @@ class CampaignOrchestrator:
         self._lock = threading.Lock()
         self._campaigns: dict[IntersectCampaignId, CampaignState] = {}
         self._campaign_petri_nets: dict[IntersectCampaignId, PetriNet] = {}
-        logger.info('Orchestrator initialized with hierarchy: %s', self._client.get_orchestrator_hierarchy())
+        logger.info(
+            'Orchestrator initialized with hierarchy: %s', self._client.get_orchestrator_hierarchy()
+        )
         self._repository = repository or InMemoryCampaignRepository()
 
     def submit_campaign(self, campaign: Campaign) -> IntersectCampaignId:
@@ -263,8 +265,12 @@ class CampaignOrchestrator:
 
         This does not apply to Event messages, use another callback for this.
         """
-        logger.info('=== RESPONSE RECEIVED === Orchestrator received response (campaign_id=%s, request_id=%s, source=%s)', 
-                    raw_headers.get('campaign_id'), raw_headers.get('request_id'), raw_headers.get('source'))
+        logger.info(
+            '=== RESPONSE RECEIVED === Orchestrator received response (campaign_id=%s, request_id=%s, source=%s)',
+            raw_headers.get('campaign_id'),
+            raw_headers.get('request_id'),
+            raw_headers.get('source'),
+        )
         # FIXME - several of the fast-return error cases should emit events and CANCEL the campaign
         try:
             headers = validate_userspace_message_headers(raw_headers)
@@ -437,7 +443,10 @@ class CampaignOrchestrator:
                         current_state.campaign_run_id,
                         sorted(str(active_task_id) for active_task_id in execution.active_tasks),
                         sorted(str(pending_task_id) for pending_task_id in execution.pending_tasks),
-                        sorted(str(listener_task_id) for listener_task_id in execution.event_listener_tasks),
+                        sorted(
+                            str(listener_task_id)
+                            for listener_task_id in execution.event_listener_tasks
+                        ),
                     )
                     continue
 
@@ -615,7 +624,9 @@ class CampaignOrchestrator:
             execution.completed_tasks.discard(step_id)
             execution.pending_tasks.add(step_id)
 
-        logger.info('=== STEP COMPLETE === Task %s completed, emitting STEP_COMPLETE event', step_id)
+        logger.info(
+            '=== STEP COMPLETE === Task %s completed, emitting STEP_COMPLETE event', step_id
+        )
         self._emit_event(
             campaign_id=state.campaign.id,
             run_id=state.campaign_run_id,
@@ -715,9 +726,7 @@ class CampaignOrchestrator:
 
     def _finish_campaign(self, state: CampaignState) -> None:
         if state.current_group_index < len(state.task_group_executions):
-            self._close_event_listeners(
-                state.task_group_executions[state.current_group_index]
-            )
+            self._close_event_listeners(state.task_group_executions[state.current_group_index])
         self._emit_event(
             campaign_id=state.campaign.id,
             run_id=state.campaign_run_id,
@@ -790,8 +799,12 @@ class CampaignOrchestrator:
             campaign_id=state.campaign_run_id,
             request_id=task.id,
         )
-        logger.info('Request headers - source: %s, destination: %s, request_id: %s', 
-                    headers.get('source'), headers.get('destination'), headers.get('request_id'))
+        logger.info(
+            'Request headers - source: %s, destination: %s, request_id: %s',
+            headers.get('source'),
+            headers.get('destination'),
+            headers.get('request_id'),
+        )
 
         # The request payload is built from task input defaults in campaign JSON.
         # This allows static per-task configuration like stream IDs and seeds.
