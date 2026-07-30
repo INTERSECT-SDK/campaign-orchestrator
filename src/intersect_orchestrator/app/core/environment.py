@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, Literal
 
 from pydantic import BeforeValidator, Field, HttpUrl, PositiveInt
@@ -10,6 +11,11 @@ from .definitions import (
     HIERARCHY_REGEX,
     BrokerProtocol,
 )
+
+
+def _generate_short_uuid() -> str:
+    """Generate a short 7-character UUID suffix for queue names."""
+    return uuid.uuid4().hex[:7]
 
 LogLevel = Literal['CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG']
 
@@ -68,6 +74,16 @@ class Settings(BaseSettings):
     )
     """
     The System name is used as part of how INTERSECT clients know who to connect to, and can be shared with anyone.
+    """
+
+    QUEUE_NAME_SUFFIX: str = Field(default_factory=_generate_short_uuid)
+    """
+    Suffix appended to AMQP queue names to ensure uniqueness across multiple orchestrator instances.
+    
+    By default, a random 7-character UUID is generated. Set this explicitly to share queues
+    between restarts (e.g., for sticky session behavior) or to completely isolate instances.
+    
+    Example: QUEUE_NAME_SUFFIX=dev01 would create queues like 'intersect-orchestrator-dev01'
     """
 
     # TODO - should allow for multiple brokers levels eventually.

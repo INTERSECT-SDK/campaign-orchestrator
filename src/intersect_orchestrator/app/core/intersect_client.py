@@ -29,8 +29,9 @@ from intersect_sdk._internal.messages.userspace import UserspaceMessage
 _log = logging.getLogger(__name__)
 
 
-RESERVED_QUEUE_NAME = 'intersect-orchestrator'
-EVENT_QUEUE_NAME = 'intersect-orchestrator-events'
+# Base queue name prefixes - suffix is added from settings for uniqueness
+_QUEUE_NAME_PREFIX = 'intersect-orchestrator'
+_EVENT_QUEUE_NAME_PREFIX = 'intersect-orchestrator-events'
 EVENT_WILDCARD_CHANNEL = '*#'
 
 
@@ -46,6 +47,14 @@ class CoreServiceIntersectClient:
         self.http_connections: set[Queue[bytes]] = set()
         self.campaign_orchestrator: CampaignOrchestrator | None = None
         self._event_subscription_registered = False
+        
+        # Generate unique queue names using the suffix from settings
+        # This prevents multiple orchestrator instances from stealing each other's messages
+        queue_suffix = settings.QUEUE_NAME_SUFFIX
+        self._queue_name = f'{_QUEUE_NAME_PREFIX}-{queue_suffix}'
+        self._event_queue_name = f'{_EVENT_QUEUE_NAME_PREFIX}-{queue_suffix}'
+        _log.info(f'Using unique queue names: {self._queue_name}, {self._event_queue_name}')
+
         """
         self.message_validator: TypeAdapter[EventMessage | LifecycleMessage | UserspaceMessage] = (
             TypeAdapter(EventMessage | LifecycleMessage | UserspaceMessage)
@@ -84,13 +93,13 @@ class CoreServiceIntersectClient:
             f'{self.orchestrator_base_topic}/response',
             {self._handle_message},
             True,
-            RESERVED_QUEUE_NAME,
+            self._queue_name,
         )
         self.control_plane_manager.add_subscription_channel(
             EVENT_WILDCARD_CHANNEL,
             {self._handle_event_message},
             True,
-            EVENT_QUEUE_NAME,
+            self._event_queue_name,
         )
         self._event_subscription_registered = True
         self.control_plane_manager.connect()
