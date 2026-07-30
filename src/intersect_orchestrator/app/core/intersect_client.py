@@ -36,6 +36,7 @@ _EVENT_QUEUE_NAME_PREFIX = 'intersect-orchestrator-events'
 # and when it's done listening for an event it should unsubscribe
 EVENT_WILDCARD_CHANNEL = '#'
 
+
 class CoreServiceIntersectClient:
     """
     This class handles interactions with INTERSECT and also helps out with broadcasting websocket events to connected clients.
@@ -49,11 +50,10 @@ class CoreServiceIntersectClient:
         self.campaign_orchestrator: CampaignOrchestrator | None = None
         self._event_subscription_registered = False
 
-        # Generate unique queue names using the suffix from settings
-        # This prevents multiple orchestrator instances from stealing each other's messages
-        queue_suffix = settings.QUEUE_NAME_SUFFIX
-        self._queue_name = f'{_QUEUE_NAME_PREFIX}-{queue_suffix}'
-        self._event_queue_name = f'{_EVENT_QUEUE_NAME_PREFIX}-{queue_suffix}'
+        # Generate queue names using the suffix from settings
+        queue_suffix = settings.queue_name_suffix
+        self._queue_name = f'{_QUEUE_NAME_PREFIX}{queue_suffix}'
+        self._event_queue_name = f'{_EVENT_QUEUE_NAME_PREFIX}{queue_suffix}'
         _log.info(f'Using unique queue names: {self._queue_name}, {self._event_queue_name}')
 
         """
