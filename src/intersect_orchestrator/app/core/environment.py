@@ -17,6 +17,7 @@ def _generate_short_uuid() -> str:
     """Generate a short 7-character UUID suffix for queue names."""
     return uuid.uuid4().hex[:7]
 
+
 LogLevel = Literal['CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG']
 
 
