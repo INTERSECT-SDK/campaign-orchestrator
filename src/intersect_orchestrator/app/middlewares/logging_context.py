@@ -42,18 +42,20 @@ def add_logging_middleware(app: FastAPI) -> None:
             http_version = request.scope['http_version']
             # Recreate the Uvicorn access log format, but add all parameters as structured information
             # This does NOT log HTTP headers or form data
-            _access_logger.info(
-                '%s',
-                f"""{client_host}:{client_port} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
-                http={
-                    'url': str(request.url),
-                    'status_code': status_code,
-                    'method': http_method,
-                    'request_id': request_id,
-                    'version': http_version,
-                },
-                network={'client': {'ip': client_host, 'port': client_port}},
-                duration=process_time,
-            )
+            # and do NOT log healthcheck/ping calls
+            if not url.endswith(('/ping', '/healthcheck')):
+                _access_logger.info(
+                    '%s',
+                    f"""{client_host}:{client_port} - "{http_method} {url} HTTP/{http_version}" {status_code}""",
+                    http={
+                        'url': str(request.url),
+                        'status_code': status_code,
+                        'method': http_method,
+                        'request_id': request_id,
+                        'version': http_version,
+                    },
+                    network={'client': {'ip': client_host, 'port': client_port}},
+                    duration=process_time,
+                )
             response.headers['X-Process-Time'] = str(process_time / 10**9)
             return response  # noqa: B012 (TODO may not want to silence exceptions here)
