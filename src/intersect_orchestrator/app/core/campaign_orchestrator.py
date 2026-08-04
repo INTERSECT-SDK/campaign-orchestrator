@@ -143,7 +143,8 @@ class CampaignOrchestrator:
         self._campaigns: dict[IntersectCampaignId, CampaignState] = {}
         self._campaign_petri_nets: dict[IntersectCampaignId, PetriNet] = {}
         logger.info(
-            'Orchestrator initialized with hierarchy: %s', self._client.get_orchestrator_hierarchy()
+            'Orchestrator initialized with hierarchy: %s',
+            self._client.get_orchestrator_hierarchy(),
         )
         self._repository = repository or InMemoryCampaignRepository()
 
@@ -291,7 +292,7 @@ class CampaignOrchestrator:
                             failed_step_id = None
                     self._handle_request_reply_service_error(
                         state=state,
-                        source=raw_headers.get('source', '???'),
+                        raw_headers=raw_headers,
                         error_message=f'Invalid message headers: {e}',
                         failed_step_id=failed_step_id,
                     )
@@ -316,7 +317,7 @@ class CampaignOrchestrator:
                 logger.error('Campaign has no active task group for ID: %s', campaign_id)
                 self._handle_request_reply_service_error(
                     state,
-                    headers.source,
+                    raw_headers,
                     'No active task group',
                     failed_step_id=node_id,
                 )
@@ -331,7 +332,7 @@ class CampaignOrchestrator:
                 )
                 self._handle_request_reply_service_error(
                     state,
-                    headers.source,
+                    raw_headers,
                     'Node ID from message does not match any active task',
                     failed_step_id=node_id,
                 )
@@ -344,7 +345,7 @@ class CampaignOrchestrator:
                     logger.exception('Message claimed to be JSON but was not')
                     self._handle_request_reply_service_error(
                         state,
-                        headers.source,
+                        raw_headers,
                         'Message claimed to be JSON but was not',
                         failed_step_id=node_id,
                     )
@@ -355,7 +356,7 @@ class CampaignOrchestrator:
             if headers.has_error:
                 self._handle_request_reply_service_error(
                     state,
-                    headers.source,
+                    raw_headers,
                     str(payload),
                     failed_step_id=node_id,
                 )
@@ -466,7 +467,7 @@ class CampaignOrchestrator:
     def _handle_request_reply_service_error(
         self,
         state: CampaignState,
-        source: str,
+        raw_headers: dict[str, str],
         error_message: str,
         failed_step_id: uuid.UUID | None = None,
     ) -> None:
@@ -475,6 +476,14 @@ class CampaignOrchestrator:
         Assumes that the Service messed up, that we have a campaign ID for event hooks,
         and that we have a source in "org.fac.sys.subsys.svc" format.
         """
+
+        logger.debug(
+            'Campaign failed: step ID = %s, error message = %s, headers = %s',
+            failed_step_id,
+            error_message,
+            raw_headers,
+        )
+
         # Report the first active task as the failed step for the event
         execution = (
             state.task_group_executions[state.current_group_index]
@@ -494,7 +503,7 @@ class CampaignOrchestrator:
             run_id=state.campaign_run_id,
             event=CampaignErrorFromServiceEvent(
                 step_id=failed_step,
-                service_hierarchy=source,
+                service_hierarchy=raw_headers.get('source', '???'),
                 exception_message=error_message,
             ),
         )
@@ -625,7 +634,8 @@ class CampaignOrchestrator:
             execution.pending_tasks.add(step_id)
 
         logger.info(
-            '=== STEP COMPLETE === Task %s completed, emitting STEP_COMPLETE event', step_id
+            '=== STEP COMPLETE === Task %s completed, emitting STEP_COMPLETE event',
+            step_id,
         )
         self._emit_event(
             campaign_id=state.campaign.id,
