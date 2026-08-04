@@ -82,7 +82,10 @@ def setup_logging() -> None:
         shared_processors.append(structlog.processors.format_exc_info)
 
     structlog.configure(
-        processors=[*shared_processors, structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
+        processors=[
+            *shared_processors,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.make_filtering_bound_logger(settings.LOG_LEVEL),
         cache_logger_on_first_use=True,
@@ -133,6 +136,16 @@ def setup_logging() -> None:
                     'handlers': ['stderr'],
                     #'handlers': ['queue_handler'],
                     'level': 'INFO',
+                    'propagate': False,
+                },
+                'intersect-sdk': {
+                    'handlers': ['stderr'],
+                    'level': 'DEBUG' if settings.INTERSECT_DEBUG_LOGS else 'INFO',
+                    'propagate': False,
+                },
+                'intersect-sdk-common': {
+                    'handlers': ['stderr'],
+                    'level': 'DEBUG' if settings.INTERSECT_DEBUG_LOGS else 'INFO',
                     'propagate': False,
                 },
                 'sqlalchemy.engine': {

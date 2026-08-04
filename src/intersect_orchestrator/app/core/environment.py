@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: LogLevel = Field(default='INFO')
     """Log level for the ENTIRE application"""
+    INTERSECT_DEBUG_LOGS: bool = False
+    """If true, turn on intersect-sdk debug logging"""
     PRODUCTION: bool = False
     """If True, this flag enables a few different settings:
 
@@ -82,17 +84,17 @@ class Settings(BaseSettings):
     """
     If True, append an auto-generated timestamp to the queue name suffix.
     This ensures unique queue names across orchestrator instances.
-    
+
     Use this when running multiple isolated orchestrators against the same broker.
     """
 
     QUEUE_NAME_SUFFIX: str = ''
     """
     Optional suffix appended to AMQP queue names.
-    
+
     Set this to isolate orchestrator instances or identify them in the broker.
     Combined with AUTOGEN_QUEUE_SUFFIX=True for fully unique names.
-    
+
     Example: QUEUE_NAME_SUFFIX=dev01 would create queues like 'intersect-orchestrator-dev01'
     """
 
