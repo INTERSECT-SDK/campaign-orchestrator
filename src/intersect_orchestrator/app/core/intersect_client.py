@@ -35,11 +35,14 @@ _EVENT_QUEUE_NAME_PREFIX = 'intersect-orchestrator-events'
 # TODO: orchestrator should only listen for events the active campaigns are interested in,
 # and when it's done listening for an event it should unsubscribe
 #
-# NOTE: As of intersect-sdk-common 0.9.5, must use *# and not # due to SDK
-# error: "intersect_sdk_common.exceptions.IntersectSetupError: Channel # is not valid,"
-#        "it must be alphanumeric and can only contain the following "
-#        "special characters: * # / -"
-EVENT_WILDCARD_CHANNEL = '*#'
+# NOTE: a bare '#' is rejected by intersect-sdk-common (>=0.9.5) with
+# "intersect_sdk_common.exceptions.IntersectSetupError: Channel # is not valid, it must be
+# alphanumeric and can only contain the following special characters: * # / -", and '*#' is
+# treated as a single literal word, so it never matches a real event channel. Spell the event
+# channel out instead: an INTERSECT hierarchy is always five parts
+# (organization/facility/system/subsystem/service, with subsystem rendered as '-' when unset)
+# and services publish events on '<hierarchy>/events/<capability>/<event>'.
+EVENT_WILDCARD_CHANNEL = '*/*/*/*/*/events/*/*'
 
 
 class CoreServiceIntersectClient:
