@@ -91,3 +91,17 @@ services:
     depends_on:
       broker:
         condition: service_healthy
+
+  long-running-tasks-service:
+    build:
+      context: ./services/long_running_tasks_service/
+      dockerfile: Dockerfile
+    environment:
+      BROKER_HOST: "broker"
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: "intersect_username"
+      BROKER_PASSWORD: "intersect_password"
+      BROKER_PROTOCOL: "amqp0.9.1"
+    depends_on:
+      broker:
+        condition: service_healthy
