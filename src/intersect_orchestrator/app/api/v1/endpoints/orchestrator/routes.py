@@ -43,18 +43,7 @@ async def list_campaigns(
     return CampaignListResponse(campaigns=campaigns)
 
 
-@router.post(
-    '/start_campaign',
-    description='Initialize campaign',
-    response_description=('Metadata about the successful START CAMPAIGN information'),
-)
-async def start_campaign(
-    request: Request,
-    campaign: Annotated[Campaign, Body(media_type='application/json')],
-    api_key: Annotated[str, Security(api_key_header)],
-) -> str:
-    if api_key != settings.API_KEY:
-        raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
+def _submit_campaign(request: Request, campaign: Campaign) -> str:
     orchestrator = request.app.state.campaign_orchestrator
     try:
         campaign_id = orchestrator.submit_campaign(campaign)
@@ -65,23 +54,81 @@ async def start_campaign(
     return str(campaign_id)
 
 
+def _cancel_campaign(request: Request, campaign_run_id: IntersectCampaignId) -> str:
+    # NOTE: we only keep track of RUNNING campaigns, stopped campaigns might as well not exist
+    orchestrator = request.app.state.campaign_orchestrator
+    if not orchestrator.cancel_campaign(campaign_run_id):
+        raise HTTPException(status_code=404, detail='campaign not found')
+    return str(campaign_run_id)
+
+
+@router.post(
+    '/campaigns/{run_id}',
+    status_code=201,
+    description='Submit and start a campaign run. The run_id in the path must match the run_id in the body.',
+    response_description='The run ID of the started campaign',
+)
+async def create_campaign(
+    request: Request,
+    run_id: IntersectCampaignId,
+    campaign: Annotated[Campaign, Body(media_type='application/json')],
+    api_key: Annotated[str, Security(api_key_header)],
+) -> str:
+    if api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
+    if campaign.run_id != run_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f'run_id in path ({run_id}) does not match run_id in body ({campaign.run_id})',
+        )
+    return _submit_campaign(request, campaign)
+
+
+@router.post(
+    '/campaigns/{run_id}/cancellation',
+    description='Cancel a running campaign',
+    response_description='The run ID of the cancelled campaign',
+)
+async def cancel_campaign(
+    request: Request,
+    run_id: IntersectCampaignId,
+    api_key: Annotated[str, Security(api_key_header)],
+) -> str:
+    if api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
+    return _cancel_campaign(request, run_id)
+
+
+@router.post(
+    '/start_campaign',
+    description='Initialize campaign. Deprecated: use POST /campaigns/{run_id} instead.',
+    response_description=('Metadata about the successful START CAMPAIGN information'),
+    deprecated=True,
+)
+async def start_campaign(
+    request: Request,
+    campaign: Annotated[Campaign, Body(media_type='application/json')],
+    api_key: Annotated[str, Security(api_key_header)],
+) -> str:
+    if api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
+    return _submit_campaign(request, campaign)
+
+
 @router.post(
     '/stop_campaign',
-    description='Stop campaign',
+    description='Stop campaign. Deprecated: use POST /campaigns/{run_id}/cancellation instead.',
     response_description=('Metadata about the successful STOP CAMPAIGN information'),
+    deprecated=True,
 )
 async def stop_campaign(
     request: Request,
     campaign_uuid: Annotated[IntersectCampaignId, Body(media_type='application/json')],
     api_key: Annotated[str, Security(api_key_header)],
 ) -> str:
-    # NOTE: we only keep track of RUNNING campaigns, stopped campaigns might as well not exist
     if api_key != settings.API_KEY:
         raise HTTPException(status_code=401, detail='invalid or incorrect API key provided')
-    orchestrator = request.app.state.campaign_orchestrator
-    if not orchestrator.cancel_campaign(campaign_uuid):
-        raise HTTPException(status_code=404, detail='campaign not found')
-    return str(campaign_uuid)
+    return _cancel_campaign(request, campaign_uuid)
 
 
 @router.websocket(

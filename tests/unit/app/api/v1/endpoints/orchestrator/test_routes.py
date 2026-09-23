@@ -184,6 +184,164 @@ def test_stop_campaign_invalid_uuid(client, valid_api_key):
     assert response.status_code == 422  # Validation error
 
 
+# --- Tests for POST /campaigns/{run_id} endpoint ---
+
+
+def test_create_campaign_success(client, valid_api_key, sample_campaign_data):
+    """Test successful campaign creation with valid API key."""
+    run_id = sample_campaign_data['run_id']
+
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{run_id}',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 201
+    assert uuid.UUID(response.json()) == uuid.UUID(run_id)
+    orchestrator = client.app.state.campaign_orchestrator
+    assert orchestrator.get_campaign(uuid.UUID(run_id)) is not None
+
+
+def test_create_campaign_run_id_mismatch(client, valid_api_key, sample_campaign_data):
+    """Test campaign creation fails when path run_id does not match body run_id."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{uuid.uuid4()}',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 400
+    assert 'does not match' in response.json()['detail']
+    assert client.app.state.campaign_orchestrator.list_campaigns() == []
+
+
+def test_create_campaign_duplicate(client, valid_api_key, sample_campaign_data):
+    """Test creating the same campaign run twice returns a conflict."""
+    url = f'/v1/orchestrator/campaigns/{sample_campaign_data["run_id"]}'
+    headers = {'Authorization': valid_api_key}
+
+    assert client.post(url, json=sample_campaign_data, headers=headers).status_code == 201
+    response = client.post(url, json=sample_campaign_data, headers=headers)
+
+    assert response.status_code == 409
+
+
+def test_create_campaign_invalid_api_key(client, invalid_api_key, sample_campaign_data):
+    """Test campaign creation with invalid API key."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{sample_campaign_data["run_id"]}',
+        json=sample_campaign_data,
+        headers={'Authorization': invalid_api_key},
+    )
+
+    assert response.status_code == 401
+    assert 'invalid or incorrect API key provided' in response.json()['detail']
+
+
+def test_create_campaign_missing_api_key(client, sample_campaign_data):
+    """Test campaign creation without API key."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{sample_campaign_data["run_id"]}',
+        json=sample_campaign_data,
+    )
+
+    assert response.status_code == 403  # FastAPI's default for missing security dependency
+
+
+def test_create_campaign_invalid_campaign_data(client, valid_api_key):
+    """Test campaign creation with invalid campaign data."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{uuid.uuid4()}',
+        json={'invalid': 'data'},
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 422  # Validation error
+
+
+def test_create_campaign_invalid_uuid(client, valid_api_key, sample_campaign_data):
+    """Test campaign creation with invalid run_id path parameter."""
+    response = client.post(
+        '/v1/orchestrator/campaigns/not-a-uuid',
+        json=sample_campaign_data,
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 422  # Validation error
+
+
+# --- Tests for POST /campaigns/{run_id}/cancellation endpoint ---
+
+
+def test_cancel_campaign_success(client, valid_api_key, sample_campaign_data):
+    """Test cancelling a running campaign removes it from the running campaigns."""
+    run_id = sample_campaign_data['run_id']
+    headers = {'Authorization': valid_api_key}
+    create_response = client.post(
+        f'/v1/orchestrator/campaigns/{run_id}',
+        json=sample_campaign_data,
+        headers=headers,
+    )
+    assert create_response.status_code == 201
+
+    response = client.post(f'/v1/orchestrator/campaigns/{run_id}/cancellation', headers=headers)
+
+    assert response.status_code == 200
+    assert uuid.UUID(response.json()) == uuid.UUID(run_id)
+    list_response = client.get('/v1/orchestrator/campaigns', headers=headers)
+    assert run_id not in {c['campaign_run_id'] for c in list_response.json()['campaigns']}
+
+
+def test_cancel_campaign_not_found(client, valid_api_key):
+    """Test cancelling a campaign that does not exist."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{uuid.uuid4()}/cancellation',
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 404
+    assert 'campaign not found' in response.json()['detail']
+
+
+def test_cancel_campaign_invalid_api_key(client, invalid_api_key):
+    """Test campaign cancellation with invalid API key."""
+    response = client.post(
+        f'/v1/orchestrator/campaigns/{uuid.uuid4()}/cancellation',
+        headers={'Authorization': invalid_api_key},
+    )
+
+    assert response.status_code == 401
+    assert 'invalid or incorrect API key provided' in response.json()['detail']
+
+
+def test_cancel_campaign_missing_api_key(client):
+    """Test campaign cancellation without API key."""
+    response = client.post(f'/v1/orchestrator/campaigns/{uuid.uuid4()}/cancellation')
+
+    assert response.status_code == 403  # FastAPI's default for missing security dependency
+
+
+def test_cancel_campaign_invalid_uuid(client, valid_api_key):
+    """Test campaign cancellation with invalid run_id path parameter."""
+    response = client.post(
+        '/v1/orchestrator/campaigns/not-a-uuid/cancellation',
+        headers={'Authorization': valid_api_key},
+    )
+
+    assert response.status_code == 422  # Validation error
+
+
+def test_legacy_endpoints_marked_deprecated(client):
+    """Test the old start/stop endpoints are flagged as deprecated in the OpenAPI schema."""
+    paths = client.app.openapi()['paths']
+
+    assert paths['/v1/orchestrator/start_campaign']['post']['deprecated'] is True
+    assert paths['/v1/orchestrator/stop_campaign']['post']['deprecated'] is True
+    assert 'deprecated' not in paths['/v1/orchestrator/campaigns/{run_id}']['post']
+    assert 'deprecated' not in paths['/v1/orchestrator/campaigns/{run_id}/cancellation']['post']
+
+
 # --- Tests for GET /campaigns endpoint ---
 
 
