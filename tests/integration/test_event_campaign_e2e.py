@@ -18,18 +18,14 @@ from tests.integration.conftest import (
 )
 
 
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_event_campaign_completes_via_websocket(
-    check_orchestrator_available: None,
-    check_random_number_service_available: None,
-    event_campaign_json: dict[str, Any],
+async def _run_event_campaign_via_websocket(
+    campaign_json: dict[str, Any], submit_path: str, expected_status: int
 ) -> None:
-    """Submit request+event campaign and verify campaign completion events."""
+    """Submit request+event campaign to ``submit_path`` and verify campaign completion events."""
     base_url = get_orchestrator_url()
     ws_url = get_orchestrator_ws_url()
     api_key = get_api_key()
-    campaign_data = json.loads(json.dumps(event_campaign_json))
+    campaign_data = json.loads(json.dumps(campaign_json))
     campaign_data['run_id'] = str(uuid.uuid4())
 
     received_events: list[dict[str, Any]] = []
@@ -61,12 +57,14 @@ async def test_event_campaign_completes_via_websocket(
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f'{base_url}/v1/orchestrator/start_campaign',
+                f'{base_url}{submit_path.format(run_id=campaign_data["run_id"])}',
                 json=campaign_data,
                 headers={'Authorization': api_key},
                 timeout=30.0,
             )
-            assert response.status_code == 200, f'Failed to start campaign: {response.text}'
+            assert response.status_code == expected_status, (
+                f'Failed to start campaign: {response.text}'
+            )
 
         try:
             await asyncio.wait_for(listen_task, timeout=60.0)
@@ -82,4 +80,30 @@ async def test_event_campaign_completes_via_websocket(
     assert 'CAMPAIGN_COMPLETE' in event_types, f'Missing CAMPAIGN_COMPLETE in events: {event_types}'
     assert step_complete_count >= 2, (
         f'Expected at least 2 STEP_COMPLETE events (request + event task). Got: {step_complete_count}'
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_event_campaign_completes_via_websocket(
+    check_orchestrator_available: None,
+    check_random_number_service_available: None,
+    event_campaign_json: dict[str, Any],
+) -> None:
+    """Submit request+event campaign using POST /campaigns/{run_id}."""
+    await _run_event_campaign_via_websocket(
+        event_campaign_json, '/v1/orchestrator/campaigns/{run_id}', 201
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_event_campaign_completes_via_websocket_deprecated(
+    check_orchestrator_available: None,
+    check_random_number_service_available: None,
+    event_campaign_json: dict[str, Any],
+) -> None:
+    """Submit request+event campaign using the deprecated POST /start_campaign."""
+    await _run_event_campaign_via_websocket(
+        event_campaign_json, '/v1/orchestrator/start_campaign', 200
     )

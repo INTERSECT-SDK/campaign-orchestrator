@@ -27,16 +27,12 @@ from tests.integration.conftest import (
 )
 
 
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_full_campaign_loop_with_websocket(
-    check_orchestrator_available: None,
-) -> None:
-    """Test submitting a campaign via REST API and monitoring via WebSocket.
+async def _run_campaign_loop_with_websocket(submit_path: str, expected_status: int) -> None:
+    """Submit a campaign via REST API and monitor it via WebSocket.
 
-    This test:
+    Steps:
     1. Connects to the WebSocket /events endpoint
-    2. POSTs a campaign to /start_campaign
+    2. POSTs a campaign to ``submit_path`` (formatted with the campaign's ``run_id``)
     3. Listens for campaign events on the WebSocket
     4. Verifies the campaign completes successfully
     """
@@ -87,12 +83,14 @@ async def test_full_campaign_loop_with_websocket(
         # Submit the campaign via REST API
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f'{base_url}/v1/orchestrator/start_campaign',
+                f'{base_url}{submit_path.format(run_id=campaign_data["run_id"])}',
                 json=campaign_data,
                 headers={'Authorization': api_key},
                 timeout=30.0,
             )
-            assert response.status_code == 200, f'Failed to start campaign: {response.text}'
+            assert response.status_code == expected_status, (
+                f'Failed to start campaign: {response.text}'
+            )
 
         # Wait for events (with timeout)
         try:
@@ -122,3 +120,21 @@ async def test_full_campaign_loop_with_websocket(
     assert 'CAMPAIGN_COMPLETE' in event_types, (
         f'Missing CAMPAIGN_COMPLETE event. Got: {event_types}'
     )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_full_campaign_loop_with_websocket(
+    check_orchestrator_available: None,
+) -> None:
+    """Test the full campaign loop using POST /campaigns/{run_id}."""
+    await _run_campaign_loop_with_websocket('/v1/orchestrator/campaigns/{run_id}', 201)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_full_campaign_loop_with_websocket_deprecated(
+    check_orchestrator_available: None,
+) -> None:
+    """Test the full campaign loop using the deprecated POST /start_campaign."""
+    await _run_campaign_loop_with_websocket('/v1/orchestrator/start_campaign', 200)
