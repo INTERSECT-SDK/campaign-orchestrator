@@ -59,6 +59,15 @@ def is_orchestrator_available() -> bool:
         return False
 
 
+def is_long_running_tasks_service_available() -> bool:
+    """Check if the long-running-tasks-service is available in the test environment.
+
+    Like the random-number-service, this service has no TCP port, so availability
+    is declared via the ``LONG_RUNNING_TASKS_SERVICE_AVAILABLE`` environment variable.
+    """
+    return os.getenv('LONG_RUNNING_TASKS_SERVICE_AVAILABLE', '').lower() in ('1', 'true', 'yes')
+
+
 def is_random_number_service_available() -> bool:
     """Check if the random-number-service is available in the test environment.
 
@@ -146,6 +155,17 @@ def check_random_number_service_available() -> None:
 
 
 @pytest.fixture(scope='session')
+def check_long_running_tasks_service_available() -> None:
+    """Skip tests that require the long-running-tasks-service if it is not present."""
+    if not is_long_running_tasks_service_available():
+        pytest.skip(
+            'Long-running-tasks-service not available. '
+            'Set LONG_RUNNING_TASKS_SERVICE_AVAILABLE=true or run '
+            "'docker-compose up -d broker long-running-tasks-service' to enable."
+        )
+
+
+@pytest.fixture(scope='session')
 def check_no_competing_orchestrator() -> None:
     """Skip embedded-orchestrator completion tests when an orchestrator service is running.
 
@@ -204,6 +224,12 @@ def event_campaign_file() -> pathlib.Path:
 
 
 @pytest.fixture(scope='module')
+def long_running_task_campaign_file() -> pathlib.Path:
+    """Path to single long-running-task campaign JSON used by cancellation tests."""
+    return TEST_DATA_DIR / 'campaign' / 'long-running-task-campaign.campaign.json'
+
+
+@pytest.fixture(scope='module')
 def expected_events_file() -> pathlib.Path:
     """Path to expected iterative event sequence contract file."""
     return TEST_DATA_DIR / 'target' / 'random-number-campaign-iterative.expected-events.json'
@@ -220,6 +246,15 @@ def iterative_campaign_json(iterative_campaign_file: pathlib.Path) -> dict[str, 
 def event_campaign_json(event_campaign_file: pathlib.Path) -> dict[str, Any]:
     """Load request+event campaign payload from test data."""
     with event_campaign_file.open() as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def long_running_task_campaign_json(
+    long_running_task_campaign_file: pathlib.Path,
+) -> dict[str, Any]:
+    """Load single long-running-task campaign payload from test data."""
+    with long_running_task_campaign_file.open() as f:
         return json.load(f)
 
 

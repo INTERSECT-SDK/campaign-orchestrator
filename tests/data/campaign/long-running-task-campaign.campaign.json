@@ -1,0 +1,54 @@
+{
+  "id": "89e912e5-a32d-4a2c-b8ff-bc6a82240985",
+  "run_id": "176b5387-18c2-47fe-aa16-60db6c6a41de",
+  "name": "long-running-task-campaign",
+  "user": "system",
+  "description": "Single long-running task (1 minute) used to exercise campaign cancellation mid-run.",
+  "task_groups": [
+    {
+      "id": "e782aa04-23a1-48a0-883e-7e6f77fdc186",
+      "group_dependencies": [],
+      "tasks": [
+        {
+          "id": "e7bc9ab8-e6aa-4ea9-8d93-79b8fb5615d9",
+          "hierarchy": "long-running-tasks-organization.long-running-tasks-facility.long-running-tasks-system.long-running-tasks-subsystem.long-running-tasks-service",
+          "capability": "Long_Running_Tasks",
+          "operation_id": "run_task_local",
+          "event_name": null,
+          "output": null,
+          "input": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "minutes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 1,
+                  "description": "Positive local task duration in minutes."
+                }
+              }
+            },
+            "values": [
+              {
+                "id": "761b1afc-fc90-418d-abe8-a26e879edf8e",
+                "var": "minutes"
+              }
+            ]
+          },
+          "task_dependencies": [],
+          "task_objectives": null
+        }
+      ],
+      "objectives": [
+        {
+          "id": "a3ccc6be-8e09-4ce0-997d-679b82205e38",
+          "type": "iterate",
+          "iterations": 1
+        }
+      ]
+    }
+  ],
+  "objectives": null,
+  "inputs": [],
+  "outputs": []
+}
