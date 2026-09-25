@@ -1285,6 +1285,174 @@ def test_task_dependencies_gate_dispatch() -> None:
     assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
 
 
+def test_failed_task_assert_objective_repeats_task_until_met() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_id = uuid.uuid4()
+    objective_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='task-objective-retry',
+        user='test-user',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(task_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op',
+                        'task_objectives': {
+                            'id': str(objective_id),
+                            'type': 'assert',
+                            'var': 'ready',
+                            'target': True,
+                        },
+                    }
+                ],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+    assert len(client.control_plane_manager.published) == 1
+
+    orchestrator.handle_request_reply_broker_message(
+        b'{"ready": false}',
+        'application/json',
+        _reply_headers(campaign_id, task_id),
+    )
+
+    assert len(client.control_plane_manager.published) == 2
+    assert _started_step_ids(client.broadcasts) == [str(task_id), str(task_id)]
+    assert _event_types(client.broadcasts).count('STEP_COMPLETE') == 0
+    assert campaign_id in orchestrator._campaigns
+
+    orchestrator.handle_request_reply_broker_message(
+        b'{"ready": true}',
+        'application/json',
+        _reply_headers(campaign_id, task_id),
+    )
+
+    assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
+    assert _event_types(client.broadcasts).count('STEP_COMPLETE') == 1
+    assert campaign_id not in orchestrator._campaigns
+
+
+def test_task_assert_objective_blocks_dependants_until_met() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_a = uuid.uuid4()
+    task_b = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='task-objective-dependency',
+        user='test-user',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(task_a),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op-a',
+                        'task_objectives': {
+                            'id': str(uuid.uuid4()),
+                            'type': 'assert',
+                            'var': 'ready',
+                            'target': True,
+                        },
+                    },
+                    {
+                        'id': str(task_b),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op-b',
+                        'task_dependencies': [str(task_a)],
+                    },
+                ],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+    orchestrator.handle_request_reply_broker_message(
+        b'{"ready": false}',
+        'application/json',
+        _reply_headers(campaign_id, task_a),
+    )
+
+    published_operation_ids = [
+        published[3]['operation_id'] for published in client.control_plane_manager.published
+    ]
+    assert published_operation_ids == ['cap.op-a', 'cap.op-a']
+
+    orchestrator.handle_request_reply_broker_message(
+        b'{"ready": true}',
+        'application/json',
+        _reply_headers(campaign_id, task_a),
+    )
+
+    published_operation_ids = [
+        published[3]['operation_id'] for published in client.control_plane_manager.published
+    ]
+    assert published_operation_ids == ['cap.op-a', 'cap.op-a', 'cap.op-b']
+
+
+def test_task_iterate_objective_repeats_only_its_task() -> None:
+    client = FakeClient()
+    orchestrator = CampaignOrchestrator(client)
+
+    campaign_id = uuid.uuid4()
+    task_id = uuid.uuid4()
+    campaign = Campaign(
+        id=campaign_id,
+        run_id=campaign_id,
+        name='task-iterate-objective',
+        user='test-user',
+        task_groups=[
+            {
+                'id': str(uuid.uuid4()),
+                'tasks': [
+                    {
+                        'id': str(task_id),
+                        'hierarchy': 'org.fac.system.subsystem.service',
+                        'capability': 'cap',
+                        'operation_id': 'op',
+                        'task_objectives': {
+                            'id': str(uuid.uuid4()),
+                            'type': 'iterate',
+                            'iterations': 3,
+                        },
+                    }
+                ],
+                'objectives': [],
+            }
+        ],
+    )
+
+    orchestrator.submit_campaign(campaign)
+    for _ in range(3):
+        orchestrator.handle_request_reply_broker_message(
+            b'{}',
+            'application/json',
+            _reply_headers(campaign_id, task_id),
+        )
+
+    assert len(client.control_plane_manager.published) == 3
+    assert _event_types(client.broadcasts)[-1] == 'CAMPAIGN_COMPLETE'
+
+
 def test_output_value_wired_to_dependent_task_input() -> None:
     """Output value from task A (resolved at completion) should override the
     default in task B's input when the same value-ID is referenced.

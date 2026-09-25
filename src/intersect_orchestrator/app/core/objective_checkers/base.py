@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class ObjectiveChecker(abc.ABC):
-    """Base class for task-group objective checkers."""
+    """Base class for task and task-group objective checkers."""
 
     @property
     @abc.abstractmethod
