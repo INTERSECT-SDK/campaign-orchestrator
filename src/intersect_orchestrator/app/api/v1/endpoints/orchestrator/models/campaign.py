@@ -225,7 +225,7 @@ class Task(BaseModel):
     input: Input | None = None
     task_dependencies: Annotated[list[uuid.UUID], Field(default_factory=list)]
     """List of other Task IDs WITHIN A TASK GROUP which must finish before this Task can start. Empty dependencies means this task can start immediately."""
-    task_objectives: Annotated[Objective | None, Field(None)] = None
+    task_objectives: Annotated[ObjectiveAssert | ObjectiveIterate | None, Field(None)] = None
     """Sub-goals or limitations of a Task."""
 
     @model_validator(mode='after')

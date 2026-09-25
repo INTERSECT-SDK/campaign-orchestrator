@@ -90,6 +90,8 @@ class TaskGroupExecution:
     task_group_id: uuid.UUID
     task_ids: list[uuid.UUID]
     objective_checkers: list[ObjectiveChecker] = field(default_factory=list)
+    task_objective_checkers: dict[uuid.UUID, ObjectiveChecker] = field(default_factory=dict)
+    """Per-task objective checkers for the current task-group iteration."""
     current_iteration: int = 0
     active_tasks: set[uuid.UUID] = field(default_factory=set)
     pending_tasks: set[uuid.UUID] = field(default_factory=set)
@@ -586,6 +588,12 @@ class CampaignOrchestrator:
 
         execution.completed_tasks = set()
         execution.iteration_payloads = {}
+        # Task objectives apply independently to each run of the task group. A
+        # checker therefore starts fresh when a group-level objective causes a
+        # new iteration.
+        execution.task_objective_checkers = self._build_task_objective_checkers(
+            state.campaign, execution.task_ids
+        )
 
         # Separate tasks into immediately-ready (no unmet dependencies) vs pending.
         ready: set[uuid.UUID] = set()
@@ -633,6 +641,49 @@ class CampaignOrchestrator:
             execution.completed_tasks.discard(step_id)
             execution.pending_tasks.add(step_id)
 
+        match_count = 0
+        if task.event_name is not None:
+            match_count = execution.event_task_match_counts.get(step_id, 0) + 1
+            execution.event_task_match_counts[step_id] = match_count
+
+        task_objective_checker = execution.task_objective_checkers.get(step_id)
+        if task_objective_checker is not None:
+            task_objective_checker.record_iteration({step_id: payload})
+            if not task_objective_checker.is_met():
+                # This attempt completed, but the task itself must remain active
+                # until its objective succeeds. Dependants consequently remain
+                # pending and cannot observe an unsuccessful output.
+                execution.completed_tasks.discard(step_id)
+                execution.iteration_payloads.pop(step_id, None)
+                execution.active_tasks.add(step_id)
+                self._record_task_event(
+                    campaign_id=state.campaign_run_id,
+                    task_group_id=execution.task_group_id,
+                    task_id=step_id,
+                    event_type='TASK_OBJECTIVE_RETRY',
+                    payload={'objective_id': str(task_objective_checker.objective_id)},
+                )
+                logger.info(
+                    'Task %s objective %s not met; dispatching another attempt',
+                    step_id,
+                    task_objective_checker.objective_id,
+                )
+                self._emit_event(
+                    campaign_id=state.campaign.id,
+                    run_id=state.campaign_run_id,
+                    event=StepStartEvent(step_id=step_id),
+                )
+                self._dispatch_task_ids(state, {step_id})
+                return
+
+            self._record_task_event(
+                campaign_id=state.campaign_run_id,
+                task_group_id=execution.task_group_id,
+                task_id=step_id,
+                event_type='TASK_OBJECTIVE_MET',
+                payload={'objective_id': str(task_objective_checker.objective_id)},
+            )
+
         logger.info(
             '=== STEP COMPLETE === Task %s completed, emitting STEP_COMPLETE event',
             step_id,
@@ -648,13 +699,11 @@ class CampaignOrchestrator:
             payload={'step_id': str(step_id)},
         )
 
-        # Resolve and store output values from the completed task so downstream
-        # tasks (in this or future groups) can reference them via shared value IDs.
+        # Only publish a task's output to downstream tasks after its own
+        # objective has succeeded.
         self._store_task_output_values(state, step_id, payload)
 
         if task.event_name is not None:
-            match_count = execution.event_task_match_counts.get(step_id, 0) + 1
-            execution.event_task_match_counts[step_id] = match_count
             newly_unblocked = self._pop_unblocked_tasks(state, execution)
             logger.info(
                 'Event task %s completed for campaign %s in mode=%s count=%d; unblocked %d dependent task(s): %s',
@@ -1071,7 +1120,7 @@ class CampaignOrchestrator:
     ) -> None:
         """Record a task-level event and update task state.
 
-        Task event types: TASK_NOT_RUNNING, TASK_RUNNING, TASK_COMPLETED, TASK_FAILED, TASK_EVENT_RECEIVED
+        Task event types include lifecycle, event-receipt, and objective-result events.
         """
         snapshot = self._repository.load_snapshot(campaign_id)
         if snapshot is None:
@@ -1322,12 +1371,28 @@ class CampaignOrchestrator:
         for task_group in campaign.task_groups:
             task_ids = [task.id for task in task_group.tasks]
             checkers = _build_checkers(task_group.objectives)
+            task_checkers = self._build_task_objective_checkers(campaign, task_ids)
 
             executions.append(
                 TaskGroupExecution(
                     task_group_id=task_group.id,
                     task_ids=task_ids,
                     objective_checkers=checkers,
+                    task_objective_checkers=task_checkers,
                 )
             )
         return executions
+
+    def _build_task_objective_checkers(
+        self, campaign: Campaign, task_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, ObjectiveChecker]:
+        """Create one checker for each task that declares an objective."""
+        checkers: dict[uuid.UUID, ObjectiveChecker] = {}
+        for task_id in task_ids:
+            task = self._get_task_from_campaign(campaign, task_id)
+            if task is None or task.task_objectives is None:
+                continue
+            built = _build_checkers([task.task_objectives])
+            if built:
+                checkers[task_id] = built[0]
+        return checkers
